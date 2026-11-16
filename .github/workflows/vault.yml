@@ -1,0 +1,26 @@
+name: vault
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  vault:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: El PR actualiza la bóveda
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [[ "$TITLE" == *"[sin-vault]"* ]]; then echo "Omitido por [sin-vault]"; exit 0; fi
+          if git diff --name-only "$BASE...$HEAD" | grep -q '^vault/'; then
+            echo "OK: el PR toca vault/"
+          else
+            echo "::error::Este PR no actualiza vault/. Añade una entrada en vault/Bitacora/ o pon [sin-vault] en el título."
+            exit 1
+          fi

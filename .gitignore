@@ -1,0 +1,9 @@
+# Obsidian: estado local de cada usuario
+vault/.obsidian/workspace*.json
+vault/.obsidian/cache
+vault/.trash/
+vault/.obsidian/plugins/
+
+# Documentos y datos reales: nunca al repo
+*.pdf
+.env
