@@ -22,7 +22,8 @@ if (-not $obsidian -and (Get-Command winget -ErrorAction SilentlyContinue)) {
     $obsidian = Test-Path "$env:LOCALAPPDATA\Programs\Obsidian\Obsidian.exe"
 }
 if ($obsidian) {
-    Start-Process ("obsidian://open?path=" + [uri]::EscapeDataString($vault))
+    # Se pasa el URI al exe porque el protocolo obsidian:// no existe hasta el primer arranque.
+    Start-Process "$env:LOCALAPPDATA\Programs\Obsidian\Obsidian.exe" -ArgumentList ("obsidian://open?path=" + [uri]::EscapeDataString($vault))
     Write-Output "OK: boveda abierta en Obsidian. Acepta 'Confiar en el autor y activar plugins' la primera vez."
 } else {
     Write-Output "AVISO: instala Obsidian (https://obsidian.md) y abre la carpeta $vault como boveda."
