@@ -61,6 +61,8 @@ Medido con `investigacion/paddleocr/bench.py`: mismas páginas, `temperature 0`,
 
 Medir con 4 páginas o más: con una sola página el modelo ya está caliente y el resultado se infla (~350 pág/h en la misma máquina).
 
+La fila del servidor es la **VM `genai-openllm-vm`**, no el servidor definitivo: ese es un DGX Spark ([[Servidor definitivo]]) y queda pendiente pasarle este mismo script.
+
 Conclusiones:
 
 - Sin GPU, el OCR es entre 3 y 30 veces más lento que con la RTX 3050 (servidor ≈ 260 pág/h, portátil ≈ 100 pág/h, referencia ≈ 2.750 pág/h). Para el servidor, GPU NVIDIA sigue siendo requisito, no optimización.
