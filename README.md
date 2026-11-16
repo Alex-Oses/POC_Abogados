@@ -13,7 +13,7 @@ Prueba de concepto para el **Il·lustre Col·legi de l'Advocacia de Tarragona (I
 | Pieza | Estado | Dónde |
 |---|---|---|
 | Propuesta funcional y de diseño | Hecha (06/11/2026) | [vault/Proyecto/Propuesta ICAT](vault/Proyecto/Propuesta%20ICAT.md) |
-| Pruebas de rendimiento del OCR (PaddleOCR-VL 1.6) | Hechas | [vault/Proyecto/Rendimiento OCR](vault/Proyecto/Rendimiento%20OCR.md) |
+| Pruebas de rendimiento del OCR (PaddleOCR-VL 1.6) | Hechas, con comparativa de equipos | [vault/Proyecto/Rendimiento OCR](vault/Proyecto/Rendimiento%20OCR.md) · [bench](investigacion/paddleocr/bench.py) |
 | Contrato de la API (v1) | Borrador | [vault/Proyecto/API](vault/Proyecto/API.md) |
 | Modelo de datos (PostgreSQL) | Primer borrador | [docs/architecture](docs/architecture/README.md) |
 | Anonimización local (Presidio) | Investigada y medida | [documentación y rendimiento](docs/presidio.md) · [PDF](docs/presidio.pdf) |
