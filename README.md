@@ -16,6 +16,8 @@ Prueba de concepto para el **Il·lustre Col·legi de l'Advocacia de Tarragona (I
 | Pruebas de rendimiento del OCR (PaddleOCR-VL 1.6) | Hechas | [vault/Proyecto/Rendimiento OCR](vault/Proyecto/Rendimiento%20OCR.md) |
 | Contrato de la API (v1) | Borrador | [vault/Proyecto/API](vault/Proyecto/API.md) |
 | Modelo de datos (PostgreSQL) | Primer borrador | [docs/architecture](docs/architecture/README.md) |
+| Anonimización local (Presidio) | Primera prueba | [vault/Investigacion](vault/Investigacion/Anonimizacion%20con%20Presidio.md) |
+| Maqueta navegable del flujo completo | Hecha | [maqueta/index.html](maqueta/index.html) · [notas](vault/Proyecto/Maqueta.md) |
 | Código de la aplicación | Sin empezar | — |
 
 ## Qué hace
@@ -45,6 +47,8 @@ Endpoints v1 (borrador): `POST /transform/document`, `/transform/plain-text`, `/
 
 ```
 docs/architecture/   Modelo de datos: migraciones Flyway V1–V12, vistas, triggers, RGPD, diagrama
+maqueta/             Prototipo navegable del flujo completo (abrir index.html) y su prueba
+investigacion/       Pruebas reproducibles (p. ej. Presidio en castellano)
 vault/               Bóveda de Obsidian: conocimiento, tablero, decisiones y bitácora del equipo (personas e IAs)
 .github/             Plantilla de PR y comprobaciones automáticas
 AGENTS.md            Instrucciones para agentes de IA (CLAUDE.md apunta aquí)
