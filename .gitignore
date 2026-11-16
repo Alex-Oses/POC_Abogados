@@ -1,8 +1,7 @@
-# Obsidian: estado local de cada usuario
-vault/.obsidian/workspace*.json
-vault/.obsidian/cache
+# Obsidian: configuración local de cada usuario; solo se comparte la lista de plugins
+vault/.obsidian/*
+!vault/.obsidian/community-plugins.json
 vault/.trash/
-vault/.obsidian/plugins/
 
 # Documentos y datos reales: nunca al repo
 *.pdf
