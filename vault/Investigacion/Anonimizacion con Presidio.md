@@ -1,9 +1,10 @@
 # Anonimización en local con Presidio
 
-- **Estado**: primera prueba hecha
+- **Estado**: investigado; informe completo con mediciones
 - **Responsable**: @Alex
-- **Coste (deuda técnica)**: ~1 h de prueba guiada por IA. Pendiente lo de abajo.
-- **Prueba reproducible**: `investigacion/presidio/prueba_es.py` (texto jurídico ficticio en castellano)
+- **Coste (deuda técnica)**: ~1 h la primera prueba + ~3 h el banco de pruebas (13 configuraciones, 150 documentos ficticios por idioma y corpus de validación aparte).
+- **Documentación y rendimiento**: [`docs/presidio.md`](../../docs/presidio.md) (también en PDF)
+- **Pruebas reproducibles**: `investigacion/presidio/prueba_es.py` (texto corto) y `investigacion/presidio/benchmark.py` (corpus y mediciones)
 
 ## Qué es
 
@@ -35,16 +36,29 @@
 
 Sirve como motor de detección local. Los identificadores con dígito de control son fiables; el reconocimiento de nombres y lugares necesita ajuste y **siempre** revisión humana, que la propuesta ya exige.
 
+## Resultado medido (150 sentencias ficticias por idioma)
+
+Castellano con `es_core_news_md`, contando el dato **tapado del todo**:
+
+| | De serie | Configuración «mejorada» |
+|---|---|---|
+| Datos cubiertos | 71,2 % | 100 % (94,4 % con corpus de validación) |
+| Precisión | 62,8 % | 98,8 % |
+| Texto inocente tapado por página | 6,3 | 0,17 |
+| Tiempo / memoria | — | 65 ms/página · 339 MB |
+
+Catalán (`ca_core_news_md`): 96,7 % en el corpus de ajuste y 88,9 % en el de validación. Con un **4 % de errores de OCR**, el castellano baja al 89 %: la anonimización no puede fiarse de un OCR malo, de ahí el semáforo de calidad. El modelo `lg` no mejora al `md` y ocupa 2,6 veces más. Detalle y desglose por tipo de dato en [`docs/presidio.md`](../../docs/presidio.md).
+
 ## Riesgo detectado: coordenadas para tapar la imagen
 
-PaddleOCR-VL por Ollama (prompt `OCR:`) devuelve **solo texto, sin posiciones**. Para borrar datos de la imagen del PDF hacen falta las cajas de cada palabra, y el contrato de `docs/api/endpoints.md` (`/blocks`, campo `bbox`) también las espera. Pregunta abierta a @Rubén en el [[Tablero]]. Opciones:
-
-1. **Exportar un PDF nuevo generado desde el texto anonimizado**, sin la imagen original (es lo que ya propone `/transform/build` en la [[API]]). Es lo más simple y elimina el riesgo de dejar datos en la imagen. Recomendado para el POC.
-2. Sacar las cajas con un segundo OCR (Tesseract o PaddleOCR clásico) y alinearlas con el texto. Es más fiel al original, pero hay dos OCR que pueden no coincidir.
+PaddleOCR-VL por Ollama (prompt `OCR:`) devuelve **solo texto, sin posiciones**. La decisión [[0006-generacion-pdf-final]] ya resuelve la exportación sin ellas: se reconstruye un PDF nuevo desde la estructura guardada, con el texto anonimizado, y `origen_geometria` admite los dos modos. Queda la pregunta al contrato: `GET /blocks` pide un `bbox` por bloque y hoy nada puede rellenarlo. Ver [[Tablero]] § Preguntas abiertas.
 
 ## Siguiente
 
-- [ ] Probar `es_core_news_lg` y un modelo transformer (y `ca_core_news_*` para el catalán).
-- [ ] Lista de palabras a ignorar (FALLO, DNI, Testigo…) y regla «S.L./S.A. → empresa».
-- [ ] Patrones para dirección completa (calle + número + CP), matrícula y NSS.
-- [ ] Decidir la opción 1 o 2 de la imagen (afecta a [[0004-anonimizacion-antes-o-despues-de-revision]]).
+- [x] Probar `es_core_news_lg` (no mejora al `md`) y el modelo catalán.
+- [x] Lista de palabras a ignorar y regla «S.L./S.A. → empresa».
+- [x] Patrones para dirección completa, matrícula y referencia catastral.
+- [x] Nombres en mayúsculas y catalanes con «i».
+- [ ] Repetir la medición con 100-200 páginas reales anonimizadas del Colegio (fase 0 de la propuesta).
+- [ ] Mover la configuración «mejorada» al backend, con la lista de excepciones versionada.
+- [ ] Cerrar [[0004-anonimizacion-antes-o-despues-de-revision]]: la revisión humana necesita el original durante el proceso.
