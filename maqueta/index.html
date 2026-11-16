@@ -67,6 +67,9 @@ tr.click{cursor:pointer}tr.click:hover td{background:#FAF9F7}
 .doubt{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline wavy #E0A100 2px;text-underline-offset:4px;background-color:var(--w-bg)}
 .invalid{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline solid var(--p) 2px;text-underline-offset:4px}
 .fixed{background:var(--ok-bg);border-radius:3px}
+.hl{border-radius:2px;transition:background .15s,box-shadow .15s}
+.hl.on{box-shadow:0 0 0 3px currentColor;position:relative;z-index:1}
+.hl-doubt.on{background:#FFE08A;color:var(--w)}.hl-invalid.on{background:#F7C6CD;color:var(--p)}
 .pop{position:absolute;z-index:20;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.15);padding:12px 14px;font:13px/1.5 Roboto;max-width:300px}
 .pop b{display:block;margin-bottom:4px}
 .pop .row{margin-top:8px}
@@ -306,8 +309,9 @@ V.revisio = () => {
   const i = S.cur, pend = pendingWarnings(i), allDone = Object.values(S.pages).every(v=>v==="v"||v==="ok"||v==="esc");
   const lines = pageLines(i);
   const fill = (s,img) => s.replace(/\{(\w+)\}/g,(_,k)=>{ const w=W[k];
-    if(img) return w.alt; if(S.fixes[k]) return `<span class="fixed">${esc(S.fixes[k])}</span>`;
-    return `<button class="${w.k}" data-w="${k}" aria-label="${w.k==="doubt"?t("dues"):k==="dni"?t("dni_bad"):t("iban_bad")}">${esc(w.read)}</button>`; });
+    if(img) return `<span class="hl hl-${w.k}" data-wi="${k}">${esc(w.alt)}</span>`;
+    if(S.fixes[k]) return `<span class="fixed" data-hk="${k}">${esc(S.fixes[k])}</span>`;
+    return `<button class="${w.k}" data-w="${k}" data-hk="${k}" aria-label="${w.k==="doubt"?t("dues"):k==="dni"?t("dni_bad"):t("iban_bad")}">${esc(w.read)}</button>`; });
   const total = Object.entries(S.pages).reduce((n,[p,v])=>n+(v==="w"?pendingWarnings(+p).length:0),0);
   return shell("safata", `
   <div class="card row" style="padding:10px 14px;margin-bottom:12px">
@@ -320,7 +324,7 @@ V.revisio = () => {
   <div class="rev">
     <div class="card thumbs" aria-label="Pàgines">${Array.from({length:N},(_,k)=>k+1).map(p=>{const v=S.pages[p];
       return `<button class="thumb ${p===i?"on":""}" data-p="${p}"><span class="dot ${v==="w"?"w":v==="bad"?"bad":v==="v"?"v":"ok"}"></span>${t("pag")} ${p}</button>`}).join("")}</div>
-    <div class="scan card"><div class="paper ${S.pages[i]==="bad"?"ilegible":""}">${lines.map((l,k)=>k?`<p>${esc(fill(l,true))}</p>`:`<h4>${esc(l)}</h4>`).join("")}<p style="text-align:center;margin-top:30px;font-size:9px">Página ${i} de ${N}</p></div></div>
+    <div class="scan card"><div class="paper ${S.pages[i]==="bad"?"ilegible":""}">${lines.map((l,k)=>k?`<p>${fill(esc(l),true)}</p>`:`<h4>${esc(l)}</h4>`).join("")}<p style="text-align:center;margin-top:30px;font-size:9px">Página ${i} de ${N}</p></div></div>
     <div class="card" style="display:flex;flex-direction:column;position:relative">
       <div class="tool"><b style="color:var(--t)">Text</b> · B / S · ${t("desat")} · <span class="sp"></span>${t("seg")}</div>
       ${S.pages[i]==="bad"?`<div style="padding:20px"><div class="banner bad"><b>✕ ${t("il_t")}</b><br>${t("il_s")}</div></div>`:
@@ -484,6 +488,10 @@ document.addEventListener("change", ev => {
 });
 document.addEventListener("input", ev => { if(ev.target.id==="q"){ const q=ev.target.value.toLowerCase(); $("#rows").innerHTML = rows(DOCS().filter(d=>(d.id+d.t+d.s).toLowerCase().includes(q))); } });
 document.addEventListener("mouseover", ev => { const b=ev.target.closest(".ent"); if(b && !S.original) entTip(b); });
+// Revisión: al señalar un aviso en el texto, se marca la misma palabra en la imagen escaneada.
+function markScan(k){ document.querySelectorAll(".hl.on").forEach(x=>x.classList.remove("on")); const s=k&&$(`[data-wi="${k}"]`); if(s){ s.classList.add("on"); s.scrollIntoView({block:"nearest",behavior:"smooth"}); } }
+document.addEventListener("mouseover", ev => { const h=ev.target.closest("[data-hk]"); markScan(h?.dataset.hk); });
+document.addEventListener("focusin", ev => { const h=ev.target.closest?.("[data-hk]"); if(h) markScan(h.dataset.hk); });
 document.addEventListener("focusin", ev => { if(ev.target.classList?.contains("ent")) entTip(ev.target); });
 document.addEventListener("keydown", ev => {
   if(ev.key==="Escape"){ closePop(); closeModal(); }

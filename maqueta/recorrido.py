@@ -19,6 +19,10 @@ with sync_playwright() as p:
     pg.wait_for_selector("text=Obrir revisió", timeout=15000); shot("04-processat")
     pg.click("text=Obrir revisió")
     assert pg.is_disabled("#val"), "validar debería estar bloqueado con avisos"
+    for k in ("num", "dni"):
+        pg.hover(f"[data-w={k}]")
+        assert pg.is_visible(f"[data-wi={k}].on"), f"la imagen debería marcar «{k}»"
+    shot("05a-revisio-marca-imatge")
     pg.click("[data-w=num]"); shot("05-revisio-dues-lectures")
     pg.click("#pop .btn.pri")
     pg.click("[data-w=dni]"); pg.click("#pop .btn.pri")

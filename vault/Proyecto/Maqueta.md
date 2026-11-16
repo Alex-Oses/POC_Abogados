@@ -9,7 +9,7 @@
 | 1 | `#login` | Acceso con la cuenta del Colegio (Office 365), aviso de procesamiento local |
 | 2 | `#safata` | KPI, zona para arrastrar, buscador, documentos con estado y semáforo. «Nou document» sube el expediente |
 | 3 | `#processant` | 23 páginas, 4 en paralelo: contraste → lectura → semáforo. Pág. 22 ilegible (contraste 46 < 80) |
-| 4 | `#revisio` | Imagen/texto lado a lado. Dos lecturas distintas (ámbar), DNI e IBAN con control incorrecto (granate). «Validar» bloqueado hasta resolver |
+| 4 | `#revisio` | Imagen/texto lado a lado. Dos lecturas distintas (ámbar), DNI e IBAN con control incorrecto (granate). «Validar» bloqueado hasta resolver. Al pasar el ratón (o el foco) por un aviso, se marca la misma palabra en la imagen |
 | 5 | `#jg` | Checklist del expediente, datos extraídos, aviso «orientativo, no vinculante», requerimiento y envío a tramitación |
 | 6 | `#anonimitzar` | 6 formas, categorías con recuento, clic / Mayús+clic, ficha al pasar el ratón, vista original, lista de lo anonimizado |
 | 7 | `#exportat` | Confirmación obligatoria, garantías y registro de auditoría |
