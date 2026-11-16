@@ -109,6 +109,8 @@ El visto bueno no es una segunda revisión: el supervisor no re-anota, solo firm
 
 **Regla A-19 — aprobar congela.** Tras `aprobado` no se crean versiones nuevas salvo reapertura explícita del supervisor, que rellena `cerrado_en` al reabrir. Queda en `auditoria` quién reabrió y por qué.
 
+Cómo se compone el PDF (estructura guardada, reconstrucción sin píxeles del original y determinismo del hash): [docs/export/pdf.md](../export/pdf.md).
+
 ## 8. Plazos
 
 **Regla A-20 — 48 h laborables con aviso a las 24 h (decidido).** Al crear la revisión se calcula `revisiones.fecha_limite` sumando `revision_plazo_horas` (48) horas laborables. Al cruzar `revision_aviso_horas` (24) sin decisión se rellena `aviso_24h_enviado_en` y se notifica al revisor asignado y, si la revisión sigue `en_cola`, al supervisor.

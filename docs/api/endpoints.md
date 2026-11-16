@@ -2,8 +2,9 @@
 
 **Responsable:** Rubén
 **Estado:** propuesta, sujeta a cambios
-**Base de datos:** `docs/esquema-bd.md` (revisión 3)
+**Base de datos:** `docs/architecture/` (migraciones Flyway)
 **Reglas de negocio:** `docs/reglas/usuarios.md` y `docs/reglas/aprobacion.md`. Este documento solo define rutas, payloads y códigos: donde una regla aplique, se cita el nombre de la regla, no su número.
+**Generación del PDF:** `docs/export/pdf.md`.
 
 ## Convenciones
 
@@ -242,7 +243,7 @@ Errores: `404` si el documento no existe o `expira_en` ha pasado.
 
 ### `POST /transform/build`
 
-PDF maquetado de la versión vigente. Es vista previa: **no** cierra el expediente ni marca `exportado`.
+PDF maquetado de la versión vigente. Es vista previa: **no** cierra el expediente ni marca `exportado`. Se compone desde la estructura guardada, sin píxeles del original ([docs/export/pdf.md](../export/pdf.md)).
 
 ```json
 { "id": "uuid" }
@@ -458,7 +459,7 @@ Cierra el expediente. Genera el PDF definitivo, guarda `hash_export` y `exportad
 
 Errores: `409` si el documento no está `aprobado`, `404` si la sesión de OCR ha caducado.
 
-Un documento ya exportado devuelve el mismo PDF y el mismo hash: la operación es idempotente y no reescribe nada.
+Un documento ya exportado devuelve el mismo PDF y el mismo hash: la operación es idempotente y no reescribe nada. Cómo se genera: [docs/export/pdf.md](../export/pdf.md).
 
 ---
 
