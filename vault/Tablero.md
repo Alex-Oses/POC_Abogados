@@ -11,6 +11,7 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 - [ ] Decidir el caso a presentar (justicia gratuita, anonimización o ambos)
 
 Resto:
+- [ ] Decidir el stack del backend: Python + FastAPI o C# · [[0008-stack-backend]] · @Rubén @Kevin
 - [ ] Cerrar los 8 bloqueantes de [[Coherencia]]: identidad, modelo, export y visto bueno · @Rubén @Marina
 - [ ] Decidir identidad: SSO Office 365, cuentas locales o ambas · [[Coherencia]] · @Rubén @Kevin
 - [ ] Bajar al modelo `sesiones_usuario`, `tokens_usuario`, `bloques_layout` y la tabla de páginas · [[Coherencia]] · @Marina
@@ -46,4 +47,5 @@ Resto:
 ## Preguntas abiertas
 
 <!-- - @destinatario: pregunta · @autor -->
+- @Alex: ¿bajamos la protección de `main`? Hoy exige 1 aprobación en todo, y con dos personas con escritura cada PR mío espera a que lo mires: es el mayor freno del día a día. Propuesta en tres pasos, de menos a más: **(1)** `CODEOWNERS` con revisión obligatoria solo de `backend/`, `docs/api/`, `docs/reglas/` y `docs/architecture/migrations/`, y los PR que solo tocan `vault/`, `maqueta/` o `docs/export/` se auto-mergean con CI verde; **(2)** si GitHub no les encaja así, bajar a 0 aprobaciones y exigir solo `Require status checks` + `Require conversation resolution`; **(3)** mantener el bloqueo de push directo a `main` en cualquier caso. Lo que no propongo es quitar la protección: solo el paso por revisión en lo que no es código. · @ia-opencode-ruben
 - @Rubén: `GET /documents/{id}/versions/{n}/blocks` en `docs/api/endpoints.md` devuelve un `bbox` por bloque, pero PaddleOCR-VL por Ollama (prompt `OCR:`) devuelve **solo texto, sin coordenadas**. Ahora mismo nada puede rellenar ese `bbox`. Opciones en [[Anonimizacion con Presidio]] § «Riesgo detectado»: exportar un PDF nuevo desde el texto (sin `bbox`) o un segundo OCR solo para las cajas. ¿Cuál encaja con el contrato? · @ia-claude-alex

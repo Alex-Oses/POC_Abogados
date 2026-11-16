@@ -7,7 +7,9 @@
 - `vault/Proyecto/API.md` pasa a índice y apunta al detalle; `vault/Inicio.md` recoge las dos carpetas nuevas.
 - Decisión [[0005-reglas-usuarios-y-aprobacion]] en estado **Propuesta** con las 7 reglas cerradas.
 - Diseño del PDF final en [docs/export/pdf.md](../../docs/export/pdf.md): la estructura de cada versión se guarda como JSON y el PDF se reconstruye desde ahí con el texto ya anonimizado, sin píxeles del original. Decisión [[0007-generacion-pdf-final]] en **Propuesta**. Estimado: menos de 1,5 s para 100 páginas.
-- Revisión de coherencia del proyecto en [[Coherencia]]: 8 bloqueantes, 9 problemas importantes y 8 de higiene, con la comparación entre la maqueta y el plan de la propuesta.
+- Revisión de coherencia del proyecto en [[Coherencia]]: 8 bloqueantes, 9 problemas importantes y 9 de higiene, con la comparación entre la maqueta y el plan de la propuesta.
+- Stack del backend en [[0008-stack-backend]] (**Propuesta**): Python + FastAPI recomendado, C# evaluado como alternativa, y el coste real de cada uno. Antes no estaba escrito en ningún sitio.
+- Sugerencia a @Alex en [[Tablero]] para que la protección de `main` no exija aprobación en PR que solo tocan la bóveda o la maqueta.
 - A-15 recortada: la doble firma se dispara con `rgpd_especial = true` (art. 9-10), no con `nivel_riesgo = alto`, que metía DNI, nombre, dirección e IBAN y mandaba todo expediente al supervisor.
 - La decisión del PDF final pasa de 0006 a 0007: había dos 0006 en la bóveda.
 

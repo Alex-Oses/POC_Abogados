@@ -16,6 +16,7 @@ El contrato va por delante del modelo en cuatro tablas y una veintena de columna
 |---|---|---|
 | 16/11 | **A-15 ya no usa `nivel_riesgo`.** La doble firma se dispara con `rgpd_especial = true` (art. 9-10 RGPD). Con el seed actual, `nivel_riesgo = alto` incluía DNI, nombre, dirección e IBAN, así que todo expediente acababa en `pendiente_visto_bueno` y la regla dejaba de ser excepcional. | `docs/reglas/aprobacion.md` §7, `docs/api/endpoints.md` §9, [[0005-reglas-usuarios-y-aprobacion]] regla 6 |
 | 16/11 | **La decisión del PDF final pasa de 0006 a 0007**: había dos 0006 en la bóveda y una era de Presidio. | [[0007-generacion-pdf-final]] |
+| 16/11 | **El stack del backend no estaba escrito en ningún sitio**: solo se deducía de las dependencias del PDF. Queda en Propuesta, con Python + FastAPI como recomendación y C# como alternativa evaluada. | [[0008-stack-backend]] |
 
 ## Bloqueantes
 
@@ -58,6 +59,7 @@ No se puede implementar el contrato tal cual. Ordenados por lo que cuesta descub
 | H6 | V12 siembra motores OCR en cloud (contradice 0001), `preservar_formato_pdf = true` (contradice 0007), `tiempo_max_revision_minutos = 60` (contradice el plazo de 48 h) y `version_esquema_bd = 1` con 12 migraciones | `V12__seed_configuracion_inicial.sql` |
 | H7 | `vault/Inicio.md` escribe `Investigacion/` y la carpeta es `investigacion/`: en Linux rompe | `vault/Inicio.md` |
 | H8 | `categorias_sensibles` marca `NUSS` como `rgpd_especial`: es un identificador, no un dato del art. 9, y ahora dispara doble firma | `V11__seed_categorias_sensibles.sql` |
+| H9 | **No había stack de backend escrito**: ni lenguaje, ni framework, ni driver, ni dónde se despliega. Solo `reportlab` en el diseño del PDF. Resuelto como propuesta en [[0008-stack-backend]] | `README.md`, `docs/architecture/README.md` |
 
 ## La maqueta contra el plan
 
@@ -82,6 +84,7 @@ Detalle menor pero elocuente: en la maqueta el «escaneo» es HTML, no una image
 
 ## Cómo se cierra
 
+0. **Stack** (H9): decidir Python + FastAPI o C# en [[0008-stack-backend]] antes de escribir el primer endpoint. Es barato hoy y caro después.
 1. **Nombres de ruta** (I9): antes de Figma y antes del frontend. Sin código, seis ficheros.
 2. **Identidad** (B1, B2): es la decisión que desbloquea el resto del alta de usuarios.
 3. **Modelo** (B3, B4): una migración con las tablas y columnas que el contrato ya da por hechas.
