@@ -20,6 +20,22 @@ Prueba de concepto para el **Il·lustre Col·legi de l'Advocacia de Tarragona (I
 | Maqueta navegable del flujo completo | Hecha | [maqueta/index.html](maqueta/index.html) · [documentación](docs/maqueta.md) · [PDF](docs/maqueta.pdf) |
 | Código de la aplicación | Sin empezar | — |
 
+## Rendimiento del OCR
+
+PaddleOCR-VL 1.6 vía Ollama. Misma configuración en los tres equipos (`temperature 0`, `num_ctx 4096`, `repeat_penalty 1.05`, `num_predict 1500`), 4 páginas por equipo:
+
+| Equipo | GPU | s/página (1 a la vez) | s/página (4 en paralelo) | páginas/hora |
+|---|---|---|---|---|
+| Portátil de referencia | RTX 3050 Laptop 4 GB | 4,5–5,3 | 1,3 | ~2.750 |
+| Portátil sin GPU | ninguna (100 % CPU) | 41,6 | 36,7 | ~100 |
+| Servidor `genai-openllm-vm` | ninguna (100 % CPU) | 13,8 | 13,8¹ | ~260 |
+
+¹ Sin valor: `OLLAMA_NUM_PARALLEL` en 1, las peticiones se encolan.
+
+Sin GPU el OCR es entre 3 y 30 veces más lento y el paralelismo apenas ayuda: la GPU es requisito, no optimización. Un PDF de 100 páginas tarda ~2 min con la RTX 3050, ~20 min en el servidor y ~1 h en el portátil.
+
+Detalle, semáforo de calidad y configuración: [vault/Proyecto/Rendimiento OCR](vault/Proyecto/Rendimiento%20OCR.md). Medición reproducible: [investigacion/paddleocr/bench.py](investigacion/paddleocr/bench.py).
+
 ## Qué hace
 
 1. **Bandeja** (*Safata*): entran PDF e imágenes, a mano o desde la carpeta del escáner. Cada página lleva un semáforo de calidad.
