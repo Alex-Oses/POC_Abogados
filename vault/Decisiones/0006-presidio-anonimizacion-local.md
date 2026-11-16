@@ -1,4 +1,4 @@
-# 0005 · Presidio para detectar datos personales en local
+# 0006 · Presidio para detectar datos personales en local
 
 - **Estado**: Propuesta
 - **Fecha**: 2026-11-16

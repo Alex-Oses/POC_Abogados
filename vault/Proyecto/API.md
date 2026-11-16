@@ -1,35 +1,41 @@
-# API v1 (borrador)
+# API v1
 
-Fuente: *Endpoints · Diseño de la API* (06/11/2026).
+Contrato completo: [docs/api/endpoints.md](../../docs/api/endpoints.md). Esta nota es el índice; los payloads, códigos y efectos viven allí. Reglas de negocio: [docs/reglas/usuarios.md](../../docs/reglas/usuarios.md) y [docs/reglas/aprobacion.md](../../docs/reglas/aprobacion.md).
+
+Estado: propuesta (16/11/2026), 40 rutas. Sustituye al borrador de 5 rutas del 06/11/2026.
 
 ## Convenciones
 
 - Prefijo `{url}/api/v1`; versión global, solo sube ante cambios incompatibles.
 - Rutas en kebab-case, sin barra final ni extensiones.
 - `Content-Type: application/json` (subidas: `multipart/form-data`); `Authorization: Bearer <token>`.
-- Errores: `{"error": {"code": "SESSION_NOT_FOUND", "message": "..."}}`. `code` es estable.
+- Errores: `{"error": {"code": "...", "message": "..."}}`. `code` es estable.
+- Paginación `?page=1&limit=20`; fechas ISO 8601 en UTC; `If-Match` en los cierres.
 
-## Endpoints
+## Bloques
 
-| Método | Ruta | Entrada | Salida |
-|---|---|---|---|
-| POST | `/transform/document` | `file` (PDF/JPG/PNG, ≤ 20 MB) | `201 {"id"}` · 400/413/415 |
-| POST | `/transform/plain-text` | `{"id"}` | `200 {"result": "texto"}` · 404 |
-| POST | `/transform/build` | `{"id"}` | `200` PDF (`attachment`) · 404/500 |
-| POST | `/user/register` | `name, surnames, email, password (≥ 12)` | `201` · 400/409 |
-| POST | `/user/login` | `email, password` | `200 {"access_token", "token_type": "Bearer", "expires_in": 3600}` · 401/429 |
+| Bloque | Rutas | Para qué |
+|---|---|---|
+| Autenticación | 7 | Invitación, login/logout, `me`, cambio y recuperación de contraseña |
+| Usuarios | 4 | Alta por invitación, listado, `PATCH` de rol/estado, revocar sesiones |
+| OCR | 3 | Subir, texto plano y PDF de vista previa |
+| Documentos y versiones | 6 | Listado, detalle, baja lógica, versiones y bloques de layout |
+| Anonimización | 3 | Lanzar el proceso, listar anotaciones, decidir cada una |
+| Revisión | 5 | Cola, abrir, tomar, asignar y cerrar |
+| Cierre | 3 | Reapertura, visto bueno y exportación con hash |
+| Reglas y categorías | 6 | Catálogo de anonimización |
+| Auditoría y configuración | 3 | Consulta y parámetros globales |
 
 ## Flujo
 
-Subir → OCR + anonimización en servidor → sesión con `id` → pedir texto o PDF → la sesión caduca a las 24 h (404).
+Subir → OCR y layout → anonimizar → revisión en cola → (visto bueno del supervisor si hay datos de riesgo alto) → exportar PDF con hash.
 
 ## Seguridad
 
-TLS obligatorio · contraseña con hash y sal (el cliente no hashea) · tokens cortos firmados · límite de intentos por IP y cuenta · validación del tipo real del fichero · nada sensible en logs · 401 no distingue email inexistente de contraseña errónea.
+TLS obligatorio, contraseña con Argon2id en servidor, token opaco revocable (no JWT), máximo 3 sesiones, `401` que no distingue email inexistente de contraseña errónea, sin autoregistro, nada sensible en logs.
 
 ## Lo que puede cambiar el diseño
 
-- **OCR por página en paralelo**: la API pasaría a asíncrona, devolviendo IDs por página.
-- **Base de datos** sin decidir en este documento (ya hay borrador: [[Base de datos]]).
-- **Formato**: si se trabaja con `.docx` en lugar de PDF.
-- Ver [[0004-anonimizacion-antes-o-despues-de-revision]].
+- [[0004-anonimizacion-antes-o-despues-de-revision]]: el contrato asume que se guarda el original y se anonimiza después.
+- OCR síncrono o por página asíncrona: aquí es síncrono (tarea en el tablero).
+- Las reglas citan columnas que aún no están en [docs/architecture](../../docs/architecture/README.md); ver [[0005-reglas-usuarios-y-aprobacion]].

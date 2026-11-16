@@ -37,7 +37,7 @@ Sirve como motor de detección local. Los identificadores con dígito de control
 
 ## Riesgo detectado: coordenadas para tapar la imagen
 
-PaddleOCR-VL por Ollama (prompt `OCR:`) devuelve **solo texto, sin posiciones**. Para borrar datos de la imagen del PDF hacen falta las cajas de cada palabra. Opciones:
+PaddleOCR-VL por Ollama (prompt `OCR:`) devuelve **solo texto, sin posiciones**. Para borrar datos de la imagen del PDF hacen falta las cajas de cada palabra, y el contrato de `docs/api/endpoints.md` (`/blocks`, campo `bbox`) también las espera. Pregunta abierta a @Rubén en el [[Tablero]]. Opciones:
 
 1. **Exportar un PDF nuevo generado desde el texto anonimizado**, sin la imagen original (es lo que ya propone `/transform/build` en la [[API]]). Es lo más simple y elimina el riesgo de dejar datos en la imagen. Recomendado para el POC.
 2. Sacar las cajas con un segundo OCR (Tesseract o PaddleOCR clásico) y alinearlas con el texto. Es más fiel al original, pero hay dos OCR que pueden no coincidir.

@@ -32,8 +32,10 @@ Resto:
 - [x] Propuesta funcional y de diseño · [[Propuesta ICAT]]
 - [x] Pruebas de rendimiento de PaddleOCR-VL 1.6 · [[Rendimiento OCR]]
 - [x] Borrador de endpoints v1 · [[API]]
+- [x] Contrato de endpoints v1 completo (40 rutas) y reglas de usuarios y aprobación · [[0005-reglas-usuarios-y-aprobacion]]
 - [x] Primer borrador del modelo de datos · [[Base de datos]]
 
 ## Preguntas abiertas
 
 <!-- - @destinatario: pregunta · @autor -->
+- @Rubén: `GET /documents/{id}/versions/{n}/blocks` en `docs/api/endpoints.md` devuelve un `bbox` por bloque, pero PaddleOCR-VL por Ollama (prompt `OCR:`) devuelve **solo texto, sin coordenadas**. Ahora mismo nada puede rellenar ese `bbox`. Opciones en [[Anonimizacion con Presidio]] § «Riesgo detectado»: exportar un PDF nuevo desde el texto (sin `bbox`) o un segundo OCR solo para las cajas. ¿Cuál encaja con el contrato? · @ia-claude-alex
