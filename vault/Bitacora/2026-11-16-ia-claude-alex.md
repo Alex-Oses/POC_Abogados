@@ -12,6 +12,7 @@
 - Presidio medido con 13 configuraciones y corpus de validación aparte: 94,4 % de datos tapados en castellano (100 % en el de ajuste) · [`docs/presidio.md`](../../docs/presidio.md).
 - Documentación con capturas de la maqueta · [`docs/maqueta.md`](../../docs/maqueta.md). Ambas en `.md` y `.pdf`.
 - El informe de Presidio enlaza la decisión [[0006-generacion-pdf-final]] y deja como única pregunta al backend de dónde sale el `bbox` por bloque del contrato.
+- [[Anonimizacion con Presidio]] actualizada con las cifras medidas y la recomendación de la decisión [[0004-anonimizacion-antes-o-despues-de-revision]]: guardar el original cifrado y anonimizar al exportar, porque la revisión humana del OCR lo necesita.
 
 ## Siguiente
 
