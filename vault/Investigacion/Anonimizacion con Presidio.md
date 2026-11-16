@@ -1,9 +1,10 @@
 # Anonimización en local con Presidio
 
-- **Estado**: primera prueba hecha
+- **Estado**: investigado; informe completo con mediciones
 - **Responsable**: @Alex
-- **Coste (deuda técnica)**: ~1 h de prueba guiada por IA. Pendiente lo de abajo.
-- **Prueba reproducible**: `investigacion/presidio/prueba_es.py` (texto jurídico ficticio en castellano)
+- **Coste (deuda técnica)**: ~1 h la primera prueba + ~3 h el banco de pruebas (13 configuraciones, 150 documentos ficticios por idioma y corpus de validación aparte).
+- **Documentación y rendimiento**: [`docs/presidio.md`](../../docs/presidio.md) (también en PDF)
+- **Pruebas reproducibles**: `investigacion/presidio/prueba_es.py` (texto corto) y `investigacion/presidio/benchmark.py` (corpus y mediciones)
 
 ## Qué es
 

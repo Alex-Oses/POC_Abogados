@@ -4,7 +4,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 url = Path(sys.argv[1]).resolve().as_uri()
-out = Path(sys.argv[2]); out.mkdir(exist_ok=True)
+out = Path(sys.argv[2]); out.mkdir(parents=True, exist_ok=True)
 errors = []
 
 with sync_playwright() as p:
@@ -13,7 +13,9 @@ with sync_playwright() as p:
     pg.on("pageerror", lambda e: errors.append(str(e)))
     shot = lambda n: pg.screenshot(path=str(out / f"{n}.png"))
 
-    pg.goto(url); shot("01-login")
+    pg.goto(url)
+    pg.add_style_tag(content=".guide,.toast{display:none}")  # fuera de las capturas
+    shot("01-login")
     pg.click("text=Accedir amb el compte del Col·legi"); shot("02-safata")
     pg.click("#nou"); pg.wait_for_timeout(700); shot("03-processant")
     pg.wait_for_selector("text=Obrir revisió", timeout=15000); shot("04-processat")

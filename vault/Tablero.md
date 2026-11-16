@@ -29,7 +29,8 @@ Resto:
 ## Hecho
 
 - [x] Maqueta navegable del flujo completo · [[Maqueta]] · @ia-claude-alex
-- [x] Primera prueba de Presidio en local · [[Anonimizacion con Presidio]] · @ia-claude-alex
+- [x] Presidio medido: 13 configuraciones, corpus de validación y PDF · [[Anonimizacion con Presidio]] · @ia-claude-alex
+- [x] Documentación de la [[Maqueta]] con capturas, en `.md` y `.pdf` · @ia-claude-alex
 - [x] Propuesta funcional y de diseño · [[Propuesta ICAT]]
 - [x] Pruebas de rendimiento de PaddleOCR-VL 1.6 · [[Rendimiento OCR]]
 - [x] Borrador de endpoints v1 · [[API]]

@@ -9,6 +9,8 @@
 - Equipo, herramientas y la entrega del viernes en [[Equipo]].
 - Prueba de Presidio en local: cobertura 10/10, 6 falsos positivos → [[Anonimizacion con Presidio]], decisión [[0006-presidio-anonimizacion-local]].
 - [[Maqueta]] navegable del flujo completo (CA/ES), con el recorrido probado de principio a fin.
+- Presidio medido con 13 configuraciones y corpus de validación aparte: 94,4 % de datos tapados en castellano (100 % en el de ajuste) · [`docs/presidio.md`](../../docs/presidio.md).
+- Documentación con capturas de la maqueta · [`docs/maqueta.md`](../../docs/maqueta.md). Ambas en `.md` y `.pdf`.
 
 ## Siguiente
 

@@ -1,0 +1,1058 @@
+[
+ {
+  "recall_completo": 0.5733333333333334,
+  "recall_toca": 0.685,
+  "precision": 0.4898388227049755,
+  "fp_por_doc": 9.706666666666667,
+  "empresas_tapadas": 0.62,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.57,
+    "recall_toca": 0.685,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 0.7533333333333333,
+    "recall_toca": 0.7533333333333333,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 0.006666666666666667,
+    "recall_toca": 0.8466666666666667,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 0.84,
+    "recall_toca": 0.84,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 0.0,
+    "recall_toca": 0.04,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 0.0,
+    "recall_toca": 0.0,
+    "n": 150
+   }
+  },
+  "lang": "es",
+  "modelo": "es_core_news_sm",
+  "config": "base",
+  "ruido": 0.0,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1736,
+  "carga_s": 9.44,
+  "ms_mediana": 87.5,
+  "ms_p95": 160.2,
+  "paginas_hora": 38477,
+  "ram_mb": 162
+ },
+ {
+  "recall_completo": 0.7566666666666667,
+  "recall_toca": 0.8316666666666667,
+  "precision": 0.6491862567811935,
+  "fp_por_doc": 6.466666666666667,
+  "empresas_tapadas": 0.0,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.57,
+    "recall_toca": 0.685,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 0.7533333333333333,
+    "recall_toca": 0.7533333333333333,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 0.56,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 0.94,
+    "recall_toca": 0.94,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 0.5466666666666666,
+    "recall_toca": 0.5466666666666666,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   }
+  },
+  "lang": "es",
+  "modelo": "es_core_news_sm",
+  "config": "ajustada",
+  "ruido": 0.0,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1736,
+  "carga_s": 2.1,
+  "ms_mediana": 71.5,
+  "ms_p95": 110.9,
+  "paginas_hora": 48788,
+  "ram_mb": 163
+ },
+ {
+  "recall_completo": 0.9033333333333333,
+  "recall_toca": 0.9388888888888889,
+  "precision": 0.6944243301955105,
+  "fp_por_doc": 5.626666666666667,
+  "empresas_tapadas": 0.0,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.71,
+    "recall_toca": 0.8166666666666667,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   }
+  },
+  "lang": "es",
+  "modelo": "es_core_news_sm",
+  "config": "mejorada",
+  "ruido": 0.0,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1736,
+  "carga_s": 2.45,
+  "ms_mediana": 59.8,
+  "ms_p95": 90.1,
+  "paginas_hora": 58188,
+  "ram_mb": 163
+ },
+ {
+  "recall_completo": 0.7122222222222222,
+  "recall_toca": 0.8022222222222222,
+  "precision": 0.6276134122287969,
+  "fp_por_doc": 6.293333333333333,
+  "empresas_tapadas": 1.0,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.9716666666666667,
+    "recall_toca": 0.9766666666666667,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 0.7666666666666667,
+    "recall_toca": 0.7666666666666667,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 0.02666666666666667,
+    "recall_toca": 0.9466666666666667,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 0.8466666666666667,
+    "recall_toca": 0.8466666666666667,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 0.006666666666666667,
+    "recall_toca": 0.14666666666666667,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 0.013333333333333334,
+    "recall_toca": 0.013333333333333334,
+    "n": 150
+   }
+  },
+  "lang": "es",
+  "modelo": "es_core_news_md",
+  "config": "base",
+  "ruido": 0.0,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1736,
+  "carga_s": 2.72,
+  "ms_mediana": 63.2,
+  "ms_p95": 98.8,
+  "paginas_hora": 54178,
+  "ram_mb": 338
+ },
+ {
+  "recall_completo": 0.8922222222222222,
+  "recall_toca": 0.9305555555555556,
+  "precision": 0.7805261091480172,
+  "fp_por_doc": 3.7266666666666666,
+  "empresas_tapadas": 0.0,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.9716666666666667,
+    "recall_toca": 0.9766666666666667,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 0.7666666666666667,
+    "recall_toca": 0.7666666666666667,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 0.56,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 0.94,
+    "recall_toca": 0.94,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 0.5533333333333333,
+    "recall_toca": 0.5533333333333333,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   }
+  },
+  "lang": "es",
+  "modelo": "es_core_news_md",
+  "config": "ajustada",
+  "ruido": 0.0,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1736,
+  "carga_s": 2.69,
+  "ms_mediana": 69.6,
+  "ms_p95": 104.4,
+  "paginas_hora": 50402,
+  "ram_mb": 343
+ },
+ {
+  "recall_completo": 1.0,
+  "recall_toca": 1.0,
+  "precision": 0.9878817256422685,
+  "fp_por_doc": 0.16666666666666666,
+  "empresas_tapadas": 0.0,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   }
+  },
+  "lang": "es",
+  "modelo": "es_core_news_md",
+  "config": "mejorada",
+  "ruido": 0.0,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1736,
+  "carga_s": 2.92,
+  "ms_mediana": 65.1,
+  "ms_p95": 95.7,
+  "paginas_hora": 54066,
+  "ram_mb": 339
+ },
+ {
+  "recall_completo": 0.6905555555555556,
+  "recall_toca": 0.8005555555555556,
+  "precision": 0.6307226636398032,
+  "fp_por_doc": 6.506666666666667,
+  "empresas_tapadas": 0.5533333333333333,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.9216666666666666,
+    "recall_toca": 0.985,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 0.7466666666666667,
+    "recall_toca": 0.7466666666666667,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 0.0,
+    "recall_toca": 0.9133333333333333,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 0.84,
+    "recall_toca": 0.84,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 0.013333333333333334,
+    "recall_toca": 0.16666666666666666,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 0.0,
+    "recall_toca": 0.0,
+    "n": 150
+   }
+  },
+  "lang": "es",
+  "modelo": "es_core_news_lg",
+  "config": "base",
+  "ruido": 0.0,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1736,
+  "carga_s": 3.89,
+  "ms_mediana": 65.2,
+  "ms_p95": 92.7,
+  "paginas_hora": 53943,
+  "ram_mb": 888
+ },
+ {
+  "recall_completo": 0.8744444444444445,
+  "recall_toca": 0.9322222222222222,
+  "precision": 0.725228390723823,
+  "fp_por_doc": 5.213333333333333,
+  "empresas_tapadas": 0.0,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.9216666666666666,
+    "recall_toca": 0.985,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 0.7466666666666667,
+    "recall_toca": 0.7466666666666667,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 0.56,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 0.94,
+    "recall_toca": 0.94,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 0.56,
+    "recall_toca": 0.56,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   }
+  },
+  "lang": "es",
+  "modelo": "es_core_news_lg",
+  "config": "ajustada",
+  "ruido": 0.0,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1736,
+  "carga_s": 3.51,
+  "ms_mediana": 64.3,
+  "ms_p95": 93.4,
+  "paginas_hora": 53774,
+  "ram_mb": 893
+ },
+ {
+  "recall_completo": 1.0,
+  "recall_toca": 1.0,
+  "precision": 0.8401917698761486,
+  "fp_por_doc": 2.6666666666666665,
+  "empresas_tapadas": 0.0,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   }
+  },
+  "lang": "es",
+  "modelo": "es_core_news_lg",
+  "config": "mejorada",
+  "ruido": 0.0,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1736,
+  "carga_s": 3.12,
+  "ms_mediana": 68.1,
+  "ms_p95": 95.1,
+  "paginas_hora": 51325,
+  "ram_mb": 889
+ },
+ {
+  "recall_completo": 0.9661111111111111,
+  "recall_toca": 0.9705555555555555,
+  "precision": 0.9208566108007449,
+  "fp_por_doc": 1.1333333333333333,
+  "empresas_tapadas": 0.013333333333333334,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.995,
+    "recall_toca": 0.995,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 0.9533333333333334,
+    "recall_toca": 0.9533333333333334,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 0.94,
+    "recall_toca": 0.9866666666666667,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 0.9666666666666667,
+    "recall_toca": 0.9666666666666667,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 0.98,
+    "recall_toca": 0.98,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 0.9733333333333334,
+    "recall_toca": 0.9733333333333334,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 0.9,
+    "recall_toca": 0.9066666666666666,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 0.98,
+    "recall_toca": 0.98,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 0.92,
+    "recall_toca": 0.92,
+    "n": 150
+   }
+  },
+  "lang": "es",
+  "modelo": "es_core_news_md",
+  "config": "mejorada",
+  "ruido": 0.01,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1736,
+  "carga_s": 4.73,
+  "ms_mediana": 65.5,
+  "ms_p95": 99.4,
+  "paginas_hora": 53385,
+  "ram_mb": 341
+ },
+ {
+  "recall_completo": 0.8905555555555555,
+  "recall_toca": 0.9061111111111111,
+  "precision": 0.7813696299447044,
+  "fp_por_doc": 3.4266666666666667,
+  "empresas_tapadas": 0.043333333333333335,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.9916666666666667,
+    "recall_toca": 0.9916666666666667,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 0.9066666666666666,
+    "recall_toca": 0.9066666666666666,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 0.7933333333333333,
+    "recall_toca": 0.94,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 0.8733333333333333,
+    "recall_toca": 0.8733333333333333,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 0.9266666666666666,
+    "recall_toca": 0.9266666666666666,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 0.9133333333333333,
+    "recall_toca": 0.9133333333333333,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 0.64,
+    "recall_toca": 0.6733333333333333,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 0.9466666666666667,
+    "recall_toca": 0.9533333333333334,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 0.72,
+    "recall_toca": 0.72,
+    "n": 150
+   }
+  },
+  "lang": "es",
+  "modelo": "es_core_news_md",
+  "config": "mejorada",
+  "ruido": 0.04,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1736,
+  "carga_s": 2.72,
+  "ms_mediana": 78.8,
+  "ms_p95": 115.9,
+  "paginas_hora": 44324,
+  "ram_mb": 339
+ },
+ {
+  "recall_completo": 0.5927777777777777,
+  "recall_toca": 0.7688888888888888,
+  "precision": 0.6949698189134809,
+  "fp_por_doc": 5.053333333333334,
+  "empresas_tapadas": 0.0,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.5766666666666667,
+    "recall_toca": 0.8333333333333334,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 0.7666666666666667,
+    "recall_toca": 0.7666666666666667,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 0.0,
+    "recall_toca": 0.9333333333333333,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 0.7933333333333333,
+    "recall_toca": 0.8733333333333333,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 0.19333333333333333,
+    "recall_toca": 0.26666666666666666,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 0.05333333333333334,
+    "recall_toca": 0.05333333333333334,
+    "n": 150
+   }
+  },
+  "lang": "ca",
+  "modelo": "ca_core_news_md",
+  "config": "base",
+  "ruido": 0.0,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1651,
+  "carga_s": 6.33,
+  "ms_mediana": 72.6,
+  "ms_p95": 127.6,
+  "paginas_hora": 46359,
+  "ram_mb": 560
+ },
+ {
+  "recall_completo": 0.7633333333333333,
+  "recall_toca": 0.8966666666666666,
+  "precision": 0.8254847645429363,
+  "fp_por_doc": 2.94,
+  "empresas_tapadas": 0.0,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.5766666666666667,
+    "recall_toca": 0.8333333333333334,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 0.7666666666666667,
+    "recall_toca": 0.7666666666666667,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 0.5066666666666667,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 0.92,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 0.66,
+    "recall_toca": 0.66,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   }
+  },
+  "lang": "ca",
+  "modelo": "ca_core_news_md",
+  "config": "ajustada",
+  "ruido": 0.0,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1651,
+  "carga_s": 5.75,
+  "ms_mediana": 71.5,
+  "ms_p95": 94.9,
+  "paginas_hora": 50341,
+  "ram_mb": 554
+ },
+ {
+  "recall_completo": 0.9666666666666667,
+  "recall_toca": 0.9938888888888889,
+  "precision": 0.9330742659758203,
+  "fp_por_doc": 1.0333333333333334,
+  "empresas_tapadas": 0.0,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.9,
+    "recall_toca": 0.9816666666666667,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   }
+  },
+  "lang": "ca",
+  "modelo": "ca_core_news_md",
+  "config": "mejorada",
+  "ruido": 0.0,
+  "validacion": false,
+  "docs": 150,
+  "chars_por_doc": 1651,
+  "carga_s": 5.02,
+  "ms_mediana": 70.2,
+  "ms_p95": 99.0,
+  "paginas_hora": 49699,
+  "ram_mb": 561
+ },
+ {
+  "recall_completo": 0.9444444444444444,
+  "recall_toca": 0.9688888888888889,
+  "precision": 0.9909365558912386,
+  "fp_por_doc": 0.12,
+  "empresas_tapadas": 0.0,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.9983333333333333,
+    "recall_toca": 0.9983333333333333,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 0.6866666666666666,
+    "recall_toca": 0.6866666666666666,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 0.74,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 0.9933333333333333,
+    "recall_toca": 0.9933333333333333,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 0.92,
+    "recall_toca": 0.9533333333333334,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   }
+  },
+  "lang": "es",
+  "modelo": "es_core_news_md",
+  "config": "mejorada",
+  "ruido": 0.0,
+  "validacion": true,
+  "docs": 150,
+  "chars_por_doc": 1740,
+  "carga_s": 2.68,
+  "ms_mediana": 70.1,
+  "ms_p95": 118.0,
+  "paginas_hora": 48485,
+  "ram_mb": 338
+ },
+ {
+  "recall_completo": 0.8894444444444445,
+  "recall_toca": 0.9666666666666667,
+  "precision": 0.9327548806941431,
+  "fp_por_doc": 1.0333333333333334,
+  "empresas_tapadas": 0.0,
+  "por_categoria": {
+   "PERSON": {
+    "recall_completo": 0.87,
+    "recall_toca": 0.9883333333333333,
+    "n": 600
+   },
+   "DNI": {
+    "recall_completo": 0.6733333333333333,
+    "recall_toca": 0.6733333333333333,
+    "n": 150
+   },
+   "DIRECCION": {
+    "recall_completo": 0.5933333333333334,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "NIE": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "EMAIL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "TELEFONO": {
+    "recall_completo": 0.9266666666666666,
+    "recall_toca": 0.9733333333333334,
+    "n": 150
+   },
+   "IBAN": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "MATRICULA": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   },
+   "CATASTRAL": {
+    "recall_completo": 1.0,
+    "recall_toca": 1.0,
+    "n": 150
+   }
+  },
+  "lang": "ca",
+  "modelo": "ca_core_news_md",
+  "config": "mejorada",
+  "ruido": 0.0,
+  "validacion": true,
+  "docs": 150,
+  "chars_por_doc": 1658,
+  "carga_s": 6.33,
+  "ms_mediana": 73.1,
+  "ms_p95": 128.1,
+  "paginas_hora": 45079,
+  "ram_mb": 561
+ }
+]
