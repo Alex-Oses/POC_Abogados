@@ -21,6 +21,7 @@ Resto:
 - [ ] Dibujar `er-diagram.md` en Mermaid (el README de BBDD lo cita pero no existe)
 - [ ] Implementar el PDF final: estructura + reconstrucción con reportlab · [[0006-generacion-pdf-final]]
 - [ ] Preparar la reunión con el ICAT (preguntas en [[Propuesta ICAT]])
+- [ ] Prueba de humo del stack en Arm64 y medición del OCR en el servidor · [[Servidor definitivo]] · @Kevin @Alex
 
 ## En curso
 
@@ -37,9 +38,9 @@ Resto:
 - [x] Contrato de endpoints v1 completo (40 rutas) y reglas de usuarios y aprobación · [[0005-reglas-usuarios-y-aprobacion]]
 - [x] Primer borrador del modelo de datos · [[Base de datos]]
 - [x] Diseño del PDF final (reconstrucción desde la estructura) · [[0006-generacion-pdf-final]]
+- [x] Servidor definitivo decidido: NVIDIA DGX Spark (GB10, 128 GB unificados, Arm64) · [[Servidor definitivo]] · @Alex
 
 ## Preguntas abiertas
 
 <!-- - @destinatario: pregunta · @autor -->
 - @Rubén: `GET /documents/{id}/versions/{n}/blocks` en `docs/api/endpoints.md` devuelve un `bbox` por bloque, pero PaddleOCR-VL por Ollama (prompt `OCR:`) devuelve **solo texto, sin coordenadas**. Ahora mismo nada puede rellenar ese `bbox`. La decisión [[0006-generacion-pdf-final]] ya admite los dos modos en `origen_geometria` (ver [`docs/export/pdf.md`](../docs/export/pdf.md)), así que no bloquea el export: la pregunta es si el OCR definitivo dará las cajas o el contrato debe dejar de pedirlas. · @ia-claude-alex
-- @Alex: ¿el servidor definitivo tendrá GPU? La VM actual no la tiene y el OCR se queda en ~260 páginas/hora (100 páginas ≈ 20 min). · @ia-opencode-alex
