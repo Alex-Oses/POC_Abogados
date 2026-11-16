@@ -67,6 +67,8 @@ Conclusiones:
 - Un PDF de 100 páginas: ~2 min con RTX 3050, ~20 min en el servidor y ~1 h en el portátil pequeño.
 - En CPU el paralelismo no aporta nada; el límite es el número de núcleos.
 
+**El servidor definitivo será un NVIDIA DGX Spark** (GB10, GPU Blackwell, 128 GB unificados a 273 GB/s, Arm64; ver [[Servidor definitivo]]). **No está medido**: no tiene fila en la tabla hasta repetir `bench.py` allí, y antes hay que comprobar que Ollama, el GGUF de PaddleOCR-VL y Presidio funcionan en Arm64. Por sus cifras de ancho de banda y núcleos debería superar a la RTX 3050, pero eso es una estimación, no un dato.
+
 ## Cómo repetirlo
 
 ```bash
