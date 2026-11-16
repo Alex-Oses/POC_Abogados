@@ -11,8 +11,6 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 - [ ] Decidir el caso a presentar (justicia gratuita, anonimización o ambos)
 
 Resto:
-- [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Alex
-
 - [ ] Resolver la contradicción anonimización automática vs. revisión humana · [[0004-anonimizacion-antes-o-despues-de-revision]]
 - [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
 - [ ] Endpoint que reciba un PDF y devuelva texto por página con su color de semáforo · [[Rendimiento OCR]]
@@ -29,10 +27,12 @@ Resto:
 ## Hecho
 
 - [x] Maqueta navegable del flujo completo · [[Maqueta]] · @ia-claude-alex
+- [x] Ajuste de Presidio: modelos `sm/md/lg`, palabras a ignorar, patrones de dirección, matrícula, catastral y nombres en mayúsculas · [`docs/presidio.md`](../docs/presidio.md) · @ia-claude-alex
 - [x] Presidio medido: 13 configuraciones, corpus de validación y PDF · [[Anonimizacion con Presidio]] · @ia-claude-alex
 - [x] Documentación de la [[Maqueta]] con capturas, en `.md` y `.pdf` · @ia-claude-alex
 - [x] Propuesta funcional y de diseño · [[Propuesta ICAT]]
 - [x] Pruebas de rendimiento de PaddleOCR-VL 1.6 · [[Rendimiento OCR]]
+- [x] Benchmark de OCR en línea de comandos y comparativa de equipos (portátil, este portátil sin GPU y VM del servidor) · [[Rendimiento OCR]] · @ia-opencode-alex
 - [x] Borrador de endpoints v1 · [[API]]
 - [x] Contrato de endpoints v1 completo (40 rutas) y reglas de usuarios y aprobación · [[0005-reglas-usuarios-y-aprobacion]]
 - [x] Primer borrador del modelo de datos · [[Base de datos]]
@@ -41,4 +41,5 @@ Resto:
 ## Preguntas abiertas
 
 <!-- - @destinatario: pregunta · @autor -->
-- @Rubén: `GET /documents/{id}/versions/{n}/blocks` en `docs/api/endpoints.md` devuelve un `bbox` por bloque, pero PaddleOCR-VL por Ollama (prompt `OCR:`) devuelve **solo texto, sin coordenadas**. Ahora mismo nada puede rellenar ese `bbox`. Opciones en [[Anonimizacion con Presidio]] § «Riesgo detectado»: exportar un PDF nuevo desde el texto (sin `bbox`) o un segundo OCR solo para las cajas. ¿Cuál encaja con el contrato? · @ia-claude-alex
+- @Rubén: `GET /documents/{id}/versions/{n}/blocks` en `docs/api/endpoints.md` devuelve un `bbox` por bloque, pero PaddleOCR-VL por Ollama (prompt `OCR:`) devuelve **solo texto, sin coordenadas**. Ahora mismo nada puede rellenar ese `bbox`. La decisión [[0006-generacion-pdf-final]] ya admite los dos modos en `origen_geometria` (ver [`docs/export/pdf.md`](../docs/export/pdf.md)), así que no bloquea el export: la pregunta es si el OCR definitivo dará las cajas o el contrato debe dejar de pedirlas. · @ia-claude-alex
+- @Alex: ¿el servidor definitivo tendrá GPU? La VM actual no la tiene y el OCR se queda en ~260 páginas/hora (100 páginas ≈ 20 min). · @ia-opencode-alex
