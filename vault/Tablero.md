@@ -11,6 +11,11 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 - [ ] Decidir el caso a presentar (justicia gratuita, anonimización o ambos)
 
 Resto:
+- [ ] Cerrar los 8 bloqueantes de [[Coherencia]]: identidad, modelo, export y visto bueno · @Rubén @Marina
+- [ ] Decidir identidad: SSO Office 365, cuentas locales o ambas · [[Coherencia]] · @Rubén @Kevin
+- [ ] Bajar al modelo `sesiones_usuario`, `tokens_usuario`, `bloques_layout` y la tabla de páginas · [[Coherencia]] · @Marina
+- [ ] Unificar el hash del PDF y quitar `expira_en` de 24 h del expediente · [[Coherencia]] · @Rubén
+- [ ] Renombrar `visto-bueno`, `{numero}` y `{usuario_id}` antes de Figma · [[Coherencia]] · @Rubén
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Alex
 
 - [ ] Resolver la contradicción anonimización automática vs. revisión humana · [[0004-anonimizacion-antes-o-despues-de-revision]]
@@ -21,7 +26,7 @@ Resto:
 - [ ] Corrección catalana: «l·l» y apóstrofo tipográfico
 - [ ] Alinear el modelo de datos con la API (sesión de 24 h vs. tabla `documentos`) · [[Base de datos]]
 - [ ] Dibujar `er-diagram.md` en Mermaid (el README de BBDD lo cita pero no existe)
-- [ ] Implementar el PDF final: estructura + reconstrucción con reportlab · [[0006-generacion-pdf-final]]
+- [ ] Implementar el PDF final: estructura + reconstrucción con reportlab · [[0007-generacion-pdf-final]]
 - [ ] Preparar la reunión con el ICAT (preguntas en [[Propuesta ICAT]])
 
 ## En curso
@@ -35,7 +40,8 @@ Resto:
 - [x] Borrador de endpoints v1 · [[API]]
 - [x] Contrato de endpoints v1 completo (40 rutas) y reglas de usuarios y aprobación · [[0005-reglas-usuarios-y-aprobacion]]
 - [x] Primer borrador del modelo de datos · [[Base de datos]]
-- [x] Diseño del PDF final (reconstrucción desde la estructura) · [[0006-generacion-pdf-final]]
+- [x] Diseño del PDF final (reconstrucción desde la estructura) · [[0007-generacion-pdf-final]]
+- [x] Revisión de coherencia del proyecto y recorte de A-15 a categorías especiales · [[Coherencia]]
 
 ## Preguntas abiertas
 

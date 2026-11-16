@@ -16,7 +16,7 @@ pendiente → ocr_procesando → ocr_completado → anonimizando → en_revision
 en_revision
   ├─ rechazado ──reopen──→ en_revision (numero_intento + 1)
   ├─ aprobado                                          (riesgo normal)
-  └─ pendiente_visto_bueno ──visto bueno──→ aprobado   (riesgo alto)
+  └─ pendiente_visto_bueno ──visto bueno──→ aprobado   (categoría especial)
 
 aprobado ──export──→ exportado
 ```
@@ -92,7 +92,11 @@ Sin esa reentrada, un documento rechazado se queda muerto: era el hueco más gra
 
 ## 7. Visto bueno y exportación
 
-**Regla A-15 — doble firma solo en riesgo alto (decidido).** Al cerrar la revisión, el servidor calcula `requiere_visto_bueno` y lo persiste: es cierto si la versión lleva alguna anotación cuya categoría tenga `nivel_riesgo = alto`. No hay lista de categorías en código: el admin marca salud, menores, violencia o datos de víctimas como alto en `categorias_sensibles`, y el alta o baja de una categoría no exige desplegar.
+**Regla A-15 — doble firma solo en categorías especiales (decidido).** Al cerrar la revisión, el servidor calcula `requiere_visto_bueno` y lo persiste: es cierto si la versión lleva alguna anotación cuya categoría tenga `rgpd_especial = true`, es decir, datos del art. 9-10 RGPD (salud, menores, violencia, discapacidad, condenas, origen racial, religión, sindicato, orientación sexual, biométricos y genéticos). El admin controla el conjunto marcando o desmarcando `rgpd_especial` en `categorias_sensibles`: el alta o baja de una categoría no exige desplegar.
+
+`nivel_riesgo` **no** decide esto. Gradúa cuánto esfuerzo de detección y revisión pide una categoría, y casi todos los identificadores directos (DNI, nombre, dirección, IBAN) están en `alto`: usarlo aquí mandaba a doble firma cualquier expediente y vaciaba la regla.
+
+Si negocio quiere un conjunto propio, independiente del art. 9, se añade `categorias_sensibles.requiere_doble_firma` y esta regla pasa a leer esa columna. No se construye hasta que se pida; queda anotado en [vault/Proyecto/Coherencia.md](../../vault/Proyecto/Coherencia.md).
 
 Se guarda el valor calculado, no se recalcula después: la regla que se aplicó en ese momento es la que debe poder auditarse.
 
@@ -161,6 +165,6 @@ POST   /documents/{id}/visto-bueno  pendiente_visto_bueno → aprobado (supervis
 POST   /documents/{id}/export       aprobado → exportado, con hash
 ```
 
-**Decisiones cerradas:** A-05 (cola), A-09 (no aprobar con pendientes), A-15 (doble firma solo riesgo alto), A-20 (48 h + aviso 24 h). Las columnas que estas reglas necesitan y que todavía no están en `docs/architecture/` se listan en la sección 10; bajarlas al modelo está pendiente de decisión.
+**Decisiones cerradas:** A-05 (cola), A-09 (no aprobar con pendientes), A-15 (doble firma solo en categorías especiales, art. 9-10), A-20 (48 h + aviso 24 h). Las columnas que estas reglas necesitan y que todavía no están en `docs/architecture/` se listan en la sección 10; bajarlas al modelo está pendiente de decisión.
 
 **Único pendiente de negocio:** plazo legal de conservación tras la baja (U-08). No bloquea la construcción: mientras no haya plazo, `eliminado_en` se guarda y no se purga nada.

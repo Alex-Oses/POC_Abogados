@@ -21,7 +21,7 @@ Se cierran estas reglas, que son las que cambian el contrato y el modelo:
 3. **Máximo 3 sesiones simultáneas**; la cuarta revoca la más antigua.
 4. **Cola de revisión**: la revisión nace `en_cola` sin revisor; `claim` la toma de forma atómica y el supervisor puede asignar o reasignar.
 5. **No se aprueba con anotaciones pendientes.** Sin casilla de «revisado el resto».
-6. **Doble firma solo en riesgo alto**: si la versión tiene alguna categoría con `nivel_riesgo = alto`, el documento pasa por `pendiente_visto_bueno` y lo libera el supervisor.
+6. **Doble firma solo en categorías especiales**: si la versión tiene alguna anotación de una categoría con `rgpd_especial = true` (art. 9-10 RGPD), el documento pasa por `pendiente_visto_bueno` y lo libera el supervisor. `nivel_riesgo` no interviene: casi todos los identificadores directos están en `alto` y la regla dejaría de ser excepcional.
 7. **Plazo de 48 h laborables con aviso a las 24 h**, con calendario L-V 09:00-18:00 y festivos en `configuracion_sistema`.
 
 ## Consecuencias

@@ -3,7 +3,7 @@
 **Estado:** propuesta (16/11/2026), pendiente de implementar.
 **Contrato:** `docs/api/endpoints.md` (`POST /documents/{id}/export` y `POST /transform/build`).
 **Reglas:** `docs/reglas/aprobacion.md` (A-16 a A-19).
-**Decisión:** [0006](../../vault/Decisiones/0006-generacion-pdf-final.md).
+**Decisión:** [0007](../../vault/Decisiones/0007-generacion-pdf-final.md).
 
 ## 1. Alcance
 
@@ -192,4 +192,4 @@ Obligatorias, en `backend/tests/test_pdf_export.py`:
 
 ## 12. Fuera de alcance
 
-Word, PDF/A-2b, firma electrónica y el modo imagen + repintado por bloques. Este último está descrito como posibilidad futura en `vault/Decisiones/0006-generacion-pdf-final.md`.
+Word, PDF/A-2b, firma electrónica y el modo imagen + repintado por bloques. Este último está descrito como posibilidad futura en `vault/Decisiones/0007-generacion-pdf-final.md`.

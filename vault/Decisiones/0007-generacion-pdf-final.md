@@ -1,4 +1,4 @@
-# 0006 — Generación del PDF final
+# 0007 — Generación del PDF final
 
 - **Estado**: Propuesta
 - **Fecha**: 2026-11-16
