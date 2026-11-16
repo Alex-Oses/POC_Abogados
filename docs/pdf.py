@@ -37,7 +37,7 @@ try:
         pg.pdf(path=str(dst), format="A4", print_background=True, display_header_footer=True,
                header_template="<span></span>",
                footer_template='<div style="font:8px Arial;color:#5E5E5E;width:100%;padding:0 18mm;display:flex;justify-content:space-between">'
-                               f'<span>{src.stem.capitalize()} · POC ICAT</span><span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>')
+                               f'<span>{src.stem} · POC ICAT</span><span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>')
         b.close()
 finally:
     tmp.unlink(missing_ok=True)
