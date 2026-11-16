@@ -6,13 +6,16 @@
 - Bóveda inicial: resúmenes de la propuesta, el rendimiento OCR, la API y la BBDD; tablero y decisiones 0001-0004.
 - Borrador de BBDD copiado a `docs/architecture`.
 - Conexión automática: al pedir a una IA «conéctate al repo», clona, ejecuta `scripts/conectar.*` (Obsidian + plugin Git con auto-pull) y resume el tablero (AGENTS.md § Primera conexión).
+- Equipo, herramientas y la entrega del viernes en [[Equipo]].
+- Prueba de Presidio en local: cobertura 10/10, 6 falsos positivos → [[Anonimizacion con Presidio]], decisión [[0005-presidio-anonimizacion-local]].
+- [[Maqueta]] navegable del flujo completo (CA/ES), con el recorrido probado de principio a fin.
 
 ## Siguiente
 
-- ~~Configurar la protección de `main`~~: hecho (ruleset «main protegida», check `vault`, squash merge, borrado de ramas).
-- Añadir a los compañeros como colaboradores con permiso *Write*.
-- Decidir [[0004-anonimizacion-antes-o-despues-de-revision]].
+- @Alex: pasar la maqueta a Figma con html.to.design.
+- Decidir el caso a presentar el viernes.
+- Decidir [[0004-anonimizacion-antes-o-despues-de-revision]] (ahora con el dato de que el OCR no da coordenadas).
 
 ## Bloqueos / preguntas
 
-- Los PDF originales son «documento interno»: no se han subido al repo.
+- @Alex: el equipo usa Trello para tareas; ¿quitamos [[Tablero]] o lo dejamos solo para las IAs?

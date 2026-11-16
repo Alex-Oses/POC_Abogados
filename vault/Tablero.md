@@ -4,6 +4,15 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 ## Pendiente
 
+**Entrega viernes 20/11** (ver [[Equipo]]):
+- [ ] Especificación funcional con criterios «cómo comprobarlo»
+- [ ] Enfoque técnico: arquitectura y por qué cada opción
+- [ ] Pasar la [[Maqueta]] a Figma (html.to.design) y enlazar el prototipo · @Alex
+- [ ] Decidir el caso a presentar (justicia gratuita, anonimización o ambos)
+
+Resto:
+- [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Alex
+
 - [ ] Resolver la contradicción anonimización automática vs. revisión humana · [[0004-anonimizacion-antes-o-despues-de-revision]]
 - [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
 - [ ] Endpoint que reciba un PDF y devuelva texto por página con su color de semáforo · [[Rendimiento OCR]]
@@ -18,6 +27,8 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 ## Hecho
 
+- [x] Maqueta navegable del flujo completo · [[Maqueta]] · @ia-claude-alex
+- [x] Primera prueba de Presidio en local · [[Anonimizacion con Presidio]] · @ia-claude-alex
 - [x] Propuesta funcional y de diseño · [[Propuesta ICAT]]
 - [x] Pruebas de rendimiento de PaddleOCR-VL 1.6 · [[Rendimiento OCR]]
 - [x] Borrador de endpoints v1 · [[API]]

@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ICAT · Transcripció de documents (maqueta)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--p:#B2051B;--p-bg:#FBEDEF;--t:#212121;--m:#5E5E5E;--bg:#F6F5F3;--line:#E2DFDA;--ok:#1F7A3A;--ok-bg:#E6F4EA;--w:#8A5A00;--w-bg:#FFF4D6;--f:#0B5CAD}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 Roboto,Arial,sans-serif;color:var(--t);background:var(--bg)}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--f);outline-offset:2px}
+header{background:#fff;border-bottom:2px solid var(--p);display:flex;align-items:center;gap:32px;padding:10px 28px}
+.logo{line-height:1.1}.logo b{font:400 26px Georgia,serif;color:#6B6B6B;letter-spacing:1px}.logo b i{font-style:normal;color:var(--p)}
+.logo small{display:block;font-size:11px;color:var(--m)}
+nav{display:flex;gap:4px;flex:1}
+nav a{font:500 13px "Roboto Condensed",Roboto,sans-serif;text-transform:uppercase;color:var(--m);text-decoration:none;padding:8px 12px;border-radius:4px;min-height:24px}
+nav a.on{color:var(--p);background:var(--p-bg)}
+.lang{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.lang button{border:0;background:#fff;padding:4px 10px;font-size:12px;color:var(--m)}
+.lang button.on{background:var(--t);color:#fff}
+.user{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--m)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--p);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px}
+main{max-width:1280px;margin:0 auto;padding:24px 28px 80px}
+h1{font-size:22px;font-weight:500;margin:0 0 4px}
+.sub{color:var(--m);font-size:13px;margin:0 0 20px}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px}
+.btn{border:1px solid var(--line);background:#fff;color:var(--t);border-radius:6px;padding:8px 14px;min-height:36px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap}
+.btn.pri{background:var(--p);border-color:var(--p);color:#fff;font-weight:500}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:12px;align-items:center}
+.sp{flex:1}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.kpi{padding:14px 18px}.kpi b{font-size:26px;font-weight:500;display:block}.kpi span{font-size:12px;color:var(--m)}
+.drop{border:2px dashed var(--line);border-radius:8px;padding:22px;text-align:center;color:var(--m);background:#fff;margin-bottom:16px;width:100%}
+.drop b{color:var(--p)}
+.drop.over{border-color:var(--p);background:var(--p-bg)}
+table{width:100%;border-collapse:collapse}
+th{font:500 11px Roboto;text-transform:uppercase;color:var(--m);text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+td{padding:12px 14px;border-bottom:1px solid var(--line);font-size:14px}
+tr.click{cursor:pointer}tr.click:hover td{background:#FAF9F7}
+.doc-t{font-weight:500}.doc-s{font-size:12px;color:var(--m)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 10px;border-radius:12px;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}.chip.w{background:var(--w-bg);color:var(--w)}.chip.bad{background:var(--p-bg);color:var(--p)}.chip.n{background:#EEE;color:var(--m)}
+.bar{height:4px;background:#EEE;border-radius:2px;width:90px;margin-bottom:3px}.bar i{display:block;height:100%;background:var(--p);border-radius:2px}
+.search{width:100%;border:1px solid var(--line);border-radius:6px;padding:9px 12px;font:inherit;background:#fff}
+/* procesado */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:18px}
+.tile{border:1px solid var(--line);border-radius:6px;padding:8px;font-size:12px;text-align:center;background:#fff;min-height:84px}
+.tile .pg{height:30px;margin:0 auto 6px;width:24px;background:repeating-linear-gradient(#ddd 0 2px,#fff 2px 5px);border:1px solid #ccc}
+.tile.run{border-color:var(--p)}
+/* revisión */
+.rev{display:grid;grid-template-columns:120px 1fr 1fr;gap:14px;height:calc(100vh - 210px);min-height:520px}
+.thumbs{overflow:auto;padding:8px}
+.thumb{width:100%;border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px;margin-bottom:8px;display:flex;align-items:center;gap:8px;font-size:12px}
+.thumb.on{border:2px solid var(--p);background:var(--p-bg)}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}.dot.ok{background:var(--ok)}.dot.w{background:#E0A100}.dot.bad{background:var(--p)}.dot.v{background:var(--ok);box-shadow:0 0 0 2px var(--ok-bg)}
+.scan{background:#E9E7E3;overflow:auto;display:flex;justify-content:center;padding:18px}
+.paper{background:#FDFCF9;width:100%;max-width:470px;padding:34px 30px;font:11px/1.6 Arial,sans-serif;color:#333;transform:rotate(-.5deg);box-shadow:0 1px 4px rgba(0,0,0,.2);filter:blur(.25px);background-image:radial-gradient(rgba(0,0,0,.05) 1px,transparent 1px);background-size:3px 3px}
+.paper.ilegible{filter:blur(1.6px) contrast(.4);opacity:.6}
+.paper h4{font-size:11px;margin:0 0 10px}
+.text{overflow:auto;padding:20px 26px;font:15px/1.75 Georgia,serif}
+.text h4{font:700 14px Georgia;margin:6px 0 14px}
+.tool{display:flex;gap:10px;align-items:center;font:12px Roboto;color:var(--m);padding:8px 14px;border-bottom:1px solid var(--line)}
+.doubt{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline wavy #E0A100 2px;text-underline-offset:4px;background-color:var(--w-bg)}
+.invalid{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline solid var(--p) 2px;text-underline-offset:4px}
+.fixed{background:var(--ok-bg);border-radius:3px}
+.pop{position:absolute;z-index:20;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.15);padding:12px 14px;font:13px/1.5 Roboto;max-width:300px}
+.pop b{display:block;margin-bottom:4px}
+.pop .row{margin-top:8px}
+.legend{display:flex;gap:18px;font-size:12px;color:var(--m);padding:8px 2px}
+.banner{padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:10px}
+.banner.bad{background:var(--p-bg);color:var(--p)}.banner.ok{background:var(--ok-bg);color:var(--ok)}.banner.w{background:var(--w-bg);color:var(--w)}
+/* JG */
+.grid2{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;align-items:start}
+.check{display:flex;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);align-items:flex-start}
+.check .ic{font-weight:700;width:18px;text-align:center}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:8px 14px;font-size:14px;padding:4px 18px 14px}.kv span{color:var(--m)}
+.box-h{padding:14px 18px 6px;font-weight:500}
+/* anonimización */
+.anon{display:grid;grid-template-columns:1fr 330px;gap:16px;align-items:start}
+.doc{padding:30px 36px;font:15px/1.9 Georgia,serif;min-height:520px}
+.doc h4{font:700 14px Georgia;text-align:center;margin:0 0 18px}
+.ent{font:inherit;color:inherit;background:none;border:0;padding:0 1px;cursor:pointer;border-radius:2px}
+.ent.off{text-decoration:underline dashed #999 1px;text-underline-offset:4px}
+.ent.m-censurar{background:#111;color:transparent}
+.ent.m-esborrar{color:transparent;background:repeating-linear-gradient(90deg,transparent 0 3px,#eee 3px 4px)}
+.ent.m-tatxar{text-decoration:line-through 2px;background:#f2f2f2}
+.ent.m-tag{background:#4A4A4A;color:#fff;font:600 11px Roboto;padding:1px 5px;letter-spacing:.3px}
+.ent.orig{background:var(--w-bg)}
+.side{padding:16px}
+.side h3{font-size:15px;font-weight:500;margin:0}
+.side h5{font-size:12px;color:var(--m);font-weight:500;margin:16px 0 8px}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.modes button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:7px 4px;font-size:12px}
+.modes button.on{border-color:var(--p);background:var(--p-bg);color:var(--p);font-weight:500}
+.cat{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0}
+.cat input{accent-color:var(--p);width:16px;height:16px}
+.cat em{margin-left:auto;font-style:normal;color:var(--m)}
+details{border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-top:14px;font-size:13px}
+details li{display:flex;justify-content:space-between;gap:8px;padding:3px 0}
+details ul{list-style:none;padding:0;margin:8px 0 0}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);display:grid;place-items:center;z-index:30}
+.modal{background:#fff;border-radius:10px;padding:24px;width:480px;max-width:92vw}
+.modal h2{font-size:18px;font-weight:500;margin:0 0 10px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--t);color:#fff;padding:10px 18px;border-radius:6px;font-size:14px;z-index:40}
+.login{max-width:420px;margin:9vh auto;padding:36px;text-align:center}
+.login .logo b{font-size:44px}
+.audit{font:12px/1.7 ui-monospace,Consolas,monospace;color:var(--m);padding:12px 18px}
+/* guía de la demo */
+.guide{position:fixed;right:18px;bottom:18px;z-index:25;font-size:13px}
+.guide ol{background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.12);padding:12px 14px 12px 32px;margin:0 0 8px;width:260px}
+.guide li{padding:2px 0}.guide li a{color:var(--t);text-decoration:none}.guide li.on a{color:var(--p);font-weight:500}
+.guide>button{float:right}
+.ficticio{font-size:11px;color:var(--m);text-align:center;margin-top:24px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// Maqueta navegable: todo es simulado y con datos ficticios. Cada pantalla tiene su #ruta para poder importarla en Figma.
+const L = {
+ca:{safata:"Safata",jg:"Justícia gratuïta",arxiu:"Arxiu",informes:"Informes",rol:"Secretaria tècnica",
+ login_t:"Transcripció de documents escanejats",login_b:"Accedir amb el compte del Col·legi",login_n:"Office 365 · mateixes credencials que l'extranet",local:"Tot es processa al servidor del Col·legi: cap document surt de l'ICAT.",
+ safata_t:"Safata de documents",safata_s:"Documents escanejats pendents de revisar.",k1:"documents avui",k2:"pàgines transcrites",k3:"pàgines per revisar",k4:"per tornar a escanejar",
+ drop:"Arrossega aquí PDF o imatges",drop2:"o selecciona fitxers · també s'importen automàticament de la carpeta d'escaneig de recepció",cerca:"Cerca per nom, DNI, núm. d'expedient o text…",nou:"Nou document",
+ th_doc:"Document",th_tipus:"Tipus",th_pag:"Pàgines",th_estat:"Estat",th_q:"Qualitat",th_reb:"Rebut",
+ fiable:"Fiable",revisar:"per revisar",tornar:"Tornar a escanejar",transcrit:"Transcrit",transcrivint:"Transcrivint",validat:"Validat",enviat:"Enviat a tramitació",anonimitzar:"Per anonimitzar",exportat:"Exportat",
+ proc_t:"Transcrivint",proc_s:"4 pàgines en paral·lel · model local PaddleOCR-VL · ~1,3 s per pàgina",cua:"En cua",contrast:"Contrast",ocr:"Lectura",
+ proc_fi:"Transcripció acabada",obrir:"Obrir revisió",tornar_safata:"Tornar a la safata",
+ sum_ok:"pàgines fiables",sum_w:"pàgines amb avisos",sum_bad:"pàgina il·legible (contrast 46 < 80)",
+ pag:"pàg.",de:"de",avisos:"avisos",revisar_n:"Revisar",retranscriure:"Tornar a transcriure",exportar_pdf:"Exportar PDF",validar:"Validar pàgina",seg:"Ctrl+→ següent avís",desat:"Desat automàticament",
+ lg_w:"groc ondulat: les dues lectures no coincideixen",lg_bad:"vermell: DNI o IBAN amb control incorrecte",qual:"Qualitat de la imatge",
+ dues:"Les dues lectures no coincideixen",l1:"Lectura 1",l2:"Lectura 2",comprova:"Comproveu-ho a la imatge.",usar:"Usar",mantenir:"Mantenir",
+ dni_bad:"DNI amb format incorrecte",dni_sug:"Probablement l'OCR ha llegit «S» com «5».",corregir:"Corregir a",iban_bad:"IBAN invàlid (dígit de control)",iban_sug:"Comproveu el darrer dígit a la imatge.",editar:"Editar a mà",
+ resol:"Resol els avisos abans de validar",il_t:"Pàgina il·legible",il_s:"Contrast 46 (mínim 80). El model inventaria text: no es transcriu.",marcar_esc:"Marcar per tornar a escanejar",
+ doc_ok:"Totes les pàgines revisades",comprovar:"Comprovar documentació",
+ jg_t:"Comprovació de documentació",jg_s:"Cita UNITRAM 06/11/2026 10:30 · Seu de Tarragona · Unitat familiar: 3 membres",aportada:"Documentació aportada (detectada automàticament)",
+ complet:"Complet",incomplet:"Incomplet",falta:"Falta",dades:"Dades extretes per revisar",
+ sol:"Sol·licitant",ingressos:"Ingressos anuals",membres:"Membres unitat",proc:"Procediment",domicili:"Domicili",
+ orient:"Orientatiu, no vinculant.",orient2:"Amb aquestes dades la unitat familiar quedaria per sota del llindar d'ingressos. La decisió correspon a la Comissió de Justícia Gratuïta.",
+ demanar:"Demanar documents que falten",enviar_tram:"Enviar a tramitació",enviar:"Enviar",cancel:"Cancel·lar",
+ msg_t:"Requeriment de documentació",msg:"Benvolguda Sra. Martínez,\n\nPer completar la vostra sol·licitud de justícia gratuïta ens cal:\n· Nòmines d'agost i setembre de 2026\n· Certificat de béns de l'Ajuntament (la còpia aportada no es pot llegir)\n\nPodeu aportar-los a UNITRAM.",
+ env_ok:"Expedient enviat a tramitació",req_ok:"Requeriment enviat",seg_anon:"Següent: anonimitzar una resolució",
+ an_t:"Anonimitzar",an_panel:"Anonimització",detect:"dades detectades",anonim:"anonimitzades",com:"Com s'anonimitza",que:"Què s'anonimitza",
+ m_censurar:"Censurar",m_esborrar:"Esborrar",m_tatxar:"Tatxar",m_etiqueta:"Etiqueta",m_pseudonim:"Pseudònim",m_inicials:"Inicials",
+ tatxar_av:"Tatxar no anonimitza: només per a revisió interna.",veure:"Veure què s'anonimitza",vista:"Vista original",vista_an:"Vista anonimitzada",exp_an:"Exportar anonimitzat",
+ apareix:"apareix",vegades:"vegades",tip_on:"Anonimitzat · clic per desmarcar · Maj+clic totes les aparicions",tip_off:"Visible · clic per anonimitzar",registrada:"Consulta registrada",
+ conf_t:"Exportar document anonimitzat",conf_1:"Es generarà un PDF nou: el text original s'elimina de la capa de text, de la imatge i de les metadades.",conf_c:"He revisat el document i confirmo que no queda cap dada personal visible.",exportar:"Exportar",
+ exp_t:"Document exportat",exp_s:"Llest per compartir o publicar.",g1:"Text original eliminat de la capa de text",g2:"Zones de la imatge esborrades (no només tapades)",g3:"Metadades del PDF netejades",g4:"Taula de pseudònims xifrada i separada",registre:"Registre d'auditoria",descarregar:"Descarregar PDF",
+ arxiu_t:"Arxiu",arxiu_s:"Documents validats i exportats. Cerca de text complet.",inf_t:"Informes",inf_s:"Volum i temps (funcionalitat desitjable · fase 2).",
+ i1:"pàgines aquest mes",i2:"temps mitjà de revisió per pàgina",i3:"pàgines tornades a escanejar",i4:"expedients JG enviats",
+ guia:"Guia de la demo",ficticia:"Maqueta il·lustrativa amb dades fictícies.",
+ c_nom:"Noms de persones físiques",c_dni:"DNI, NIE i passaport",c_adreca:"Adreces",c_contacte:"Telèfons i correus",c_iban:"Comptes bancaris (IBAN)",c_matricula:"Matrícules",c_menor:"Menors d'edat",c_salut:"Dades de salut i especials",c_magistrat:"Magistrats i funcionaris",c_juridica:"Persones jurídiques"},
+es:{safata:"Bandeja",jg:"Justicia gratuita",arxiu:"Archivo",informes:"Informes",rol:"Secretaría técnica",
+ login_t:"Transcripción de documentos escaneados",login_b:"Acceder con la cuenta del Colegio",login_n:"Office 365 · mismas credenciales que la extranet",local:"Todo se procesa en el servidor del Colegio: ningún documento sale del ICAT.",
+ safata_t:"Bandeja de documentos",safata_s:"Documentos escaneados pendientes de revisar.",k1:"documentos hoy",k2:"páginas transcritas",k3:"páginas por revisar",k4:"para volver a escanear",
+ drop:"Arrastra aquí PDF o imágenes",drop2:"o selecciona ficheros · también se importan solos desde la carpeta del escáner de recepción",cerca:"Busca por nombre, DNI, n.º de expediente o texto…",nou:"Nuevo documento",
+ th_doc:"Documento",th_tipus:"Tipo",th_pag:"Páginas",th_estat:"Estado",th_q:"Calidad",th_reb:"Recibido",
+ fiable:"Fiable",revisar:"por revisar",tornar:"Volver a escanear",transcrit:"Transcrito",transcrivint:"Transcribiendo",validat:"Validado",enviat:"Enviado a tramitación",anonimitzar:"Para anonimizar",exportat:"Exportado",
+ proc_t:"Transcribiendo",proc_s:"4 páginas en paralelo · modelo local PaddleOCR-VL · ~1,3 s por página",cua:"En cola",contrast:"Contraste",ocr:"Lectura",
+ proc_fi:"Transcripción terminada",obrir:"Abrir revisión",tornar_safata:"Volver a la bandeja",
+ sum_ok:"páginas fiables",sum_w:"páginas con avisos",sum_bad:"página ilegible (contraste 46 < 80)",
+ pag:"pág.",de:"de",avisos:"avisos",revisar_n:"Revisar",retranscriure:"Volver a transcribir",exportar_pdf:"Exportar PDF",validar:"Validar página",seg:"Ctrl+→ siguiente aviso",desat:"Guardado automáticamente",
+ lg_w:"ámbar ondulado: las dos lecturas no coinciden",lg_bad:"rojo: DNI o IBAN con control incorrecto",qual:"Calidad de la imagen",
+ dues:"Las dos lecturas no coinciden",l1:"Lectura 1",l2:"Lectura 2",comprova:"Compruébalo en la imagen.",usar:"Usar",mantenir:"Mantener",
+ dni_bad:"DNI con formato incorrecto",dni_sug:"Probablemente el OCR ha leído «S» como «5».",corregir:"Corregir a",iban_bad:"IBAN inválido (dígito de control)",iban_sug:"Comprueba el último dígito en la imagen.",editar:"Editar a mano",
+ resol:"Resuelve los avisos antes de validar",il_t:"Página ilegible",il_s:"Contraste 46 (mínimo 80). El modelo inventaría texto: no se transcribe.",marcar_esc:"Marcar para volver a escanear",
+ doc_ok:"Todas las páginas revisadas",comprovar:"Comprobar documentación",
+ jg_t:"Comprobación de documentación",jg_s:"Cita UNITRAM 06/11/2026 10:30 · Sede de Tarragona · Unidad familiar: 3 miembros",aportada:"Documentación aportada (detectada automáticamente)",
+ complet:"Completo",incomplet:"Incompleto",falta:"Falta",dades:"Datos extraídos para revisar",
+ sol:"Solicitante",ingressos:"Ingresos anuales",membres:"Miembros unidad",proc:"Procedimiento",domicili:"Domicilio",
+ orient:"Orientativo, no vinculante.",orient2:"Con estos datos la unidad familiar quedaría por debajo del umbral de ingresos. La decisión corresponde a la Comisión de Justicia Gratuita.",
+ demanar:"Pedir documentos que faltan",enviar_tram:"Enviar a tramitación",enviar:"Enviar",cancel:"Cancelar",
+ msg_t:"Requerimiento de documentación",msg:"Estimada Sra. Martínez:\n\nPara completar su solicitud de justicia gratuita necesitamos:\n· Nóminas de agosto y septiembre de 2026\n· Certificado de bienes del Ayuntamiento (la copia aportada no se puede leer)\n\nPuede aportarlos en UNITRAM.",
+ env_ok:"Expediente enviado a tramitación",req_ok:"Requerimiento enviado",seg_anon:"Siguiente: anonimizar una resolución",
+ an_t:"Anonimizar",an_panel:"Anonimización",detect:"datos detectados",anonim:"anonimizados",com:"Cómo se anonimiza",que:"Qué se anonimiza",
+ m_censurar:"Censurar",m_esborrar:"Borrar",m_tatxar:"Tachar",m_etiqueta:"Etiqueta",m_pseudonim:"Seudónimo",m_inicials:"Iniciales",
+ tatxar_av:"Tachar no anonimiza: solo para revisión interna.",veure:"Ver qué se anonimiza",vista:"Vista original",vista_an:"Vista anonimizada",exp_an:"Exportar anonimizado",
+ apareix:"aparece",vegades:"veces",tip_on:"Anonimizado · clic para desmarcar · Mayús+clic todas las apariciones",tip_off:"Visible · clic para anonimizar",registrada:"Consulta registrada",
+ conf_t:"Exportar documento anonimizado",conf_1:"Se generará un PDF nuevo: el texto original se elimina de la capa de texto, de la imagen y de los metadatos.",conf_c:"He revisado el documento y confirmo que no queda ningún dato personal visible.",exportar:"Exportar",
+ exp_t:"Documento exportado",exp_s:"Listo para compartir o publicar.",g1:"Texto original eliminado de la capa de texto",g2:"Zonas de la imagen borradas (no solo tapadas)",g3:"Metadatos del PDF limpiados",g4:"Tabla de seudónimos cifrada y separada",registre:"Registro de auditoría",descarregar:"Descargar PDF",
+ arxiu_t:"Archivo",arxiu_s:"Documentos validados y exportados. Búsqueda de texto completo.",inf_t:"Informes",inf_s:"Volumen y tiempos (funcionalidad deseable · fase 2).",
+ i1:"páginas este mes",i2:"tiempo medio de revisión por página",i3:"páginas vueltas a escanear",i4:"expedientes JG enviados",
+ guia:"Guía de la demo",ficticia:"Maqueta ilustrativa con datos ficticios.",
+ c_nom:"Nombres de personas físicas",c_dni:"DNI, NIE y pasaporte",c_adreca:"Direcciones",c_contacte:"Teléfonos y correos",c_iban:"Cuentas bancarias (IBAN)",c_matricula:"Matrículas",c_menor:"Menores de edad",c_salut:"Datos de salud y especiales",c_magistrat:"Magistrados y funcionarios",c_juridica:"Personas jurídicas"}
+};
+let lang = "ca";
+const t = k => L[lang][k] ?? k;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const $ = s => document.querySelector(s);
+
+// ---------- estado de la demo ----------
+const S = {
+  uploaded:false, procDone:false, sent:false, exported:false, cur:7,
+  pages:{}, fixes:{}, audit:[],
+  mode:"censurar", cats:{nom:1,dni:1,adreca:1,contacte:1,iban:1,matricula:0,menor:1,salut:1,magistrat:1,juridica:0},
+  off:new Set(), on:new Set(), original:false
+};
+const REV = [7,12], BAD = 22, N = 23;
+function seedPages(){ for(let i=1;i<=N;i++) S.pages[i] = i===BAD?"bad":REV.includes(i)?"w":"ok"; }
+function log(e){ const d=new Date(); S.audit.unshift(`${d.toLocaleTimeString("ca-ES")}  M. Serra  ${e}`); }
+
+// ---------- datos ficticios ----------
+const DOCS = () => [
+  ...(S.uploaded?[{id:"JG-2026-1184",t:"Sol·licitud justícia gratuïta",s:"Expedient complet: DNI, nòmines, IRPF",tipo:t("jg"),p:23,
+     st:S.sent?["ok",t("enviat")]:S.procDone?["n",t("transcrit")]:["n",t("transcrivint")],
+     q:S.sent?["ok","✓ "+t("validat")]:["w","! 4 "+t("revisar")], r:"10:31", go:S.procDone?"#revisio":"#processant"}]:[]),
+  {id:"Queixa 2026/311",t:"Escrit de la persona usuària",s:"Escanejat per fax",tipo:"Deontologia",p:3,st:["n",t("transcrit")],q:["bad","✕ "+t("tornar")],r:"09:15"},
+  {id:"Sentència 70/2020",t:"Resolució per publicar",s:"Formació i jurisprudència",tipo:"Arxiu",p:4,st:S.exported?["ok",t("exportat")]:["n",t("anonimitzar")],q:["ok","✓ "+t("fiable")],r:"09:05",go:"#anonimitzar"},
+  {id:"Dictamen honoraris 2026/057",t:"Minuta",s:"Taula d'honoraris i taxació",tipo:"Honoraris",p:6,st:["n",t("transcrivint")+" 4/6"],q:["ok","✓ "+t("fiable")],r:"09:58",prog:66},
+  {id:"Fòrum Jurídic núm. 12 (1998)",t:"Hemeroteca",s:"Digitalització de l'hemeroteca",tipo:"Arxiu",p:64,st:["n",t("transcrit")],q:["ok","✓ "+t("fiable")],r:"Ahir"}
+];
+
+// Página 7: contrato. Cada aviso: tipo, texto leído, alternativa.
+const P7 = [
+  "CONTRATO DE ARRENDAMIENTO DE LOCAL DE NEGOCIO",
+  "En Girona, a 21 de enero de 2020.",
+  "REUNIDOS: De una parte, D./D.ª José Antonio Núñez Rodríguez, mayor de edad, con DNI {dni}, en calidad de arrendador. De otra parte, D./D.ª Jordi Puig i Serra, con DNI 22633920B, en calidad de arrendatario.",
+  "PRIMERA.- Objeto. El arrendador cede en arrendamiento el local sito en la calle Mayor, n.º {num}, bajos, de Girona, con referencia catastral 1973060DF9313N0001XY.",
+  "SEGUNDA.- Renta. La renta anual asciende a 226.327,04 €, pagadera por mensualidades anticipadas en la cuenta {iban}, dentro de los cinco primeros días de cada mes.",
+  "TERCERA.- Fianza. El arrendatario entrega en este acto la cantidad de 91.322,55 € en concepto de fianza, conforme al artículo 36 de la Ley 29/1994, de 24 de noviembre, de Arrendamientos Urbanos."
+];
+const W = {
+  dni:{k:"invalid",read:"819248655",alt:"81924865S"},
+  num:{k:"doubt",read:"94",alt:"64"},
+  iban:{k:"invalid",read:"ES91 2100 0418 4502 0005 1333",alt:"ES91 2100 0418 4502 0005 1332"},
+  liq:{k:"doubt",read:"1.402,15",alt:"1.462,15"}
+};
+const P12 = ["NÓMINA · Periodo: julio 2026","Empresa: Serveis Logístics Tarragona, S.L. · CIF B43123456","Trabajadora: Lucía Martínez Peña · NAF 43/1234567/89","Salario base: 1.380,00 € · Complementos: 210,40 €","Deducciones IRPF y Seguridad Social: 188,25 €","LÍQUIDO A PERCIBIR: {liq} €"];
+const GEN = i => i<=3?["DOCUMENTO NACIONAL DE IDENTIDAD","Apellidos y nombre del miembro "+i+" de la unidad familiar","Válido hasta 2031"]:
+  i<=15?["NÓMINA · Periodo: "+["","","","","enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre"][i]+" 2026","Empresa: Serveis Logístics Tarragona, S.L.","LÍQUIDO A PERCIBIR: 1.402,15 €"]:
+  i===16?["DECLARACIÓN IRPF 2025","Base imponible general: 18.742,30 €"]:i===17?["CERTIFICADO DE EMPADRONAMIENTO","Ayuntamiento de Tarragona · 3 personas inscritas"]:
+  i===BAD?["CERTIFICADO DE BIENES","Ayuntamiento de Tarragona"]:i===23?["NOTIFICACIÓN","Juzgado de 1.ª Instancia n.º 4 de Tarragona · Procedimiento verbal 1547/2026"]:["CONTRATO DE ARRENDAMIENTO","Página "+(i-17)+" del contrato aportado"];
+
+function pageLines(i){ return i===7?P7:i===12?P12:GEN(i); }
+function pendingWarnings(i){ return (i===7?["dni","num","iban"]:i===12?["liq"]:[]).filter(k=>!S.fixes[k]); }
+
+// ---------- vistas ----------
+const shell = (active, body) => `
+<header>
+  <div class="logo"><b>ICA<i>T</i></b><small>Il·lustre Col·legi de l'Advocacia de Tarragona</small></div>
+  <nav aria-label="Principal">${[["safata","#safata"],["jg","#jg"],["arxiu","#arxiu"],["informes","#informes"]].map(([k,h])=>`<a href="${h}" class="${active===k?"on":""}">${t(k)}</a>`).join("")}</nav>
+  <div class="lang" role="group" aria-label="Idioma"><button data-lang="ca" class="${lang==="ca"?"on":""}">CA</button><button data-lang="es" class="${lang==="es"?"on":""}">ES</button></div>
+  <div class="user">${t("rol")} <span class="avatar" aria-hidden="true">MS</span></div>
+</header><main>${body}<p class="ficticio">${t("ficticia")}</p></main>`;
+
+const V = {};
+V.login = () => `<div class="card login">
+  <div class="logo"><b>ICA<i>T</i></b><small>Il·lustre Col·legi de l'Advocacia de Tarragona</small></div>
+  <h1 style="margin:28px 0 22px">${t("login_t")}</h1>
+  <a class="btn pri" href="#safata" style="width:100%;justify-content:center;text-decoration:none">${t("login_b")}</a>
+  <p class="sub" style="margin-top:10px">${t("login_n")}</p>
+  <p class="banner ok" style="margin-top:22px">🔒 ${t("local")}</p>
+  <div class="lang" style="display:inline-flex;margin-top:12px"><button data-lang="ca" class="${lang==="ca"?"on":""}">CA</button><button data-lang="es" class="${lang==="es"?"on":""}">ES</button></div>
+</div>`;
+
+V.safata = () => shell("safata", `
+  <h1>${t("safata_t")}</h1><p class="sub">${t("safata_s")} ${t("local")}</p>
+  <div class="kpis">
+    <div class="card kpi"><b>${S.uploaded?38:37}</b><span>${t("k1")}</span></div>
+    <div class="card kpi"><b>${S.procDone?412:389}</b><span>${t("k2")}</span></div>
+    <div class="card kpi"><b style="color:var(--w)">${S.sent?13:S.procDone?17:13}</b><span>${t("k3")}</span></div>
+    <div class="card kpi"><b style="color:var(--p)">${S.procDone?3:2}</b><span>${t("k4")}</span></div>
+  </div>
+  <button class="drop" id="drop"><b>${t("drop")}</b> ${t("drop2")}</button>
+  <div class="row" style="margin-bottom:12px"><input class="search" id="q" placeholder="${t("cerca")}" aria-label="${t("cerca")}"><button class="btn pri" id="nou">＋ ${t("nou")}</button></div>
+  <div class="card"><table><thead><tr><th></th><th>${t("th_doc")}</th><th>${t("th_tipus")}</th><th>${t("th_pag")}</th><th>${t("th_estat")}</th><th>${t("th_q")}</th><th>${t("th_reb")}</th></tr></thead>
+  <tbody id="rows">${rows(DOCS())}</tbody></table></div>`);
+const rows = ds => ds.map(d=>`<tr class="${d.go?"click":""}" ${d.go?`data-go="${d.go}" tabindex="0"`:""}>
+  <td style="width:44px"><div class="tile" style="min-height:0;padding:4px;width:30px"><div class="pg" style="margin:0;height:28px;width:20px"></div></div></td>
+  <td><div class="doc-t">${esc(d.id)} · ${esc(d.t)}</div><div class="doc-s">${esc(d.s)}</div></td><td>${esc(d.tipo)}</td><td>${d.p}</td>
+  <td><div class="bar"><i style="width:${d.prog??100}%"></i></div><span class="doc-s">${d.st[1]}</span></td>
+  <td><span class="chip ${d.q[0]}">${d.q[1]}</span></td><td>${d.r}</td></tr>`).join("");
+
+V.processant = () => shell("safata", `
+  <div class="row"><div><h1 id="ph">${t("proc_t")} JG-2026-1184 · Sol·licitud justícia gratuïta</h1><p class="sub" id="ps">${t("proc_s")}</p></div></div>
+  <div class="card"><div class="tiles" id="tiles">${Array.from({length:N},(_,k)=>tile(k+1,"q")).join("")}</div></div>
+  <div id="procEnd"></div>`);
+const tile = (i,st) => {
+  const m = {q:["",t("cua")],c:["run",t("contrast")+"…"],o:["run",t("ocr")+"…"],ok:["",`<span class="chip ok">✓ ${t("fiable")}</span>`],w:["",`<span class="chip w">! ${t("revisar_n")}</span>`],bad:["",`<span class="chip bad">✕ ${t("tornar")}</span>`]}[st];
+  return `<div class="tile ${m[0]}" id="t${i}"><div class="pg"></div>${t("pag")} ${i}<br>${m[1]}</div>`;
+};
+let timer = null;
+function runProcessing(){
+  if(S.procDone){ for(let i=1;i<=N;i++) $("#t"+i).outerHTML = tile(i,S.pages[i]); return procEnd(); }
+  const st = {}; let next=1, done=0;
+  timer = setInterval(()=>{
+    for(let i=1;i<=N;i++){ if(st[i]==="c"){st[i]="o";} else if(st[i]==="o"){st[i]=S.pages[i];done++;} }
+    while(Object.values(st).filter(v=>v==="c"||v==="o").length<4 && next<=N) st[next++]="c";
+    for(let i=1;i<=N;i++) if(st[i]) $("#t"+i).outerHTML = tile(i,st[i]);
+    $("#ph").textContent = `${t("proc_t")} ${done}/${N} · JG-2026-1184`;
+    if(done===N){ clearInterval(timer); S.procDone=true; log("OCR completat JG-2026-1184 (23 pàg.)"); procEnd(); }
+  },180);
+}
+function procEnd(){
+  $("#ph").textContent = `${t("proc_fi")} · JG-2026-1184`;
+  $("#procEnd").innerHTML = `<div class="card" style="margin-top:16px;padding:16px 18px" class="row">
+    <div class="row"><span class="chip ok">✓ 20 ${t("sum_ok")}</span><span class="chip w">! 2 ${t("sum_w")} (${t("pag")} 7, 12)</span><span class="chip bad">✕ 1 ${t("sum_bad")}</span>
+    <span class="sp"></span><a class="btn" href="#safata">${t("tornar_safata")}</a><a class="btn pri" href="#revisio">${t("obrir")} →</a></div></div>`;
+}
+
+V.revisio = () => {
+  const i = S.cur, pend = pendingWarnings(i), allDone = Object.values(S.pages).every(v=>v==="v"||v==="ok"||v==="esc");
+  const lines = pageLines(i);
+  const fill = (s,img) => s.replace(/\{(\w+)\}/g,(_,k)=>{ const w=W[k];
+    if(img) return w.alt; if(S.fixes[k]) return `<span class="fixed">${esc(S.fixes[k])}</span>`;
+    return `<button class="${w.k}" data-w="${k}" aria-label="${w.k==="doubt"?t("dues"):k==="dni"?t("dni_bad"):t("iban_bad")}">${esc(w.read)}</button>`; });
+  const total = Object.entries(S.pages).reduce((n,[p,v])=>n+(v==="w"?pendingWarnings(+p).length:0),0);
+  return shell("safata", `
+  <div class="card row" style="padding:10px 14px;margin-bottom:12px">
+    <a href="#safata" class="btn">‹ ${t("safata")}</a><b>JG-2026-1184</b><span>· ${i===7?"Contracte d'arrendament":i===12?"Nòmina juliol":"Expedient"} (${t("pag")} ${i} ${t("de")} ${N})</span>
+    ${total?`<span class="chip w">! ${t("revisar_n")}: ${total} ${t("avisos")}</span>`:""}<span class="sp"></span>
+    <button class="btn" id="retr">↻ ${t("retranscriure")}</button><button class="btn" id="exp">⤓ ${t("exportar_pdf")}</button>
+    ${S.pages[i]==="bad"?`<button class="btn pri" id="esc">${t("marcar_esc")}</button>`:`<button class="btn pri" id="val" ${pend.length?`disabled title="${t("resol")}"`:""}>✓ ${t("validar")}</button>`}
+  </div>
+  ${allDone?`<div class="banner ok row">✓ ${t("doc_ok")}<span class="sp"></span><a class="btn pri" href="#jg">${t("comprovar")} →</a></div>`:""}
+  <div class="rev">
+    <div class="card thumbs" aria-label="Pàgines">${Array.from({length:N},(_,k)=>k+1).map(p=>{const v=S.pages[p];
+      return `<button class="thumb ${p===i?"on":""}" data-p="${p}"><span class="dot ${v==="w"?"w":v==="bad"?"bad":v==="v"?"v":"ok"}"></span>${t("pag")} ${p}</button>`}).join("")}</div>
+    <div class="scan card"><div class="paper ${S.pages[i]==="bad"?"ilegible":""}">${lines.map((l,k)=>k?`<p>${esc(fill(l,true))}</p>`:`<h4>${esc(l)}</h4>`).join("")}<p style="text-align:center;margin-top:30px;font-size:9px">Página ${i} de ${N}</p></div></div>
+    <div class="card" style="display:flex;flex-direction:column;position:relative">
+      <div class="tool"><b style="color:var(--t)">Text</b> · B / S · ${t("desat")} · <span class="sp"></span>${t("seg")}</div>
+      ${S.pages[i]==="bad"?`<div style="padding:20px"><div class="banner bad"><b>✕ ${t("il_t")}</b><br>${t("il_s")}</div></div>`:
+      `<div class="text" id="txt" contenteditable="true" spellcheck="false">${lines.map((l,k)=>k?`<p>${fill(esc(l))}</p>`:`<h4>${esc(l)}</h4>`).join("")}</div>`}
+    </div>
+  </div>
+  <div class="legend"><span><span class="doubt" style="cursor:default">94</span> ${t("lg_w")}</span><span><span class="invalid">8192…</span> ${t("lg_bad")}</span><span class="sp"></span><span>${t("qual")}: ${S.pages[i]==="bad"?"✕ contrast 46":"✓ contrast 166"}</span></div>`);
+};
+function showPop(btn){
+  const k = btn.dataset.w, w = W[k]; closePop();
+  const body = w.k==="doubt" ? `<b>${t("dues")}</b>${t("l1")}: «${w.read}» · ${t("l2")}: «${w.alt}»<br>${t("comprova")}
+      <div class="row"><button class="btn pri" data-fix="${k}" data-v="${w.alt}">${t("usar")} «${w.alt}»</button><button class="btn" data-fix="${k}" data-v="${w.read}">${t("mantenir")} «${w.read}»</button></div>`
+    : `<b>${k==="dni"?t("dni_bad"):t("iban_bad")}</b>${k==="dni"?t("dni_sug"):t("iban_sug")}
+      <div class="row"><button class="btn pri" data-fix="${k}" data-v="${w.alt}">${t("corregir")} ${w.alt}</button><button class="btn" data-fix="${k}" data-v="${w.read}">${t("editar")}</button></div>`;
+  const r = btn.getBoundingClientRect();
+  document.body.insertAdjacentHTML("beforeend",`<div class="pop" id="pop" role="dialog" style="left:${r.left+scrollX}px;top:${r.bottom+scrollY+8}px">${body}</div>`);
+  $("#pop button").focus();
+}
+const closePop = () => $("#pop")?.remove();
+
+V.jg = () => {
+  const ck = [["ok","DNI / NIE dels 3 membres","3 documents · lletres de control correctes",t("complet")],
+    ["ok","Certificat d'empadronament","Inclou els 3 membres · Ajuntament de Tarragona",t("complet")],
+    ["w","Darreres 12 nòmines","Trobades 10 de 12 · falten agost i setembre de 2026",t("incomplet")],
+    ["ok","Declaració d'IRPF 2025","Base imposable general: 18.742,30 €",t("complet")],
+    ["bad","Certificat de béns de l'Ajuntament","Pàg. 22 il·legible · cal tornar-la a escanejar",t("falta")],
+    ["ok","Notificació del jutjat","Procediment verbal 1547/2026 · Jutjat de 1a Instància núm. 4",t("complet")]];
+  return shell("jg", `
+  <h1>JG-2026-1184 · ${t("jg_t")}</h1><p class="sub">${t("jg_s")}</p>
+  ${S.sent?`<div class="banner ok row">✓ ${t("env_ok")}<span class="sp"></span><a class="btn pri" href="#anonimitzar">${t("seg_anon")} →</a></div>`:""}
+  <div class="grid2">
+    <div class="card"><div class="box-h">${t("aportada")}</div>${ck.map(([c,a,b,s])=>`<div class="check"><span class="ic" style="color:${c==="ok"?"var(--ok)":c==="w"?"var(--w)":"var(--p)"}">${c==="ok"?"✓":c==="w"?"!":"✕"}</span><div class="sp"><div>${a}</div><div class="doc-s">${b}</div></div><span class="chip ${c}">${s}</span></div>`).join("")}</div>
+    <div class="card"><div class="box-h">${t("dades")}</div>
+      <div class="kv"><span>${t("sol")}</span><b>Lucía Martínez Peña</b><span>DNI</span><b>47851236N <span style="color:var(--ok)">✓</span></b>
+      <span>${t("ingressos")}</span><b>18.742,30 € (IRPF 2025)</b><span>${t("membres")}</span><b>3</b><span>${t("proc")}</span><b>Verbal 1547/2026</b><span>${t("domicili")}</span><b>C/ Major 112, 43003 Tarragona</b></div>
+      <div style="padding:0 18px"><div class="banner w"><b>${t("orient")}</b> ${t("orient2")}</div></div>
+      <div class="row" style="padding:6px 18px 18px"><button class="btn" id="dem">${t("demanar")}</button><button class="btn pri" id="env" ${S.sent?"disabled":""}>${t("enviar_tram")}</button></div>
+    </div>
+  </div>`);
+};
+
+// Sentencia para anonimizar: [texto, categoría] o texto plano.
+const SENT = [
+  ["h","TRIBUNAL SUPERIOR DE JUSTICIA, SALA DE LO CONTENCIOSO-ADMINISTRATIVO"],
+  ["p","SENTENCIA N.º 70/2020"],
+  ["p","Procedimiento ordinario 1014/2019. Magistrado-Juez: Ilmo. Sr. D. ",["Fernando Ruiz Calvo","magistrat"],"."],
+  ["p","ANTECEDENTES DE HECHO. PRIMERO.- Por la representación procesal de D. ",["Raúl Gómez Cañizares","nom"],", con DNI ",["22633920B","dni"]," y domicilio en ",["calle Mayor, n.º 112, 43003 Tarragona","adreca"],", se presentó demanda en reclamación de 606.336,74 €, más los intereses legales."],
+  ["p","La actora aporta correo ",["raul.gomez@ejemplo.com","contacte"]," y teléfono ",["612 345 678","contacte"],", y solicita el pago en la cuenta ",["ES91 2100 0418 4502 0005 1332","iban"],"."],
+  ["p","SEGUNDO.- El vehículo matrícula ",["4821 KLM","matricula"]," fue retirado por la grúa municipal. El menor ",["Pablo Gómez Ruiz","menor"],", hijo de ",["Raúl Gómez Cañizares","nom"],", sufrió ",["una fractura de muñeca","salut"],"."],
+  ["p","TERCERO.- ",["Raúl Gómez Cañizares","nom"]," reiteró su petición mediante escrito de 3 de marzo de 2020."],
+  ["p","FALLO: Que debo ESTIMAR y ESTIMO la demanda, condenando a ",["Construcciones Levante, S.L.","juridica"]," al pago de las costas."]
+];
+const ENTS = []; SENT.forEach(b=>b.slice(1).forEach(x=>{ if(Array.isArray(x)) ENTS.push({v:x[0],c:x[1],id:ENTS.length}); }));
+const CATS = ["nom","dni","adreca","contacte","iban","matricula","menor","salut","magistrat","juridica"];
+const TAG = {nom:"PERSONA",dni:"DNI",adreca:"ADREÇA",contacte:"CONTACTE",iban:"IBAN",matricula:"MATRÍCULA",menor:"MENOR",salut:"DADA DE SALUT",magistrat:"MAGISTRAT",juridica:"EMPRESA"};
+const isOn = e => S.on.has(e.id) || (S.cats[e.c] && !S.off.has(e.id));
+function label(e){
+  const same = ENTS.filter(x=>x.c===e.c).map(x=>x.v).filter((v,k,a)=>a.indexOf(v)===k), n = same.indexOf(e.v);
+  const people = ["nom","magistrat","menor"].includes(e.c);
+  if(S.mode==="pseudonim" && (people||e.c==="juridica")) return (e.c==="juridica"?"Empresa ":"Persona ")+String.fromCharCode(65+ENTS.filter(x=>["nom","magistrat","menor"].includes(x.c)||x.c===e.c).map(x=>x.v).filter((v,k,a)=>a.indexOf(v)===k).indexOf(e.v));
+  if(S.mode==="inicials" && people) return e.v.split(" ").map(w=>w[0]+".").join(" ");
+  return `[${TAG[e.c]}${people?" "+(n+1):""}]`;
+}
+function entHTML(e){
+  if(S.original) return `<button class="ent orig" data-e="${e.id}">${esc(e.v)}</button>`;
+  if(!isOn(e)) return `<button class="ent off" data-e="${e.id}">${esc(e.v)}</button>`;
+  const m = S.mode, tagged = ["etiqueta","pseudonim","inicials"].includes(m);
+  return `<button class="ent ${tagged?"m-tag":"m-"+m}" data-e="${e.id}" aria-label="${t("c_"+e.c)}">${esc(tagged?label(e):e.v)}</button>`;
+}
+V.anonimitzar = () => {
+  const count = c => ENTS.filter(e=>e.c===c).length, onN = ENTS.filter(isOn).length;
+  return shell("arxiu", `
+  <div class="card row" style="padding:10px 14px;margin-bottom:12px"><a href="#safata" class="btn">‹ ${t("safata")}</a><b>${t("an_t")} · Sentència 70/2020</b><span>(${t("pag")} 1 ${t("de")} 4)</span><span class="sp"></span>
+    <button class="btn" id="orig">${S.original?t("vista_an"):t("vista")}</button><button class="btn pri" id="expan">⤓ ${t("exp_an")}</button></div>
+  <div class="anon">
+    <div class="card doc" id="doc">${SENT.map(([k,...xs])=>`<${k==="h"?"h4":"p"}>${xs.map(x=>Array.isArray(x)?entHTML(ENTS.find(e=>e.v===x[0]&&e.c===x[1]&&!e._r&&(e._r=1))):esc(x)).join("")}</${k==="h"?"h4":"p"}>`).join("")}</div>
+    <aside class="card side"><h3>${t("an_panel")}</h3><div class="doc-s">${ENTS.length} ${t("detect")} · ${onN} ${t("anonim")}</div>
+      <h5>${t("com")}</h5><div class="modes">${["censurar","esborrar","tatxar","etiqueta","pseudonim","inicials"].map(m=>`<button data-m="${m}" class="${S.mode===m?"on":""}">${t("m_"+m)}</button>`).join("")}</div>
+      ${S.mode==="tatxar"?`<div class="banner w" style="margin-top:8px">${t("tatxar_av")}</div>`:""}
+      <h5>${t("que")}</h5>${CATS.map(c=>`<label class="cat"><input type="checkbox" data-c="${c}" ${S.cats[c]?"checked":""} ${c==="menor"||c==="salut"?"disabled":""}>${t("c_"+c)}<em>${count(c)}</em></label>`).join("")}
+      <details><summary>${t("veure")} (${onN})</summary><ul>${ENTS.filter(isOn).map(e=>`<li><span>■ ${esc(e.v.length>24?e.v.slice(0,24)+"…":e.v)}</span><span class="doc-s">${TAG[e.c]}</span></li>`).join("")}</ul></details>
+    </aside>
+  </div>`);
+};
+function entTip(btn){
+  const e = ENTS[+btn.dataset.e], n = ENTS.filter(x=>x.v===e.v).length, r = btn.getBoundingClientRect(); closePop();
+  document.body.insertAdjacentHTML("beforeend",`<div class="pop" id="pop" role="tooltip" style="left:${r.left+scrollX}px;top:${r.bottom+scrollY+8}px">
+    <b>${t("c_"+e.c)}</b>«${esc(e.v)}» · ${t("apareix")} ${n} ${n>1?t("vegades"):"vegada"}<div class="doc-s">${isOn(e)?t("tip_on"):t("tip_off")}</div><div class="doc-s">🔒 ${t("registrada")}</div></div>`);
+}
+
+V.exportat = () => shell("arxiu", `
+  <div class="card" style="padding:28px;max-width:720px;margin:0 auto">
+    <div class="banner ok"><b>✓ ${t("exp_t")}</b> · Sentència_70-2020_anonimitzada.pdf · ${t("exp_s")}</div>
+    <ul style="line-height:2">${["g1","g2","g3","g4"].map(g=>`<li>${t(g)}</li>`).join("")}</ul>
+    <div class="row"><button class="btn pri" id="dl">⤓ ${t("descarregar")}</button><a class="btn" href="#safata">${t("tornar_safata")}</a></div>
+  </div>
+  <div class="card" style="max-width:720px;margin:16px auto 0"><div class="box-h">${t("registre")}</div><div class="audit">${S.audit.map(esc).join("<br>")}</div></div>`);
+
+V.arxiu = () => shell("arxiu", `<h1>${t("arxiu_t")}</h1><p class="sub">${t("arxiu_s")}</p>
+  <input class="search" id="q" placeholder="${t("cerca")}" style="margin-bottom:12px"><div class="card"><table><tbody id="rows">${rows(DOCS())}</tbody></table></div>`);
+
+V.informes = () => shell("informes", `<h1>${t("inf_t")}</h1><p class="sub">${t("inf_s")}</p>
+  <div class="kpis"><div class="card kpi"><b>8.214</b><span>${t("i1")}</span></div><div class="card kpi"><b>38 s</b><span>${t("i2")}</span></div>
+  <div class="card kpi"><b>2,1 %</b><span>${t("i3")}</span></div><div class="card kpi"><b>146</b><span>${t("i4")}</span></div></div>`);
+
+// ---------- guía para presentar ----------
+const STEPS = [["login","Login"],["safata","Safata → Nou document"],["processant","OCR + semàfor"],["revisio","Revisió i avisos"],["jg","Justícia gratuïta"],["anonimitzar","Anonimització"],["exportat","Exportació"],["arxiu","Arxiu"]];
+let guideOpen = true;
+const guide = r => `<div class="guide">${guideOpen?`<ol>${STEPS.map(([k,l])=>`<li class="${k===r?"on":""}"><a href="#${k}">${l}</a></li>`).join("")}</ol>`:""}<button class="btn" id="g">${guideOpen?"✕":"☰ "+t("guia")}</button></div>`;
+
+// ---------- router ----------
+function render(){
+  clearInterval(timer); closePop();
+  let r = location.hash.slice(1) || "login";
+  if(!V[r]) r = "login";
+  // Permite abrir cualquier pantalla directamente (p. ej. para importarla en Figma).
+  if(["processant","revisio","jg"].includes(r) && !S.uploaded){ S.uploaded=true; seedPages(); }
+  if(["revisio","jg"].includes(r)) S.procDone = true;
+  ENTS.forEach(e=>delete e._r);
+  document.documentElement.lang = lang;
+  $("#root").innerHTML = V[r]() + guide(r);
+  if(r==="processant") runProcessing();
+  window.scrollTo(0,0);
+}
+function toast(msg){ $(".toast")?.remove(); document.body.insertAdjacentHTML("beforeend",`<div class="toast" role="status">${msg}</div>`); setTimeout(()=>$(".toast")?.remove(),2600); }
+function modal(html){ document.body.insertAdjacentHTML("beforeend",`<div class="modal-bg" id="mb"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`); $("#mb .modal button, #mb .modal input, #mb textarea")?.focus(); }
+const closeModal = () => $("#mb")?.remove();
+function nextAttention(){ const p = Object.keys(S.pages).map(Number).find(p=>S.pages[p]==="w"||S.pages[p]==="bad"); if(p) S.cur=p; }
+function upload(){ S.uploaded=true; S.procDone=false; seedPages(); log("Pujat JG-2026-1184 (23 pàg.)"); location.hash="#processant"; }
+
+document.addEventListener("click", ev => {
+  const el = ev.target.closest("button,a,tr[data-go]"); if(!el){ if(!ev.target.closest(".pop")) closePop(); return; }
+  if(el.dataset.lang){ lang = el.dataset.lang; return render(); }
+  if(el.dataset.go){ location.hash = el.dataset.go; return; }
+  if(el.id==="g"){ guideOpen=!guideOpen; return render(); }
+  if(el.id==="nou"||el.id==="drop") return upload();
+  if(el.dataset.p){ S.cur=+el.dataset.p; return render(); }
+  if(el.dataset.w) return showPop(el);
+  if(el.dataset.fix){ S.fixes[el.dataset.fix]=el.dataset.v; log(`Corregit «${W[el.dataset.fix].read}» → «${el.dataset.v}» (pàg. ${S.cur})`); closePop(); return render(); }
+  if(el.id==="val"){ S.pages[S.cur]="v"; log(`Validada pàg. ${S.cur} JG-2026-1184`); nextAttention(); toast("✓ "+t("validat")); return render(); }
+  if(el.id==="esc"){ S.pages[S.cur]="esc"; log(`Pàg. ${S.cur} marcada per tornar a escanejar`); nextAttention(); return render(); }
+  if(el.id==="retr"){ toast("↻ "+t("retranscriure")+"…"); return; }
+  if(el.id==="exp"){ toast("⤓ JG-2026-1184.pdf"); return; }
+  if(el.id==="dem"){ modal(`<h2>${t("msg_t")}</h2><textarea style="width:100%;height:190px;font:14px/1.5 Roboto;border:1px solid var(--line);border-radius:6px;padding:10px">${esc(t("msg"))}</textarea><div class="row" style="margin-top:14px"><span class="sp"></span><button class="btn" id="mc">${t("cancel")}</button><button class="btn pri" id="ms">${t("enviar")}</button></div>`); return; }
+  if(el.id==="mc") return closeModal();
+  if(el.id==="ms"){ closeModal(); log("Requeriment enviat a la sol·licitant (UNITRAM)"); return toast("✓ "+t("req_ok")); }
+  if(el.id==="env"){ S.sent=true; log("JG-2026-1184 enviat a tramitació"); toast("✓ "+t("env_ok")); return render(); }
+  if(el.dataset.m){ S.mode=el.dataset.m; return render(); }
+  if(el.dataset.e){ const e=ENTS[+el.dataset.e];
+    const ids = ev.shiftKey ? ENTS.filter(x=>x.v===e.v).map(x=>x.id) : [e.id], turnOn = !isOn(e);
+    ids.forEach(id=>{ if(turnOn){S.on.add(id);S.off.delete(id);} else {S.off.add(id);S.on.delete(id);} });
+    return render(); }
+  if(el.id==="orig"){ S.original=!S.original; if(S.original) log("Consulta vista original Sentència 70/2020"); return render(); }
+  if(el.id==="expan"){ modal(`<h2>${t("conf_t")}</h2><p>${t("conf_1")}</p><label class="cat"><input type="checkbox" id="cf"> ${t("conf_c")}</label><div class="row" style="margin-top:16px"><span class="sp"></span><button class="btn" id="mc">${t("cancel")}</button><button class="btn pri" id="ex" disabled>${t("exportar")}</button></div>`); return; }
+  if(el.id==="ex"){ closeModal(); S.exported=true; log(`Exportat Sentència 70/2020 anonimitzada (mode: ${S.mode}, ${ENTS.filter(isOn).length} dades)`); location.hash="#exportat"; return; }
+  if(el.id==="dl"){ toast("⤓ Sentència_70-2020_anonimitzada.pdf"); return; }
+});
+document.addEventListener("change", ev => {
+  if(ev.target.id==="cf") $("#ex").disabled = !ev.target.checked;
+  if(ev.target.dataset.c){ S.cats[ev.target.dataset.c] = ev.target.checked?1:0; S.on.clear(); S.off.clear(); render(); }
+});
+document.addEventListener("input", ev => { if(ev.target.id==="q"){ const q=ev.target.value.toLowerCase(); $("#rows").innerHTML = rows(DOCS().filter(d=>(d.id+d.t+d.s).toLowerCase().includes(q))); } });
+document.addEventListener("mouseover", ev => { const b=ev.target.closest(".ent"); if(b && !S.original) entTip(b); });
+document.addEventListener("focusin", ev => { if(ev.target.classList?.contains("ent")) entTip(ev.target); });
+document.addEventListener("keydown", ev => {
+  if(ev.key==="Escape"){ closePop(); closeModal(); }
+  if(ev.key==="Enter" && ev.target.dataset?.go) location.hash = ev.target.dataset.go;
+  if(ev.ctrlKey && ev.key==="ArrowRight" && location.hash==="#revisio"){ ev.preventDefault(); const w=$("#txt .doubt, #txt .invalid"); if(w){ w.focus(); showPop(w); } else { nextAttention(); render(); } }
+  if(ev.key==="ArrowDown"||ev.key==="ArrowUp"){ if(!ev.target.dataset?.p) return; ev.preventDefault(); const p=S.cur+(ev.key==="ArrowDown"?1:-1); if(p>=1&&p<=N){ S.cur=p; render(); $(`[data-p="${p}"]`)?.focus(); } }
+  if(ev.key==="Enter" && ev.target.dataset?.p){ /* el click ya lo gestiona */ }
+});
+addEventListener("hashchange", render);
+render();
+</script>
+</body>
+</html>
