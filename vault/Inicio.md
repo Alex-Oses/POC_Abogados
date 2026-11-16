@@ -10,6 +10,7 @@ Bóveda compartida del equipo. Vive dentro del repo: cada `git pull` la actualiz
   - [[Rendimiento OCR]]: resultados de PaddleOCR-VL 1.6
   - [[API]]: contrato HTTP v1
   - [[Base de datos]]: modelo PostgreSQL
+- `docs/api/` y `docs/reglas/`: contrato completo y reglas de negocio (detalle)
 - `Decisiones/`: decisiones de diseño (ADR)
 - `Bitacora/`: una nota por autor y día
 - `Plantillas/`: plantillas de decisión y bitácora

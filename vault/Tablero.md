@@ -21,6 +21,7 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 - [x] Propuesta funcional y de diseño · [[Propuesta ICAT]]
 - [x] Pruebas de rendimiento de PaddleOCR-VL 1.6 · [[Rendimiento OCR]]
 - [x] Borrador de endpoints v1 · [[API]]
+- [x] Contrato de endpoints v1 completo (40 rutas) y reglas de usuarios y aprobación · [[0005-reglas-usuarios-y-aprobacion]]
 - [x] Primer borrador del modelo de datos · [[Base de datos]]
 
 ## Preguntas abiertas
