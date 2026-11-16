@@ -13,6 +13,7 @@ Bóveda compartida del equipo. Vive dentro del repo: cada `git pull` la actualiz
   - [[API]]: contrato HTTP v1
   - [[Base de datos]]: modelo PostgreSQL
 - `docs/api/` y `docs/reglas/`: contrato completo y reglas de negocio (detalle)
+- `docs/export/`: generación del PDF final desde la estructura guardada
 - `Investigacion/`: investigaciones con su coste (deuda técnica), p. ej. [[Anonimizacion con Presidio]]
 - `Decisiones/`: decisiones de diseño (ADR)
 - `Bitacora/`: una nota por autor y día

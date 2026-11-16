@@ -21,6 +21,7 @@ Resto:
 - [ ] Corrección catalana: «l·l» y apóstrofo tipográfico
 - [ ] Alinear el modelo de datos con la API (sesión de 24 h vs. tabla `documentos`) · [[Base de datos]]
 - [ ] Dibujar `er-diagram.md` en Mermaid (el README de BBDD lo cita pero no existe)
+- [ ] Implementar el PDF final: estructura + reconstrucción con reportlab · [[0006-generacion-pdf-final]]
 - [ ] Preparar la reunión con el ICAT (preguntas en [[Propuesta ICAT]])
 
 ## En curso
@@ -34,6 +35,7 @@ Resto:
 - [x] Borrador de endpoints v1 · [[API]]
 - [x] Contrato de endpoints v1 completo (40 rutas) y reglas de usuarios y aprobación · [[0005-reglas-usuarios-y-aprobacion]]
 - [x] Primer borrador del modelo de datos · [[Base de datos]]
+- [x] Diseño del PDF final (reconstrucción desde la estructura) · [[0006-generacion-pdf-final]]
 
 ## Preguntas abiertas
 
