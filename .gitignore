@@ -6,3 +6,6 @@ vault/.trash/
 # Documentos y datos reales: nunca al repo
 *.pdf
 .env
+
+__pycache__/
+*.pyc

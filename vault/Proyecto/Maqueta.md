@@ -1,5 +1,7 @@
 # Maqueta navegable
 
+Documentación completa con capturas: [`docs/maqueta.md`](../../docs/maqueta.md) (también en PDF).
+
 `maqueta/index.html`: un único fichero sin dependencias. Ábrelo en el navegador. Datos ficticios, diseño de la [[Propuesta ICAT]] (granate `#B2051B`, Roboto, Georgia para el documento, semáforo con icono y texto) y CA/ES.
 
 ## Recorrido (la guía de abajo a la derecha lo sigue)
