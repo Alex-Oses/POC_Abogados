@@ -14,7 +14,7 @@ Resto:
 - [ ] Decidir el stack del backend: Python + FastAPI o C# · [[0008-stack-backend]] · @Rubén @Kevin
 - [ ] Cerrar los 8 bloqueantes de [[Coherencia]]: identidad, modelo, export y visto bueno · @Rubén @Marina
 - [ ] Decidir identidad: SSO del ICAT + admin local de emergencia · [[0009-identidad]] · @Rubén @Kevin @Marina @Alex
-- [ ] Bajar al modelo `sesiones_usuario`, `tokens_usuario`, `bloques_layout` y la tabla de páginas · [[Coherencia]] · @Marina
+- [ ] Bajar al modelo `sesiones_usuario`, `tokens_usuario`, `bloques_layout` y la tabla de páginas · [[0010-modelo-de-datos]] · @Marina @Rubén
 - [ ] Unificar el hash del PDF (B8): un solo dueño, por versión · [[Coherencia]] · @Rubén
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Alex
 
@@ -23,7 +23,6 @@ Resto:
 - [ ] Semáforo de calidad: contraste antes del OCR (< 80 → volver a escanear) y heurísticas de texto después
 - [ ] Validación de DNI/NIE (letra de control) e IBAN
 - [ ] Corrección catalana: «l·l» y apóstrofo tipográfico
-- [ ] Alinear el modelo de datos con la API (sesión de 24 h vs. tabla `documentos`) · [[Base de datos]]
 - [ ] Dibujar `er-diagram.md` en Mermaid (el README de BBDD lo cita pero no existe)
 - [ ] Implementar el PDF final: estructura + reconstrucción con reportlab · [[0007-generacion-pdf-final]]
 - [ ] Preparar la reunión con el ICAT (preguntas en [[Propuesta ICAT]])

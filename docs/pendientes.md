@@ -4,6 +4,7 @@
 - **Autor:** @ia-opencode-ruben
 - **Para qué:** el contrato y las reglas ya describen autenticación, bloques de layout, cola de revisión y export; el esquema real (`docs/architecture/migrations/`) todavía no. Esto es lo que hay que **decidir o migrar** antes de escribir backend: identidad, geometría del PDF y todo lo que cambia en la base de datos.
 - **Qué no es:** no decide nada. Los bloqueantes se citan por su ID de [Coherencia](../vault/Proyecto/Coherencia.md) y las decisiones por su número; aquí solo se agrupa lo que hoy no se puede implementar.
+- **Verificado el 17/11/2026** contra las migraciones `V1`-`V12`, `docs/api/endpoints.md`, `docs/reglas/` y las decisiones 0001-0010. Si cambia cualquiera de esos cuatro, revisa la tabla de §3 (ver §6).
 
 ## 1. Identidad y sesiones (B1, B2 · [0009](../vault/Decisiones/0009-identidad.md))
 
@@ -98,3 +99,16 @@ V14 es la única que se puede escribir hoy sin esperar a nadie, y es también la
 3. **El `bbox` no es un problema de OCR**: se resuelve leyendo el PDF original. Lo caro sería dar por hecho que no hay capa de texto sin medirlo.
 4. **El SSO es una dependencia externa**, no una tarea. Si el ICAT no registra la app, el piloto arranca con cuentas locales: la decisión 0009 ya lo contempla.
 5. **Cada migración nueva toca los índices de V10** (`idx_usuarios_rol_activo` cae con `activo`). Los índices van en la misma migración que la columna, no en otra.
+
+## 6. Cómo mantenerlo
+
+Este informe **se queda obsoleto en cuanto entra una migración**, y una lista vieja es peor que ninguna. Se actualiza solo cuando pasa una de estas cuatro cosas; si no, no hace falta tocarlo:
+
+| Cuándo | Qué hay que revisar |
+|---|---|
+| Se acepta una decisión (0005, 0007, 0009) | Las filas de §3 con «depende de» esa decisión pasan a tener respuesta |
+| Entra una migración nueva (`V13`, `V14`, `V15`) | Borra sus filas de §3; si la tabla ya existe, deja de ser una propuesta |
+| Cambia `docs/api/endpoints.md` o `docs/reglas/` | La columna «lo pide» puede apuntar a una regla que ya no existe o a una nueva |
+| Cambia la numeración de las decisiones | Los enlaces de §1, §2 y §4 |
+
+La fuente de verdad no es este documento: son las migraciones, el contrato y las reglas. Esto es solo el índice de lo que falta. Si la tabla de §3 y el esquema se contradicen, manda el esquema y lo que está mal es este informe.

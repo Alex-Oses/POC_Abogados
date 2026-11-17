@@ -87,7 +87,7 @@ Detalle menor pero elocuente: en la maqueta el «escaneo» es HTML, no una image
 0. **Stack** (H9): decidir Python + FastAPI o C# en [[0008-stack-backend]] antes de escribir el primer endpoint. Es barato hoy y caro después.
 1. **Nombres de ruta** (I9): antes de Figma y antes del frontend. Sin código, seis ficheros.
 2. **Identidad** (B1, B2): es la decisión que desbloquea el resto del alta de usuarios.
-3. **Modelo** (B3, B4): una migración con las tablas y columnas que el contrato ya da por hechas.
+3. **Modelo** (B1, B3, B4, B5, B8): tres migraciones —`V13` identidad, `V14` estructura, `V15` flujo— propuestas en [[0010-modelo-de-datos]]. El detalle de qué cambia en cada tabla está en [`docs/pendientes.md`](../../docs/pendientes.md) §3.
 4. **Export** (B6, B8): un solo dueño del hash y quitar `expira_en` del expediente.
 5. **Flujo** (B7, I1, I3): cerrar 0004 y decidir qué pasa al devolver un visto bueno.
 6. **Maqueta** (I2, I4, I8): tres textos y un botón; y decidir si la demo va con una o dos personas.
