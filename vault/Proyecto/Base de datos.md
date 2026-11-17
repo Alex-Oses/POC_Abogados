@@ -20,5 +20,5 @@ PostgreSQL 14+ con `uuid-ossp`, `pgcrypto` y `pg_partman`.
 
 ## Pendiente
 
-- Encaje con la API: la API habla de «sesiones» de 24 h; el modelo guarda documentos y versiones con retención de años.
-- `er-diagram.md` citado en el README de arquitectura pero no incluido.
+- El modelo objetivo de @Marina, con su diagrama y la comparación con la decisión 0010: [[Modelo de datos]].
+- `er-diagram.md` citado en el README de arquitectura pero no incluido; el diagrama de esa nota puede ser su punto de partida.
