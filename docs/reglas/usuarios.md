@@ -117,7 +117,7 @@ POST   /user/invitation/accept       fijar contraseña con token de invitación
 POST   /user/password/change
 POST   /user/password/reset
 POST   /user/password/reset/confirm
-DELETE /admin/sessions/{usuario_id}  revocar todas las sesiones
+DELETE /admin/users/{id}/sessions  revocar todas las sesiones
 GET    /user/me
 POST   /user/login
 POST   /user/logout

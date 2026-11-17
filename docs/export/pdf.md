@@ -95,6 +95,16 @@ La geometría fina depende de la salida de layout de PaddleOCR-VL (`label`, `coo
 
 En modo secuencial el PDF es un documento nuevo bien maquetado, no una réplica de la retícula: se conserva el orden y la jerarquía, no las posiciones. Es lo que ya recomienda la investigación de Presidio (opción 1) y no cambia nada del resto del diseño: cuando el layout llegue, el mismo JSON se rellena con `bbox` y el render no se toca.
 
+#### De dónde pueden salir las cajas
+
+El texto lo da el OCR; la geometría no tiene por qué venir del mismo sitio. Por orden de coste:
+
+1. **El propio PDF subido, si tiene capa de texto.** `PyMuPDF` (`page.get_text("dict")`) devuelve bloques, líneas y palabras con su caja, su tamaño de fuente y su origen, sin OCR y en milisegundos. Cubre el caso normal de un despacho: PDF generados por Word o por un escáner con OCR. La caja es la del original, que es justo lo que se quiere para reconstruir.
+2. **Un modelo de layout, si es un escaneo sin capa.** El pipeline completo de PaddleOCR/PP-Structure (no el GGUF de Ollama) devuelve `label` y `coordinate` por bloque; `docling` (MIT) es la alternativa si el primero no encaja en el servidor. Cuesta una pasada más por página.
+3. **Nada.** Modo `secuencial`, que ya está diseñado.
+
+La recomendación es no elegir una: **el modo se decide por documento**. Al construir la estructura se intenta, en este orden, (1) la capa de texto del PDF subido, (2) las cajas del modelo de layout, (3) el flujo secuencial; y lo que quede se guarda en `origen_geometria` para que el render sea reproducible. Un lote real del Colegio traerá las tres cosas mezcladas, y así cada documento se reconstruye todo lo fiel que su original permita. Mientras no haya documentos reales medidos, el orden anterior es también la respuesta por defecto.
+
 ### Normalización: la consistencia
 
 La estructura no se copia tal cual del detector, se normaliza una vez por documento:
