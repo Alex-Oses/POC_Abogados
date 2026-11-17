@@ -1,0 +1,12 @@
+# Todo cambio fuera de la documentación necesita la aprobación de un responsable.
+* @Alex-Oses @ruben-munoz-bl
+
+# Documentación y bóveda: sin responsable, así que no piden aprobación (la última coincidencia gana).
+/vault/
+*.md
+/docs/img/
+
+# Lo que gobierna el repo sí la pide, aunque sea Markdown.
+/AGENTS.md @Alex-Oses @ruben-munoz-bl
+/CLAUDE.md @Alex-Oses @ruben-munoz-bl
+/.github/ @Alex-Oses @ruben-munoz-bl
