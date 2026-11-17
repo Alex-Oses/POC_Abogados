@@ -282,3 +282,5 @@ Las dos propuestas llegan al mismo sitio en lo importante: identidad con `estado
 6. **`sso_subject`** depende de [[0009-identidad]]; el resto de `usuarios` no.
 
 El reparto en `V13`/`V14`/`V15` de [[0010-modelo-de-datos]] sigue sirviendo, con un cambio: `V14` sería solo `bloques_layout` + `num_paginas` mientras no se decida la tabla de páginas.
+
+En [[0010-modelo-de-datos]] están además el veredicto de encaje (qué se queda y qué no), las 8 columnas que podrían sobrar y el prompt para el agente de @Marina. El modelo es suyo: si cambia algo, nosotros adaptamos el contrato y el diseño del PDF.
