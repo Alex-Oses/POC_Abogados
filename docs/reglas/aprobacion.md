@@ -101,7 +101,7 @@ Si negocio quiere un conjunto propio, independiente del art. 9, se añade `categ
 Se guarda el valor calculado, no se recalcula después: la regla que se aplicó en ese momento es la que debe poder auditarse.
 
 - `requiere_visto_bueno = false` → el documento pasa directo a `aprobado`.
-- `requiere_visto_bueno = true` → pasa a `pendiente_visto_bueno`. El supervisor lo libera con `POST /documents/{id}/visto-bueno`, que rellena `visto_bueno_por` y `visto_bueno_en` y deja el documento en `aprobado`.
+- `requiere_visto_bueno = true` → pasa a `pendiente_visto_bueno`. El supervisor lo libera con `POST /documents/{id}/sign-off`, que rellena `visto_bueno_por` y `visto_bueno_en` y deja el documento en `aprobado`.
 
 El visto bueno no es una segunda revisión: el supervisor no re-anota, solo firma o devuelve a `en_revision` con motivo.
 
@@ -161,7 +161,7 @@ PATCH  /reviews/{id}/assign         asignar o reasignar (supervisor)
 POST   /documents/{id}/reviews      abrir revisión (nace en_cola)
 PATCH  /reviews/{id}                cerrar revisión (If-Match)
 POST   /documents/{id}/reopen       rechazado → en_revision, nueva versión
-POST   /documents/{id}/visto-bueno  pendiente_visto_bueno → aprobado (supervisor)
+POST   /documents/{id}/sign-off  pendiente_visto_bueno → aprobado (supervisor)
 POST   /documents/{id}/export       aprobado → exportado, con hash
 ```
 

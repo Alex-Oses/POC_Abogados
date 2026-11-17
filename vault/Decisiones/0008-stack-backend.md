@@ -4,6 +4,7 @@
 - **Fecha**: 2026-11-16
 - **Autor**: @ia-opencode-ruben
 - **Se decide con**: @Rubén (backend), @Marina (BD), @Kevin (despliegue), @Alex (OCR)
+- **Votos**: @Rubén (backend), 2026-11-17: **Python + FastAPI**. Faltan @Marina, @Kevin y @Alex.
 
 ## Contexto
 

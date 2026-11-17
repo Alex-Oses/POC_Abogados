@@ -21,7 +21,7 @@
 
 Para este equipo, deuda técnica = **el coste de investigar algo**. Cada nota de `Investigacion/` indica cuánto costó y qué queda por investigar.
 
-## Entrega del viernes 20/11/2026 (al cliente)
+## Entrega del viernes 27/11/2026 (al cliente)
 
 1. **Especificación funcional**: qué debe hacer la aplicación y cómo comprobarlo.
 2. **Enfoque técnico**: cómo resolverlo y por qué esa opción.

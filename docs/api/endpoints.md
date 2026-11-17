@@ -64,7 +64,7 @@ El rol se relee de `usuarios` en cada petición: un token no arrastra el rol con
 | `GET` | `/api/v1/admin/users` | A, S | `usuarios` |
 | `POST` | `/api/v1/admin/users` | A | `usuarios`, `tokens_usuario` |
 | `PATCH` | `/api/v1/admin/users/{id}` | A | `usuarios`, `sesiones_usuario` |
-| `DELETE` | `/api/v1/admin/sessions/{usuario_id}` | A | `sesiones_usuario` |
+| `DELETE` | `/api/v1/admin/users/{id}/sessions` | A | `sesiones_usuario` |
 | `POST` | `/api/v1/transform/document` | T | `documentos`, `versiones_documento`, `bloques_layout` |
 | `POST` | `/api/v1/transform/plain-text` | T, R | `versiones_documento` |
 | `POST` | `/api/v1/transform/build` | T, R | `versiones_documento` |
@@ -72,8 +72,8 @@ El rol se relee de `usuarios` en cada petición: un token no arrastra el rol con
 | `GET` | `/api/v1/documents/{id}` | T, R, S | `documentos`, `versiones_documento` |
 | `DELETE` | `/api/v1/documents/{id}` | T (dueño), A | `documentos` |
 | `GET` | `/api/v1/documents/{id}/versions` | R, S | `versiones_documento` |
-| `GET` | `/api/v1/documents/{id}/versions/{numero}` | R, S | `versiones_documento` |
-| `GET` | `/api/v1/documents/{id}/versions/{numero}/blocks` | R, S | `bloques_layout` |
+| `GET` | `/api/v1/documents/{id}/versions/{numero_version}` | R, S | `versiones_documento` |
+| `GET` | `/api/v1/documents/{id}/versions/{numero_version}/blocks` | R, S | `bloques_layout` |
 | `POST` | `/api/v1/documents/{id}/anonymize` | T, R | `versiones_documento`, `anotaciones_entidad`, `reglas_anonimizacion` |
 | `GET` | `/api/v1/documents/{id}/annotations` | R | `anotaciones_entidad` |
 | `PATCH` | `/api/v1/annotations/{id}` | R | `anotaciones_entidad` |
@@ -83,7 +83,7 @@ El rol se relee de `usuarios` en cada petición: un token no arrastra el rol con
 | `PATCH` | `/api/v1/reviews/{id}/assign` | S | `revisiones` |
 | `PATCH` | `/api/v1/reviews/{id}` | R | `revisiones`, `versiones_documento`, `documentos`, `anotaciones_entidad` |
 | `POST` | `/api/v1/documents/{id}/reopen` | R, S | `documentos`, `versiones_documento`, `revisiones` |
-| `POST` | `/api/v1/documents/{id}/visto-bueno` | S | `documentos` |
+| `POST` | `/api/v1/documents/{id}/sign-off` | S | `documentos` |
 | `POST` | `/api/v1/documents/{id}/export` | T (dueño), S | `documentos`, `versiones_documento` |
 | `GET` | `/api/v1/rules` | A | `reglas_anonimizacion`, `regla_categorias` |
 | `POST` | `/api/v1/rules` | A | `reglas_anonimizacion`, `regla_categorias` |
@@ -205,7 +205,7 @@ Reenviar la invitación es el mismo `POST` sobre un email ya existente en estado
 
 Todo cambio se registra en `auditoria`.
 
-### `DELETE /admin/sessions/{usuario_id}`
+### `DELETE /admin/users/{id}/sessions`
 
 Cierra todas las sesiones abiertas de un usuario.
 
@@ -217,11 +217,13 @@ Cierra todas las sesiones abiertas de un usuario.
 
 ### `POST /transform/document`
 
-Sube el documento, ejecuta OCR y layout con PaddleOCR-VL, y crea:
+Sube el documento, guarda el fichero **cifrado** y ejecuta OCR y layout con PaddleOCR-VL. Crea:
 
-- 1 fila en `documentos`
+- 1 fila en `documentos`, con el original cifrado
 - versión `original` (sin texto)
 - versión `ocr_texto` con una fila por bloque en `bloques_layout`
+
+**Aquí no se anonimiza** (decisión 0004): el original cifrado se conserva para la revisión y la anonimización se aplica al construir la versión que va a revisión y al exportar.
 
 **Petición** (`multipart/form-data`): `file` (PDF, JPG, PNG; máx. 20 MB).
 
@@ -293,11 +295,11 @@ Lista documentos. El transcriptor ve solo los suyos; el revisor y el supervisor 
 
 `200` → `{ "items": [ { "numero_version", "tipo_version", "motor_ocr", "pipeline_version", "creado_en" } ] }`.
 
-### `GET /documents/{id}/versions/{numero}`
+### `GET /documents/{id}/versions/{numero_version}`
 
 `200` → la versión completa, incluido `contenido_texto` y `contenido_html`.
 
-### `GET /documents/{id}/versions/{numero}/blocks?page=`
+### `GET /documents/{id}/versions/{numero_version}/blocks?page=`
 
 Lo que pinta el visor. Una entrada por fila de `bloques_layout`.
 
@@ -331,6 +333,8 @@ Las coordenadas están en píxeles de la página renderizada. Para `forma = "qua
 ### `POST /documents/{id}/anonymize`
 
 Aplica una regla sobre la versión vigente y crea una versión `anonimizado_ia` con sus anotaciones.
+
+Es el paso que prepara la revisión: el documento pasa a `anonimizando` y, al terminar, a `en_revision` con `anonimizado_ia` como versión vigente ([aprobacion.md](../reglas/aprobacion.md), A-03). El original cifrado no se toca: lo que se anonimiza es la copia que revisa el revisor y la que se exporta.
 
 ```json
 { "regla_id": "uuid" }
@@ -439,7 +443,7 @@ Devuelve un documento rechazado al circuito. Crea una versión `anonimizado_ia` 
 
 Errores: `409` si el documento no está `rechazado`, `422` si no hay texto que anonimizar.
 
-### `POST /documents/{id}/visto-bueno`
+### `POST /documents/{id}/sign-off`
 
 Solo supervisor. Libera un documento en `pendiente_visto_bueno`. No crea versión: `final_aprobado` ya se creó al aprobar el revisor.
 
@@ -453,7 +457,7 @@ Errores: `409` si el documento no está en `pendiente_visto_bueno`.
 
 ### `POST /documents/{id}/export`
 
-Cierra el expediente. Genera el PDF definitivo, guarda `hash_export` y `exportado_en`, y pasa el documento a `exportado`.
+Cierra el expediente. Genera el PDF definitivo desde la versión aprobada (ya anonimizada), guarda `hash_export` y `exportado_en`, y pasa el documento a `exportado`.
 
 `200` → binario, `Content-Type: application/pdf`, `Content-Disposition: attachment; filename="documento.pdf"` y cabecera `X-Document-Hash` con el SHA-256.
 
@@ -560,7 +564,7 @@ pendiente → ocr_procesando → ocr_completado → anonimizando → en_revision
 en_revision
   ├─ rechazado ──POST /documents/{id}/reopen──→ en_revision
   ├─ aprobado                                              (requiere_visto_bueno = false)
-  └─ pendiente_visto_bueno ──POST /documents/{id}/visto-bueno──→ aprobado
+  └─ pendiente_visto_bueno ──POST /documents/{id}/sign-off──→ aprobado
 
 aprobado ──POST /documents/{id}/export──→ exportado
 ```

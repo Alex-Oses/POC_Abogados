@@ -4,7 +4,7 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 ## Pendiente
 
-**Entrega viernes 20/11** (ver [[Equipo]]):
+**Entrega viernes 27/11** (ver [[Equipo]]):
 - [ ] Especificación funcional con criterios «cómo comprobarlo»
 - [ ] Enfoque técnico: arquitectura y por qué cada opción
 - [ ] Pasar la [[Maqueta]] a Figma (html.to.design) y enlazar el prototipo · @Alex
@@ -16,10 +16,8 @@ Resto:
 - [ ] Decidir identidad: SSO Office 365, cuentas locales o ambas · [[Coherencia]] · @Rubén @Kevin
 - [ ] Bajar al modelo `sesiones_usuario`, `tokens_usuario`, `bloques_layout` y la tabla de páginas · [[Coherencia]] · @Marina
 - [ ] Unificar el hash del PDF y quitar `expira_en` de 24 h del expediente · [[Coherencia]] · @Rubén
-- [ ] Renombrar `visto-bueno`, `{numero}` y `{usuario_id}` antes de Figma · [[Coherencia]] · @Rubén
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Alex
 
-- [ ] Alinear `docs/api/endpoints.md` con la decisión [[0004-anonimizacion-antes-o-despues-de-revision]]: guardar el original cifrado y anonimizar al construir las versiones y al exportar · @Rubén
 - [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
 - [ ] Endpoint que reciba un PDF y devuelva texto por página con su color de semáforo · [[Rendimiento OCR]]
 - [ ] Semáforo de calidad: contraste antes del OCR (< 80 → volver a escanear) y heurísticas de texto después
@@ -48,6 +46,9 @@ Resto:
 - [x] Diseño del PDF final (reconstrucción desde la estructura) · [[0007-generacion-pdf-final]]
 - [x] Revisión de coherencia del proyecto y recorte de A-15 a categorías especiales · [[Coherencia]]
 - [x] Decisión [[0004-anonimizacion-antes-o-despues-de-revision]] aceptada: el original se guarda cifrado y se anonimiza al construir las versiones y al exportar · @Rubén
+- [x] Contrato alineado con 0004: `POST /transform/document` guarda el original cifrado y no anonimiza; `anonymize` construye la versión de revisión · @Rubén
+- [x] Rutas renombradas (I9): `sign-off`, `{numero_version}` y `DELETE /admin/users/{id}/sessions` · @Rubén
+- [x] Entrega al cliente movida del 20/11 al **27/11**
 - [x] Servidor definitivo decidido: NVIDIA DGX Spark (GB10, 128 GB unificados, Arm64) · [[Servidor definitivo]] · @Alex
 
 ## Preguntas abiertas

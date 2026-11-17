@@ -4,7 +4,7 @@ Bóveda compartida del equipo. Vive dentro del repo: cada `git pull` la actualiz
 
 ## Mapa
 
-- [[Equipo]]: quién lleva qué, herramientas y la entrega del viernes 20/11
+- [[Equipo]]: quién lleva qué, herramientas y la entrega del viernes 27/11
 - [[Tablero]]: tareas, quién las lleva y preguntas abiertas
 - Proyecto
   - [[Maqueta]]: prototipo navegable del flujo completo
