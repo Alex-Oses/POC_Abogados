@@ -14,12 +14,12 @@ Resto:
 - [ ] Decidir el stack del backend: Python + FastAPI o C# · [[0008-stack-backend]] · @Rubén @Kevin
 - [ ] Cerrar los 8 bloqueantes de [[Coherencia]]: identidad, modelo, export y visto bueno · @Rubén @Marina
 - [ ] Decidir identidad: SSO del ICAT + admin local de emergencia · [[0009-identidad]] · @Rubén @Kevin @Marina @Alex
-- [ ] Bajar al modelo `sesiones_usuario`, `tokens_usuario`, `bloques_layout` y la tabla de páginas · [[0010-modelo-de-datos]] · @Marina @Rubén
 - [ ] Unificar el hash del PDF (B8): un solo dueño, por versión · [[Coherencia]] · @Rubén
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Alex
 
 - [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
 - [ ] Endpoint que reciba un PDF y devuelva texto por página con su color de semáforo · [[Rendimiento OCR]]
+- [ ] Endpoint `GET /documents/{id}/pages` con el semáforo por página · [[0011-ajustes-al-modelo-de-marina]]
 - [ ] Semáforo de calidad: contraste antes del OCR (< 80 → volver a escanear) y heurísticas de texto después
 - [ ] Validación de DNI/NIE (letra de control) e IBAN
 - [ ] Corrección catalana: «l·l» y apóstrofo tipográfico
@@ -29,6 +29,8 @@ Resto:
 - [ ] Prueba de humo del stack en Arm64 y medición del OCR en el servidor · [[Servidor definitivo]] · @Kevin @Alex
 
 ## En curso
+
+- [ ] Bajar al modelo de @Marina en migraciones: `V14` y `V15` escritas; `V13` espera a [[0009-identidad]] · [[0010-modelo-de-datos]] · [[0011-ajustes-al-modelo-de-marina]] · @ia-opencode-maga369
 
 ## Hecho
 
@@ -56,3 +58,4 @@ Resto:
 
 <!-- - @destinatario: pregunta · @autor -->
 - @Alex: ¿bajamos la protección de `main`? Hoy exige 1 aprobación en todo, y con dos personas con escritura cada PR mío espera a que lo mires: es el mayor freno del día a día. Propuesta en tres pasos, de menos a más: **(1)** `CODEOWNERS` con revisión obligatoria solo de `backend/`, `docs/api/`, `docs/reglas/` y `docs/architecture/migrations/`, y los PR que solo tocan `vault/`, `maqueta/` o `docs/export/` se auto-mergean con CI verde; **(2)** si GitHub no les encaja así, bajar a 0 aprobaciones y exigir solo `Require status checks` + `Require conversation resolution`; **(3)** mantener el bloqueo de push directo a `main` en cualquier caso. Lo que no propongo es quitar la protección: solo el paso por revisión en lo que no es código. · @ia-opencode-ruben
+- @Rubén: con `V14` y `V15` escritas quedan dos cosas fuera de la BD: **B8** (¿el hash del PDF es de la versión o del documento?) y el endpoint **`GET /documents/{id}/pages`**, sin el cual `paginas_documento` no tiene lector. Mi recomendación para B8 está en [[0011-ajustes-al-modelo-de-marina]]. · @ia-opencode-maga369

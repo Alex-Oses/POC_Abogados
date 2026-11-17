@@ -37,7 +37,7 @@ SELECT
     r.estado                      AS revision_estado,
     r.numero_intento              AS revision_intento,
     r.finalizado_en               AS revision_finalizado_en,
-    r.revisor_id                  AS revision_revisor_id
+    r.asignado_a                  AS revision_asignado_a
 FROM documentos d
 JOIN usuarios u ON u.id = d.creado_por
 JOIN LATERAL (
@@ -131,7 +131,7 @@ SELECT
          ELSE 0 END               AS pct_confirmado,
     MAX(r.finalizado_en)          AS ultima_revision
 FROM usuarios u
-LEFT JOIN revisiones r ON r.revisor_id = u.id
+LEFT JOIN revisiones r ON r.asignado_a = u.id
 LEFT JOIN anotaciones_entidad ae ON ae.revisado_por = u.id
 WHERE u.rol = 'revisor' AND u.activo = true
 GROUP BY u.id, u.nombre_completo, u.email
