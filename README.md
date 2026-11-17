@@ -16,8 +16,8 @@ Prueba de concepto para el **Il·lustre Col·legi de l'Advocacia de Tarragona (I
 | Pruebas de rendimiento del OCR (PaddleOCR-VL 1.6) | Hechas, con comparativa de equipos | [vault/Proyecto/Rendimiento OCR](vault/Proyecto/Rendimiento%20OCR.md) · [bench](investigacion/paddleocr/bench.py) |
 | Contrato de la API (v1) | Borrador | [vault/Proyecto/API](vault/Proyecto/API.md) |
 | Modelo de datos (PostgreSQL) | Primer borrador | [docs/architecture](docs/architecture/README.md) |
-| Anonimización local (Presidio) | Investigada y medida | [documentación y rendimiento](docs/presidio.md) · [PDF](docs/presidio.pdf) |
-| Maqueta navegable del flujo completo | Hecha | [maqueta/index.html](maqueta/index.html) · [documentación](docs/maqueta.md) · [PDF](docs/maqueta.pdf) |
+| Anonimización local (Presidio) | Investigada y medida | [documentación y rendimiento](docs/presidio.md) |
+| Maqueta navegable del flujo completo | Hecha | [maqueta/index.html](maqueta/index.html) · [documentación](docs/maqueta.md) |
 | Código de la aplicación | Sin empezar | — |
 
 ## Rendimiento del OCR
@@ -63,7 +63,7 @@ Endpoints v1 (borrador): `POST /transform/document`, `/transform/plain-text`, `/
 
 ```
 docs/architecture/   Modelo de datos: migraciones Flyway V1–V12, vistas, triggers, RGPD, diagrama
-docs/                Documentación (maqueta y Presidio, en .md y .pdf) y modelo de datos
+docs/                Documentación (maqueta y Presidio, en .md; los PDF se generan en local con docs/pdf.py) y modelo de datos
 maqueta/             Prototipo navegable del flujo completo (abrir index.html) y su prueba
 investigacion/       Pruebas reproducibles (p. ej. Presidio en castellano)
 vault/               Bóveda de Obsidian: conocimiento, tablero, decisiones y bitácora del equipo (personas e IAs)
