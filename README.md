@@ -32,7 +32,7 @@ PaddleOCR-VL 1.6 vía Ollama. Misma configuración en los tres equipos (`tempera
 
 ¹ Sin valor: `OLLAMA_NUM_PARALLEL` en 1, las peticiones se encolan.
 
-Sin GPU el OCR es entre 3 y 30 veces más lento y el paralelismo apenas ayuda: la GPU es requisito, no optimización. Un PDF de 100 páginas tarda ~2 min con la RTX 3050, ~20 min en el servidor y ~1 h en el portátil. El servidor definitivo ([DGX Spark](vault/Proyecto/Servidor%20definitivo.md)) todavía no está medido.
+Sin GPU el OCR es entre 3 y 30 veces más lento y el paralelismo apenas ayuda: la GPU es requisito, no optimización. Un PDF de 100 páginas tarda ~2 min con la RTX 3050, ~20 min en el servidor y ~1 h en el portátil. El servidor definitivo ([DGX Spark](vault/Proyecto/Servidor%20definitivo.md)) todavía no está accesible ni medido; estimación: ~4.000–6.000 páginas/hora (100 páginas ≈ 1–1,5 min).
 
 Detalle, semáforo de calidad y configuración: [vault/Proyecto/Rendimiento OCR](vault/Proyecto/Rendimiento%20OCR.md). Medición reproducible: [investigacion/paddleocr/bench.py](investigacion/paddleocr/bench.py).
 
