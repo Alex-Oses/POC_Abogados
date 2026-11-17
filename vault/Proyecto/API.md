@@ -28,7 +28,7 @@ Estado: propuesta (16/11/2026), 40 rutas. Sustituye al borrador de 5 rutas del 0
 
 ## Flujo
 
-Subir → OCR y layout → anonimizar → revisión en cola → (visto bueno del supervisor si hay datos de riesgo alto) → exportar PDF con hash.
+Subir → OCR y layout → anonimizar → revisión en cola → (visto bueno del supervisor si hay datos de categorías especiales, art. 9-10) → exportar PDF con hash.
 
 ## Seguridad
 

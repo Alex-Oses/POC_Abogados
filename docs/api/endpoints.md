@@ -566,7 +566,7 @@ aprobado ──POST /documents/{id}/export──→ exportado
 ```
 
 - `ocr_procesando` y `anonimizando` son transitorios: si el proceso falla, el documento vuelve al estado anterior y se registra en `auditoria`.
-- `pendiente_visto_bueno` solo existe si la versión tiene una categoría de `nivel_riesgo = alto`.
+- `pendiente_visto_bueno` solo existe si la versión tiene alguna anotación de una categoría con `rgpd_especial = true`.
 - `exportado` lo marca únicamente `POST /documents/{id}/export`. `POST /transform/build` es vista previa y no cambia estados.
 - `aprobado` está congelado: no admite versiones nuevas salvo reapertura explícita del supervisor.
 - Ningún endpoint permite saltarse un estado; el `409` lo impide.
