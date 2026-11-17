@@ -69,6 +69,21 @@ Conclusiones:
 
 **El servidor definitivo será un NVIDIA DGX Spark** (GB10, GPU Blackwell, 128 GB unificados a 273 GB/s, Arm64; ver [[Servidor definitivo]]). **No está medido**: no tiene fila en la tabla hasta repetir `bench.py` allí, y antes hay que comprobar que Ollama, el GGUF de PaddleOCR-VL y Presidio funcionan en Arm64. Por sus cifras de ancho de banda y núcleos debería superar a la RTX 3050, pero eso es una estimación, no un dato.
 
+### Estimación para el DGX Spark (sin acceso todavía)
+
+| | RTX 3050 Laptop (medido) | DGX Spark (estimado) |
+|---|---|---|
+| Ancho de banda de memoria | ~192 GB/s | 273 GB/s (×1,4) |
+| Cómputo de GPU | 2.048 núcleos CUDA, Ampere | 6.144 núcleos CUDA, Blackwell (≥ ×3) |
+| s/página, 1 a la vez | 4,5–5,3 | **~3–4** |
+| s/página, 4 en paralelo | 1,3 | **~0,6–0,9** |
+| Páginas/hora | ~2.750 | **~4.000–6.000** (hasta ~8.000 con 8 en paralelo) |
+| PDF de 100 páginas | ~2 min | **~1–1,5 min** |
+
+Razonamiento: con una página a la vez, generar texto depende sobre todo del ancho de banda de memoria (×1,4). Con varias en paralelo y al leer la imagen, manda el cómputo, donde el Spark saca más ventaja. El modelo (1,8 GB) cabe de sobra en los 128 GB, así que se puede subir `OLLAMA_NUM_PARALLEL` a 8 sin quedarse sin memoria. No llega a lo estimado para RTX 4090 / L40S (~1 TB/s, 12.000–24.000 pág/h).
+
+Riesgos que pueden bajar la cifra: Ollama en Arm64 + CUDA menos maduro que en x86, y que la memoria la comparta con la CPU (Presidio y el backend en la misma máquina). Hay que sustituir esta tabla por la medida real en cuanto haya acceso.
+
 ## Cómo repetirlo
 
 ```bash

@@ -8,6 +8,8 @@
 
 ## Siguiente
 
+- Medir el DGX Spark ([[Servidor definitivo]]) con `bench.py`: la fila «servidor» es la VM `genai-openllm-vm`, no el hardware final. Antes, prueba de humo de Ollama en Arm64.
+
 - Pedir GPU en el servidor: sin ella el POC se queda en ~260 páginas/hora (100 páginas ≈ 20 min).
 - Repetir la medición del servidor con `OLLAMA_NUM_PARALLEL=4` para saber si el paralelismo ayuda en CPU (el dato actual no vale: las peticiones se encolan).
 - Medir con páginas de escaneo real denso; las capturas de la maqueta y el BOE digital pesan menos que un escaneo de 200 dpi.
