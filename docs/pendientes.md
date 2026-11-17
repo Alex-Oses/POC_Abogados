@@ -76,10 +76,11 @@ Lo aplicado queda en `origen_geometria` para que el render sea reproducible.
 | # | Contenido | Se puede empezar |
 |---|---|---|
 | V13 | Identidad: `usuarios`, `tokens_usuario`, `sesiones_usuario`, índices | **No**: espera 0009 |
-| V14 | Estructura: `bloques_layout`, `paginas_documento`, `num_paginas`, índices | **Sí**: no depende de identidad |
-| V15 | Flujo y export: estados, columnas del visto bueno, `revisiones`, dueño del hash, seeds corregidos | Sí, salvo lo que fije 0005 |
+| V14 | Estructura: `bloques_layout`, `paginas_documento`, `num_paginas`, índices | **Escrita** (`V14__create_bloques_layout.sql`): no depende de identidad |
+| V15 | Flujo y export: estados, columnas del visto bueno, `revisiones`, seeds corregidos | **Escrita** (`V15__flujo_revision_y_export.sql`), salvo el hash: espera 0005 |
+| V16 | Hash del PDF (B8), cuando se decida el dueño | No: espera B8 |
 
-V14 es la única que se puede escribir hoy sin esperar a nadie, y es también la que desbloquea el OCR, el PDF y el semáforo.
+Los once puntos revisados, las cinco preguntas contestadas y el orden están en [`vault/Decisiones/0011-ajustes-al-modelo-de-marina.md`](../vault/Decisiones/0011-ajustes-al-modelo-de-marina.md).
 
 ## 4. Qué espera a quién
 

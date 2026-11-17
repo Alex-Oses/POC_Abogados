@@ -35,6 +35,11 @@ CREATE TRIGGER trg_configuracion_sistema_updated_at
     BEFORE UPDATE ON configuracion_sistema
     FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
 
+-- `revisiones.actualizado_en` es el If-Match del cierre (A-23): lo mantiene este trigger.
+CREATE TRIGGER trg_revisiones_updated_at
+    BEFORE UPDATE ON revisiones
+    FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
+
 -- ============================================================
 -- 2. Hash encadenado en auditoria (inmutabilidad)
 -- ============================================================
@@ -125,8 +130,10 @@ CREATE TRIGGER trg_categoria_prevent_delete
 CREATE OR REPLACE FUNCTION trg_revision_validar_revisor()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
-    IF (SELECT rol FROM usuarios WHERE id = NEW.revisor_id) <> 'revisor' THEN
-        RAISE EXCEPTION 'Usuario % no tiene rol revisor', NEW.revisor_id;
+    -- Nulo es válido: la revisión nace en cola sin dueño (A-05).
+    IF NEW.asignado_a IS NOT NULL
+       AND (SELECT rol FROM usuarios WHERE id = NEW.asignado_a) <> 'revisor' THEN
+        RAISE EXCEPTION 'Usuario % no tiene rol revisor', NEW.asignado_a;
     END IF;
     RETURN NEW;
 END;
@@ -142,32 +149,49 @@ CREATE TRIGGER trg_revision_validar_revisor
 CREATE OR REPLACE FUNCTION trg_documento_estado_auto()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 DECLARE
-    v_tipo VARCHAR(30);
-    v_rev_estado VARCHAR(30);
+    v_tipo        VARCHAR(30);
+    v_rev_estado  VARCHAR(30);
+    v_documento   UUID;
+    v_estado      VARCHAR(50);
 BEGIN
-    -- Solo actuar si cambió algo relevante en versiones o revisiones
+    -- El estado se calcula en una variable: `versiones_documento` no tiene columna
+    -- `estado`, y la versión anterior de este trigger escribía en NEW.estado.
     IF TG_TABLE_NAME = 'versiones_documento' THEN
-        v_tipo = NEW.tipo_version;
+        v_documento := NEW.documento_id;
+        v_tipo := NEW.tipo_version;
         CASE v_tipo
-            WHEN 'ocr_texto'       THEN NEW.estado := 'ocr_completado';
-            WHEN 'anonimizado_ia'  THEN NEW.estado := 'en_revision';
-            WHEN 'revisado_humano' THEN NEW.estado := 'en_revision';
-            WHEN 'final_aprobado'  THEN NEW.estado := 'aprobado';
+            WHEN 'ocr_texto'       THEN v_estado := 'ocr_completado';
+            WHEN 'anonimizado_ia'  THEN v_estado := 'en_revision';
+            WHEN 'revisado_humano' THEN v_estado := 'en_revision';
+            WHEN 'final_aprobado'  THEN
+                -- A-15: con categoría del art. 9, la aprobación del revisor no basta.
+                IF (SELECT requiere_visto_bueno FROM documentos WHERE id = v_documento) THEN
+                    v_estado := 'pendiente_visto_bueno';
+                ELSE
+                    v_estado := 'aprobado';
+                END IF;
         END CASE;
-        UPDATE documentos SET estado = NEW.estado, actualizado_en = now()
-        WHERE id = NEW.documento_id;
 
     ELSIF TG_TABLE_NAME = 'revisiones' THEN
-        v_rev_estado = NEW.estado;
+        v_documento := NEW.documento_id;
+        v_rev_estado := NEW.estado;
         CASE v_rev_estado
             WHEN 'aprobado' THEN
-                UPDATE documentos SET estado = 'aprobado', actualizado_en = now()
-                WHERE id = (SELECT documento_id FROM versiones_documento WHERE id = NEW.version_id);
+                IF (SELECT requiere_visto_bueno FROM documentos WHERE id = v_documento) THEN
+                    v_estado := 'pendiente_visto_bueno';
+                ELSE
+                    v_estado := 'aprobado';
+                END IF;
             WHEN 'rechazado_con_cambios' THEN
-                UPDATE documentos SET estado = 'rechazado', actualizado_en = now()
-                WHERE id = (SELECT documento_id FROM versiones_documento WHERE id = NEW.version_id);
+                v_estado := 'rechazado';
         END CASE;
     END IF;
+
+    IF v_estado IS NOT NULL THEN
+        UPDATE documentos SET estado = v_estado, actualizado_en = now()
+        WHERE id = v_documento;
+    END IF;
+
     RETURN NULL; -- AFTER trigger
 END;
 $$;
@@ -223,7 +247,7 @@ BEGIN
     ELSIF TG_TABLE_NAME = 'revisiones' AND TG_OP = 'INSERT' THEN
         ev := 'REVISION_INICIADA'; ent_tipo := 'revision'; ent_id := NEW.id;
         det := jsonb_build_object('version_id', NEW.version_id, 'intento', NEW.numero_intento);
-        usr := NEW.revisor_id;
+        usr := NEW.asignado_a;
 
     ELSIF TG_TABLE_NAME = 'revisiones' AND TG_OP = 'UPDATE' AND OLD.estado <> NEW.estado THEN
         ev := CASE NEW.estado
@@ -232,7 +256,7 @@ BEGIN
             ELSE 'REVISION_ESTADO_CAMBIO' END;
         ent_tipo := 'revision'; ent_id := NEW.id;
         det := jsonb_build_object('estado_anterior', OLD.estado, 'estado_nuevo', NEW.estado);
-        usr := NEW.revisor_id;
+        usr := NEW.asignado_a;
 
     ELSIF TG_TABLE_NAME = 'reglas_anonimizacion' AND TG_OP = 'INSERT' THEN
         ev := 'REGLA_CREADA'; ent_tipo := 'regla'; ent_id := NEW.id;
