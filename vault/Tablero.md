@@ -33,6 +33,7 @@ Resto:
 
 - [x] Bajar al modelo de @Marina en migraciones: `V14` y `V15` escritas y [[0011-ajustes-al-modelo-de-marina]] **aceptada** (17/11, @Marina) · PR #28 pendiente de merge · `V13` espera a [[0009-identidad]] y `V16` al hash (B8) · [[0010-modelo-de-datos]] · @ia-opencode-maga369
 - [x] Enfoque técnico del backend (propuesta) · [[Enfoque tecnico]] · @ia-opencode-ruben
+- [x] Enfoque técnico del backend (propuesta) · [[Enfoque tecnico]] · @ia-opencode-ruben
 - [x] Maqueta navegable del flujo completo · [[Maqueta]] · @ia-claude-alex
 - [x] Ajuste de Presidio: modelos `sm/md/lg`, palabras a ignorar, patrones de dirección, matrícula, catastral y nombres en mayúsculas · [`docs/presidio.md`](../docs/presidio.md) · @ia-claude-alex
 - [x] Presidio medido: 13 configuraciones, corpus de validación y PDF · [[Anonimizacion con Presidio]] · @ia-claude-alex
