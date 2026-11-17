@@ -25,19 +25,17 @@ blockquote { margin: 8pt 0; padding: 6pt 12pt; background: #FFF4D6; border-left:
 li { margin: 2pt 0; }
 """
 
-# --informe: formato de informe para revisión (portada, índice, franja lateral, contraportada). Sin marcas de empresa.
+# --plantilla RUTA.pdf: formato de informe interno. Se escribe el contenido encima de las páginas de una plantilla
+# (pág. 1 = portada, 2 = fondo de las interiores, última = contraportada), quitándoles el texto.
+# La plantilla y los PDF generados no se versionan: son internos.
 INFORME = """
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
-@page { size: A4; margin: 24mm 22mm 24mm 20mm; }
+@page { size: A4; margin: 30mm 30mm 32mm 24mm; }
 body { font: 10pt/1.6 Poppins, 'Segoe UI', sans-serif; color: #232A49; }
-.portada, .contra { overflow: hidden;
-  background: linear-gradient(160deg, #2b2f3f, #0f1220); color: #fff; position: relative; }
-
-.portada .t { font-weight: 300; font-size: 44pt; line-height: 1.1; color: #F2F23A; margin-top: 105mm; }
-.portada .s { font-weight: 700; font-size: 20pt; margin: 14pt 0 30pt; max-width: 110mm; }
-.portada .m { color: #F2F23A; font-size: 15pt; line-height: 2; }
-.cuadros i { position: absolute; background: #F2F23A; opacity: .85; }
-.grad { position: absolute; left: 0; right: 0; bottom: 0; height: 4mm; background: linear-gradient(90deg, #232A49, #E5197F); }
+.portada { position: absolute; left: 24mm; top: 86mm; width: 150mm; }
+.portada .t { font-weight: 300; font-size: 44pt; line-height: 1.15; color: #F2F23A; }
+.portada .s { font-weight: 700; font-size: 18pt; line-height: 1.3; color: #fff; margin: 10pt 0 26pt; max-width: 80mm; }
+.portada .m { color: #F2F23A; font-size: 15pt; line-height: 2.2; margin-left: 56mm; }
 .indice { page-break-after: always; }
 .indice ol { padding-left: 16pt; font-weight: 600; } .indice li { padding: 3pt 0; border-bottom: 1px dotted #232A49; }
 h1.ind { color: #E5197F; font-weight: 700; font-size: 24pt; border: 0; }
@@ -57,27 +55,30 @@ img { max-width: 100%; margin: 6pt 0; page-break-inside: avoid; }
 a { color: #232A49; }
 """
 
-informe = "--informe" in sys.argv
-args = [a for a in sys.argv[1:] if a != "--informe"]
+args = sys.argv[1:]
+plantilla = Path(args.pop(args.index("--plantilla") + 1)).resolve() if "--plantilla" in args else None
+pie_texto = args.pop(args.index("--pie") + 1) if "--pie" in args else "Ref. POC ICAT"
+args = [a for a in args if a not in ("--plantilla", "--pie")]
 src, dst = Path(args[0]).resolve(), Path(args[1]).resolve()
 texto = src.read_text(encoding="utf-8")
 body = markdown.markdown(texto, extensions=["tables", "fenced_code"])
-if informe:
+if plantilla:
     import datetime, re
-    titulo = re.search(r"^# (.+)$", texto, re.M).group(1)
-    t, _, s = titulo.partition(" · ")
+    t, _, s = re.search(r"^# (.+)$", texto, re.M).group(1).partition(" · ")
     fecha = datetime.date.today().strftime("%d/%m/%Y")
-    cuadros = '<div class="cuadros"><i style="right:30mm;top:22mm;width:20mm;height:20mm"></i><i style="right:12mm;top:22mm;width:18mm;height:38mm;opacity:.6"></i><i style="right:50mm;top:58mm;width:18mm;height:18mm"></i></div>'
-    # shortcut: índice sin números de página (Chromium no los da al generar), si hace falta, pasar a WeasyPrint.
+    # shortcut: índice sin números de página (Chromium no los da); si hace falta, pasar a WeasyPrint.
     indice = "".join(f"<li>{h}</li>" for h in re.findall(r"^## (?:\d+\.\s*)?(.+)$", texto, re.M))
     body = re.sub(r"<h2>\d+\.\s*", "<h2>", body)
-    portada = (f'<div class="portada">{cuadros}<div class="t">{t}</div><div class="s">{s or "Documento técnico"}</div>'
-               f'<div class="m">Documento para revisión<br>{fecha}</div><div class="grad"></div></div>')
+    portada = (f'<div class="portada"><div class="t">{t}</div><div class="s">{s or "Documento técnico"}</div>'
+               f'<div class="m">Documento para revisión<br>{fecha}</div></div>')
     body = f'<div class="indice"><h1 class="ind" style="display:block">Índice</h1><ol>{indice}</ol></div>{body}'
     CSS = INFORME
-pie = ('<div style="font:8px Arial;color:#5E5E5E;width:100%;padding:0 18mm;display:flex;justify-content:space-between">'
-       + (f'<span>{fecha} | Ref. POC ICAT<br>Clasificación: documento interno</span>' if informe else f'<span>{src.stem} · POC ICAT</span>')
-       + '<span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>')
+    pie = ('<div style="font:7px Poppins,Arial;color:#232A49;width:100%;padding:0 30mm 6mm 62mm;display:flex;justify-content:space-between">'
+           f'<span>{fecha} | {pie_texto}<br>Clasificación: documento interno</span>'
+           '<span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>')
+else:
+    pie = ('<div style="font:8px Arial;color:#5E5E5E;width:100%;padding:0 18mm;display:flex;justify-content:space-between">'
+           f'<span>{src.stem} · POC ICAT</span><span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>')
 
 
 def render(pg, contenido, path, css_extra="", pie=None):
@@ -92,24 +93,39 @@ def render(pg, contenido, path, css_extra="", pie=None):
         tmp.unlink(missing_ok=True)
 
 
+def sobre(fondo_doc, fondo_i, encima_doc, encima_i, dest):
+    """Copia la página fondo_i de la plantilla sin su texto y pega encima la página encima_i."""
+    import pypdfium2
+    dest.import_pages(fondo_doc, [fondo_i])
+    pag = dest[len(dest) - 1]
+    for o in [o for o in pag.get_objects(max_depth=1) if o.type == pypdfium2.raw.FPDF_PAGEOBJ_TEXT]:
+        pag.remove_obj(o)
+    if encima_doc is not None:
+        pag.insert_obj(encima_doc.page_as_xobject(encima_i, dest).as_pageobject())
+    pag.gen_content()
+
+
 with sync_playwright() as p:
     b = p.chromium.launch(channel="msedge", headless=True)
     pg = b.new_page()
-    if not informe:
+    if not plantilla:
         render(pg, body, dst, pie=pie)
     else:
-        # Portada y contraportada a sangre y sin pie: se generan aparte y se unen.
         import pypdfium2
-        sangre = "@page { margin: 0 } body { margin: 0 } .portada, .contra { height: 296.5mm; box-sizing: border-box; padding: 20mm 22mm 0 24mm }"
-        partes = [dst.with_suffix(f".{n}.pdf") for n in ("a", "b", "c")]
-        render(pg, portada, partes[0], sangre)
-        render(pg, body, partes[1], pie=pie)
-        render(pg, '<div class="contra"><div class="grad"></div></div>', partes[2], sangre)
-        doc = pypdfium2.PdfDocument.new()
-        for parte in partes:
-            fuente = pypdfium2.PdfDocument(str(parte)); doc.import_pages(fuente); fuente.close()
-        doc.save(str(dst)); doc.close()
-        for parte in partes:
-            parte.unlink()
+        a, c = dst.with_suffix(".a.pdf"), dst.with_suffix(".c.pdf")
+        try:
+            render(pg, portada, a, "@page { margin: 0 } body { margin: 0 }")
+            render(pg, body, c, pie=pie)
+            fondo, por, cue = (pypdfium2.PdfDocument(str(x)) for x in (plantilla, a, c))
+            doc = pypdfium2.PdfDocument.new()
+            sobre(fondo, 0, por, 0, doc)
+            for i in range(len(cue)):
+                sobre(fondo, 1, cue, i, doc)
+            doc.import_pages(fondo, [len(fondo) - 1])
+            doc.save(str(dst))
+            for x in (doc, fondo, por, cue):
+                x.close()
+        finally:
+            a.unlink(missing_ok=True); c.unlink(missing_ok=True)
     b.close()
 print(dst)
