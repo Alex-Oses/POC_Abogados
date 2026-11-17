@@ -14,10 +14,14 @@
 - [[Tablero]]: pasan a Hecho la confirmación de 0004, el renombrado, la alineación del contrato, la caducidad y la geometría del PDF; se retira la pregunta del `bbox`, ya respondida, y los restos del merge del 16/11.
 - Comando `/decisiones` (`.opencode/commands/decisiones.md`) con `scripts/decisiones.py`: lee `vault/Decisiones/` y `vault/Tablero.md` y devuelve en una tabla qué propuestas, preguntas y tareas esperan a una persona. Sin explorar la bóveda, para gastar poco.
 - Comando `/decidir` (`.opencode/commands/decidir.md`): registra un OK o un voto sobre una decisión (`/decidir 0002 mi OK`) con un procedimiento fijo — cabecera de la decisión, tablero, coherencia, bitácora y commit en la rama actual. Sin script y sin recorrer la bóveda.
+- Informe [`docs/pendientes.md`](../../docs/pendientes.md): los tres frentes que no se pueden implementar (identidad, geometría del PDF y modelo de datos), con la tabla de las 14 tablas afectadas y las migraciones `V13`-`V15`. Incluye §6 «Cómo mantenerlo», con los cuatro disparadores de actualización, porque una lista vieja es peor que ninguna.
+- Propuesta [[0010-modelo-de-datos]] para @Marina: qué cambia en cada tabla y por qué, tres migraciones no destructivas y un diagrama `mermaid` del modelo objetivo. Cuatro preguntas abiertas (precisión del `bbox`, tabla de seudónimos, `citext` y clave del original cifrado).
+- [[Coherencia]] § «Cómo se cierra» paso 3 y [[Tablero]] apuntan ya a 0010; se retira la tarea de «sesión de 24 h», que B6 dejó obsoleta.
 
 ## Siguiente
 
 - Cerrar [[0008-stack-backend]] y [[0009-identidad]] con @Marina, @Kevin y @Alex.
+- Cerrar [[0010-modelo-de-datos]] con @Marina: `V14` (bloques, páginas) no depende de nadie y desbloquea OCR, PDF y semáforo.
 - Unificar el hash del PDF (B8) antes de implementar el export.
 
 ## Bloqueos / preguntas
