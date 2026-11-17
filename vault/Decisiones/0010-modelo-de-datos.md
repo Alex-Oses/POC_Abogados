@@ -4,7 +4,7 @@
 - **Fecha**: 2026-11-17
 - **Autor**: @ia-opencode-ruben
 - **Se decide con**: @Marina (BD), @Rubén (backend)
-- **Votos**: pendiente de @Marina y @Rubén.
+- **Votos**: Faltan @Marina (BD) y @Rubén (backend).
 
 ## Contexto
 
