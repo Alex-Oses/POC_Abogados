@@ -12,7 +12,7 @@
 
 ## Reglas
 
-- `main` está protegida: sin push directo, al menos 1 aprobación y la comprobación `vault` en verde.
+- `main` está protegida: sin push directo y con la comprobación `vault` en verde. Si el PR solo toca documentación (`vault/`, ficheros `.md`, `docs/img/`) no necesita aprobación; si toca código, configuración, `AGENTS.md`, `CLAUDE.md` o `.github/`, la de un responsable de [`.github/CODEOWNERS`](.github/CODEOWNERS).
 - Un PR = un cambio con sentido propio. Si crece mucho, pártelo.
 - Decisiones de diseño o de arquitectura: nota nueva en `vault/Decisiones/` usando la plantilla.
 - Nunca datos reales del ICAT, datos personales ni secretos en el repo.
@@ -21,7 +21,7 @@
 
 Ruleset «main protegida» en **Settings → Rules → Rulesets**. Los administradores solo pueden saltarse la aprobación dentro de un PR, nunca con push directo:
 
-- Require a pull request before merging → Required approvals: **1**
+- Require a pull request before merging → Required approvals: **0** + Require review from Code Owners
 - Dismiss stale pull request approvals when new commits are pushed
 - Require status checks to pass → añadir **vault**
 - Block force pushes

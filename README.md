@@ -96,7 +96,7 @@ Requisitos mínimos: GPU NVIDIA con 4 GB de VRAM y 16 GB de RAM (sin GPU funcion
 
 ## Cómo trabajamos
 
-- Nadie empuja directamente a `main`: todo entra por **Pull Request** con al menos una aprobación. Ver [CONTRIBUTING.md](CONTRIBUTING.md).
+- Nadie empuja directamente a `main`: todo entra por **Pull Request** ; los que solo cambian documentación no necesitan aprobación, el resto sí. Ver [CONTRIBUTING.md](CONTRIBUTING.md).
 - La carpeta [`vault/`](vault/Inicio.md) es una **bóveda de Obsidian versionada en el propio repo**: cada `git pull` la actualiza para todo el equipo. Personas e IAs la usan para el tablero de tareas, las decisiones y la bitácora.
 - Cada PR debe tocar algo en `vault/` (al menos una entrada de bitácora). Un PR sin cambios en la bóveda falla la comprobación salvo que su título lleve `[sin-vault]`.
 
