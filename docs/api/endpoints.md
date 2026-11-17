@@ -35,7 +35,7 @@
 | `400` | Petición mal formada |
 | `401` | Sin token o inválido |
 | `403` | Sin permisos para el recurso |
-| `404` | No existe o caducado |
+| `404` | No existe |
 | `409` | Conflicto (email duplicado, documento ya en revisión, revisión tomada por otro) |
 | `410` | Token caducado o ya usado |
 | `413` | Fichero demasiado grande |
@@ -241,7 +241,7 @@ Texto de la versión vigente (`es_actual = true`), sin formato.
 
 `200` → `{ "result": "texto plano transformado" }`.
 
-Errores: `404` si el documento no existe o `expira_en` ha pasado.
+Errores: `404` si el documento no existe.
 
 ### `POST /transform/build`
 
@@ -253,7 +253,7 @@ PDF maquetado de la versión vigente. Es vista previa: **no** cierra el expedien
 
 `200` → binario, `Content-Type: application/pdf`, `Content-Disposition: attachment; filename="documento.pdf"`.
 
-Errores: `404` si el documento no existe o `expira_en` ha pasado, `500` si falla la generación.
+Errores: `404` si el documento no existe, `500` si falla la generación.
 
 ### `GET /documents?estado=&page=&limit=`
 
@@ -461,7 +461,7 @@ Cierra el expediente. Genera el PDF definitivo desde la versión aprobada (ya an
 
 `200` → binario, `Content-Type: application/pdf`, `Content-Disposition: attachment; filename="documento.pdf"` y cabecera `X-Document-Hash` con el SHA-256.
 
-Errores: `409` si el documento no está `aprobado`, `404` si la sesión de OCR ha caducado.
+Errores: `409` si el documento no está `aprobado`.
 
 Un documento ya exportado devuelve el mismo PDF y el mismo hash: la operación es idempotente y no reescribe nada. Cómo se genera: [docs/export/pdf.md](../export/pdf.md).
 

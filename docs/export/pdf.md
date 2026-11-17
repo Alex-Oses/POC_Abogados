@@ -103,7 +103,7 @@ El texto lo da el OCR; la geometría no tiene por qué venir del mismo sitio. Po
 2. **Un modelo de layout, si es un escaneo sin capa.** El pipeline completo de PaddleOCR/PP-Structure (no el GGUF de Ollama) devuelve `label` y `coordinate` por bloque; `docling` (MIT) es la alternativa si el primero no encaja en el servidor. Cuesta una pasada más por página.
 3. **Nada.** Modo `secuencial`, que ya está diseñado.
 
-La recomendación es probar el 1 antes de decidir: si la mayoría de los documentos del Colegio llegan como PDF con texto, el `bbox` sale gratis y el problema desaparece sin tocar el OCR. Queda por medir qué proporción de los escaneos reales trae capa de texto.
+La recomendación es no elegir una: **el modo se decide por documento**. Al construir la estructura se intenta, en este orden, (1) la capa de texto del PDF subido, (2) las cajas del modelo de layout, (3) el flujo secuencial; y lo que quede se guarda en `origen_geometria` para que el render sea reproducible. Un lote real del Colegio traerá las tres cosas mezcladas, y así cada documento se reconstruye todo lo fiel que su original permita. Mientras no haya documentos reales medidos, el orden anterior es también la respuesta por defecto.
 
 ### Normalización: la consistencia
 

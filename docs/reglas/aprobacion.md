@@ -123,7 +123,7 @@ Qué es laborable sale de `configuracion_sistema.calendario_laboral`: lunes a vi
 
 A las 48 h vencidas no cambia nada por sí solo: el supervisor recibe el aviso y reasigna con A-06.
 
-**Regla A-21 — la sesión de OCR caduca.** `documentos.expira_en` (propuesta: 24 h). Pasado el plazo, los endpoints de texto y PDF devuelven `404` y hay que volver a subir.
+**Regla A-21 — el expediente no caduca.** No hay plazo sobre el documento: una vez subido, sus versiones y su PDF siguen disponibles mientras exista. El TTL (propuesta: 24 h) se aplica solo a los ficheros temporales del OCR —páginas renderizadas y salidas intermedias—, que se borran al cerrar el proceso; perderlos no impide exportar, porque el PDF se reconstruye desde la estructura guardada. El original cifrado (decisión 0004) tampoco caduca mientras el expediente exista.
 
 **Regla A-22 — los plazos no cambian el estado solos.** Un documento vencido sigue `en_revision`; el vencimiento genera aviso, no una transición automática silenciosa.
 

@@ -13,9 +13,9 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 Resto:
 - [ ] Decidir el stack del backend: Python + FastAPI o C# · [[0008-stack-backend]] · @Rubén @Kevin
 - [ ] Cerrar los 8 bloqueantes de [[Coherencia]]: identidad, modelo, export y visto bueno · @Rubén @Marina
-- [ ] Decidir identidad: SSO Office 365, cuentas locales o ambas · [[Coherencia]] · @Rubén @Kevin
+- [ ] Decidir identidad: SSO del ICAT + admin local de emergencia · [[0009-identidad]] · @Rubén @Kevin @Marina @Alex
 - [ ] Bajar al modelo `sesiones_usuario`, `tokens_usuario`, `bloques_layout` y la tabla de páginas · [[Coherencia]] · @Marina
-- [ ] Unificar el hash del PDF y quitar `expira_en` de 24 h del expediente · [[Coherencia]] · @Rubén
+- [ ] Unificar el hash del PDF (B8): un solo dueño, por versión · [[Coherencia]] · @Rubén
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Alex
 
 - [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
@@ -49,10 +49,11 @@ Resto:
 - [x] Contrato alineado con 0004: `POST /transform/document` guarda el original cifrado y no anonimiza; `anonymize` construye la versión de revisión · @Rubén
 - [x] Rutas renombradas (I9): `sign-off`, `{numero_version}` y `DELETE /admin/users/{id}/sessions` · @Rubén
 - [x] Entrega al cliente movida del 20/11 al **27/11**
+- [x] `expira_en` fuera del expediente (B6): A-21 lo limita a los temporales del OCR y el contrato deja de devolver `404` por caducidad · @Rubén
+- [x] Geometría del PDF: se elige por documento (capa de texto → modelo de layout → secuencial); escrito en `docs/export/pdf.md` · @Rubén
 - [x] Servidor definitivo decidido: NVIDIA DGX Spark (GB10, 128 GB unificados, Arm64) · [[Servidor definitivo]] · @Alex
 
 ## Preguntas abiertas
 
 <!-- - @destinatario: pregunta · @autor -->
 - @Alex: ¿bajamos la protección de `main`? Hoy exige 1 aprobación en todo, y con dos personas con escritura cada PR mío espera a que lo mires: es el mayor freno del día a día. Propuesta en tres pasos, de menos a más: **(1)** `CODEOWNERS` con revisión obligatoria solo de `backend/`, `docs/api/`, `docs/reglas/` y `docs/architecture/migrations/`, y los PR que solo tocan `vault/`, `maqueta/` o `docs/export/` se auto-mergean con CI verde; **(2)** si GitHub no les encaja así, bajar a 0 aprobaciones y exigir solo `Require status checks` + `Require conversation resolution`; **(3)** mantener el bloqueo de push directo a `main` en cualquier caso. Lo que no propongo es quitar la protección: solo el paso por revisión en lo que no es código. · @ia-opencode-ruben
-- @Rubén: `GET /documents/{id}/versions/{n}/blocks` en `docs/api/endpoints.md` devuelve un `bbox` por bloque, pero PaddleOCR-VL por Ollama (prompt `OCR:`) devuelve **solo texto, sin coordenadas**. Ahora mismo nada puede rellenar ese `bbox`. La decisión [[0007-generacion-pdf-final]] ya admite los dos modos en `origen_geometria` (ver [`docs/export/pdf.md`](../docs/export/pdf.md)), así que no bloquea el export: la pregunta es si el OCR definitivo dará las cajas o el contrato debe dejar de pedirlas. · @ia-claude-alex
