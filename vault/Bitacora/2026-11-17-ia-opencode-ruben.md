@@ -13,6 +13,7 @@
 - Entrega al cliente movida del viernes 20/11 al **viernes 27/11** en [[Equipo]], [[Inicio]] y [[Tablero]].
 - [[Tablero]]: pasan a Hecho la confirmación de 0004, el renombrado, la alineación del contrato, la caducidad y la geometría del PDF; se retira la pregunta del `bbox`, ya respondida, y los restos del merge del 16/11.
 - Comando `/decisiones` (`.opencode/commands/decisiones.md`) con `scripts/decisiones.py`: lee `vault/Decisiones/` y `vault/Tablero.md` y devuelve en una tabla qué propuestas, preguntas y tareas esperan a una persona. Sin explorar la bóveda, para gastar poco.
+- Comando `/decidir` (`.opencode/commands/decidir.md`): registra un OK o un voto sobre una decisión (`/decidir 0002 mi OK`) con un procedimiento fijo — cabecera de la decisión, tablero, coherencia, bitácora y commit en la rama actual. Sin script y sin recorrer la bóveda.
 
 ## Siguiente
 
