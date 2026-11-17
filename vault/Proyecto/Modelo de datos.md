@@ -285,4 +285,4 @@ El reparto en `V13`/`V14`/`V15` de [[0010-modelo-de-datos]] sigue sirviendo, con
 
 En [[0010-modelo-de-datos]] están además el veredicto de encaje (qué se queda y qué no), las 8 columnas que podrían sobrar y el prompt para el agente de @Marina. El modelo es suyo: si cambia algo, nosotros adaptamos el contrato y el diseño del PDF.
 
-**Estado (17/11)**: seis de estos puntos ya tienen respuesta en [[0011-ajustes-al-modelo-de-marina]], que además entrega `V14` (estructura, aplicable hoy) y `V15` (flujo, espera a 0005). Lo que sigue abierto es B8 (hash del PDF, propuesta: la versión) y el endpoint `GET /documents/{id}/pages`.
+**Estado (17/11)**: [[0011-ajustes-al-modelo-de-marina]] está **aceptada** por @Marina: seis de estos puntos ya tienen respuesta y entrega `V14` (estructura, aplicable hoy) y `V15` (flujo, espera a 0005). Lo que sigue abierto es B8 (hash del PDF, propuesta: la versión) y el endpoint `GET /documents/{id}/pages`.

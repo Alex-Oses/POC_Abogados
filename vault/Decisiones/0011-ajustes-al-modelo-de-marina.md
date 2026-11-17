@@ -1,10 +1,10 @@
 # 0011 · Ajustes al modelo de @Marina: qué sobra, qué falta y dónde va cada cosa
 
-- **Estado**: Propuesta
+- **Estado**: Aceptada (2026-11-17, @Marina)
 - **Fecha**: 2026-11-17
 - **Autor**: @ia-opencode-maga369
 - **Quién decide**: @Marina. Su [[Modelo de datos]] es la fuente de verdad; esto solo responde a las preguntas de [[0010-modelo-de-datos]] y baja el modelo a SQL.
-- **Votos**: faltan @Marina (BD) y @Rubén (B8 y contrato).
+- **Votos**: @Marina acepta los once puntos y las cinco respuestas el 2026-11-17. @Rubén sigue debiendo **B8** (dueño del hash del PDF) y la confirmación de `GET /documents/{id}/pages`; ninguna de las dos entra en lo aceptado.
 
 ## Contexto
 
@@ -71,19 +71,19 @@ Ninguna toca `V1`-`V12` ni borra tablas. `V15` **renombra** una columna (`reviso
 
 `V14` se puede aplicar hoy porque no depende de identidad, de las reglas ni de B8. `V15` espera a 0005, pero su contenido ya está escrito para que la revisión de @Rubén sea sobre SQL y no sobre una idea.
 
-## El hash del PDF (B8), que sigue abierto
+## Fuera de lo aceptado: el hash del PDF (B8)
 
-Recomendación, para que la decida @Rubén con 0007 delante: **el dueño es la versión**. El PDF se genera por versión, y al reabrir un aprobado el hash anterior tiene que sobrevivir; si el dueño es `documentos`, la reapertura lo pisa o lo duplica. `documentos` se quedaría con `estado` y `exportado_en`; el contrato §6 y §10 tendrían que dejar de devolver `documentos.hash_export`, que es un cambio de documentación, no de código.
+**Esto no forma parte de la decisión aceptada.** Es una recomendación para que la decida @Rubén con 0007 delante: **el dueño es la versión**. El PDF se genera por versión, y al reabrir un aprobado el hash anterior tiene que sobrevivir; si el dueño es `documentos`, la reapertura lo pisa o lo duplica. `documentos` se quedaría con `estado` y `exportado_en`; el contrato §6 y §10 tendrían que dejar de devolver `documentos.hash_export`, que es un cambio de documentación, no de código.
 
 ## Consecuencias
 
 - `views.sql`: `v_documento_actual` y `v_metricas_revisor` pasan a `asignado_a` (hecho en este PR).
 - `triggers.sql`: la validación de rol admite `NULL` (la revisión nace sin dueño), el `If-Match` de `revisiones` gana su trigger de `actualizado_en`, y el trigger de estados ya no escribe en `NEW.estado` (esa columna no existe: era un fallo que habría saltado al primer cierre).
-- Contrato: falta `GET /documents/{id}/pages` (B5) y, si se acepta este documento, dejar de devolver `hash_export` desde `documentos`.
+- Contrato: falta `GET /documents/{id}/pages` (B5); y, cuando se cierre B8, dejar de devolver `hash_export` desde `documentos`.
 - La maqueta: el texto de la tabla de seudónimos (I2) y el semáforo por página ya tienen modelo.
 
 ## Preguntas para el equipo
 
-- **@Rubén**: B8, ¿versión o documento? Y confirmar `GET /documents/{id}/pages` en el contrato.
-- **@Marina**: aceptar o corregir los puntos 1, 2, 4, 5, 10 y 11 de la tabla (los demás ya los cierra el contrato).
+- **@Rubén**: B8, ¿versión o documento? Y confirmar `GET /documents/{id}/pages` en el contrato. Son las dos únicas cosas que 0011 deja abiertas.
+- **@Marina**: aceptado el 2026-11-17. Los puntos 1, 2, 4, 5, 10 y 11 quedan como están escritos, sin correcciones.
 - **@Alex, @Kevin**: el voto de [[0009-identidad]] es lo único que separa `V13` de estar escrita.
