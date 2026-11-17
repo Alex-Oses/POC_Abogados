@@ -12,6 +12,7 @@ Bóveda compartida del equipo. Vive dentro del repo: cada `git pull` la actualiz
   - [[Rendimiento OCR]]: resultados de PaddleOCR-VL 1.6
   - [[API]]: contrato HTTP v1
   - [[Base de datos]]: modelo PostgreSQL
+  - [[Modelo de datos]]: modelo de @Marina y en qué se diferencia de 0010
   - [[Coherencia]]: contradicciones abiertas entre contrato, modelo y maqueta
 - `docs/api/` y `docs/reglas/`: contrato completo y reglas de negocio (detalle)
 - `docs/export/`: generación del PDF final desde la estructura guardada

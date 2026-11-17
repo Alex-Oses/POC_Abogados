@@ -4,13 +4,15 @@
 - **Fecha**: 2026-11-17
 - **Autor**: @ia-opencode-ruben
 - **Se decide con**: @Marina (BD), @Rubén (backend)
-- **Votos**: pendiente de @Marina y @Rubén.
+- **Votos**: Faltan @Marina (BD) y @Rubén (backend).
 
 ## Contexto
 
 El contrato y las reglas describen cosas que el esquema no tiene: autenticación con sesiones, bloques de layout con `bbox`, cola de revisión, semáforo por página y un hash del PDF. Son los bloqueantes B1, B3, B4, B5 y B8 de [[Coherencia]], y el detalle está en [`docs/pendientes.md`](../../docs/pendientes.md) §3.
 
 Hoy las migraciones están ordenadas por *cuándo se escribió* cada tabla, no por *cuándo se necesita*. Eso da tres problemas: `usuarios` no aguanta el login, `bloques_layout` no existe aunque tres rutas la citan, y `revisiones` no cabe en una cola.
+
+@Marina ha dibujado su propio modelo el 17/11. Está tal cual en [[Modelo de datos]], con la comparación punto por punto contra esta propuesta: lo que cierra, lo que deja abierto y los tres puntos donde las dos chocan (caducidad del expediente, dueño del hash del PDF y cola de revisión).
 
 ## Decisión
 
