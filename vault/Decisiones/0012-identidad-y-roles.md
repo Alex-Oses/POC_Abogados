@@ -33,7 +33,7 @@ Sobre lo aceptado en 0011. **Todo lo estructural cabe en `V13`**, que todavía n
 |---|---|---|
 | `V1__create_usuarios.sql` | `usuarios.rol` y su `CHECK` de cuatro valores se retiran en `V13`, no en `V1` (V1-V12 no se tocan) | nulo: una migración que aún no existe |
 | `V13` · roles | Entra `usuarios.roles TEXT[] NOT NULL DEFAULT '{}'` con `CHECK (roles <@ ARRAY['transcriptor','revisor','admin'])` y un índice GIN. Sale `rol` | 4 líneas |
-| `V13` · identidad | Entra `usuarios.sso_subject TEXT UNIQUE`; `usuarios.password_hash` pasa a opcional (solo lo usa el admin de desarrollo) | 2 líneas |
+| `V13` · identidad | Entra `usuarios.sso_subject TEXT UNIQUE` y `usuarios.password_hash TEXT` (nuevo y nulo: solo lo usa el admin de desarrollo) | 2 líneas |
 | `V13` · cuenta | Entra `usuarios.estado` (`activo`/`bloqueado`/`baja`) y sale `activo` (U-04); entran `motivo_baja` y `eliminado_en` (U-08) | 3 líneas |
 | `V13` · índices | `idx_usuarios_rol_activo (rol, activo)` se cae con las columnas viejas; entra `(estado)` + GIN `(roles)` | 2 líneas |
 | `V13` · sesiones | **Única tabla candidata**: `sesiones_usuario` (ver abajo) | 1 tabla, y solo si se elige la opción B |
@@ -71,6 +71,47 @@ A es defendible porque **U-02 ya obliga a releer el rol en cada petición**, as�
 
 `tokens_usuario` **no se crea**: al retirar U-10 a U-15 no hay invitación ni reset gobernados por token, y la contraseña del admin de desarrollo se cambia cambiando la variable de entorno (U-21). Tampoco hace falta nada por A-15 (en pausa: las columnas de `V15` se quedan sin usar) ni por A-20 (retirada: `fecha_limite` y `aviso_24h_enviado_en` existen y se quedan vacías).
 
+### Para @Marina: `V13` en 20 líneas
+
+Esto es todo lo que habría que escribir si aceptas esta propuesta. **No hay tabla de roles.** Se aplica sobre `V1` (`usuarios` tiene hoy `rol`, `activo`, `creado_en`, `actualizado_en`) y no toca `V1`-`V12`:
+
+```sql
+-- 1. Roles: una columna en lugar de una tabla
+ALTER TABLE usuarios DROP COLUMN rol;
+ALTER TABLE usuarios ADD COLUMN roles TEXT[] NOT NULL DEFAULT '{}'
+  CHECK (roles <@ ARRAY['transcriptor','revisor','admin']);
+
+-- 2. Cuenta: tres estados en lugar de un booleano
+ALTER TABLE usuarios DROP COLUMN activo;
+ALTER TABLE usuarios ADD COLUMN estado TEXT NOT NULL DEFAULT 'activo'
+  CHECK (estado IN ('activo','bloqueado','baja'));
+ALTER TABLE usuarios ADD COLUMN motivo_baja  TEXT;
+ALTER TABLE usuarios ADD COLUMN eliminado_en TIMESTAMPTZ;
+
+-- 3. Identidad del ICAT y credencial del admin de desarrollo
+ALTER TABLE usuarios ADD COLUMN sso_subject   TEXT UNIQUE;
+ALTER TABLE usuarios ADD COLUMN password_hash TEXT;   -- nulo: solo lo usa el admin de desarrollo
+
+-- 4. Índices: el viejo se cae con las columnas que quita
+DROP INDEX IF EXISTS idx_usuarios_rol_activo;   -- cae sola con `rol`/`activo`; IF EXISTS para reintentos
+CREATE INDEX idx_usuarios_estado ON usuarios (estado);
+CREATE INDEX idx_usuarios_roles  ON usuarios USING GIN (roles);
+```
+
+Y dos cambios de texto en ficheros que ya existen:
+
+```sql
+-- views.sql, v_metricas_revisor
+WHERE 'revisor' = ANY(u.roles) AND u.estado = 'activo'
+
+-- triggers.sql, validación de revisor
+AND (SELECT 'revisor' = ANY(roles) FROM usuarios WHERE id = NEW.asignado_a) IS NOT TRUE
+```
+
+**No hay que crear:** `usuarios_roles`, `tokens_usuario`, `password_cambiado_en`, `intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`. Ninguna regla vigente los pide; si el login local del admin necesita límite de intentos, es una columna y se añade entonces.
+
+**La única tabla nueva, y solo si dices que sí a la opción B:** `sesiones_usuario` (`usuario_id`, `token_hash`, `creado_en`, `revocado_en`, `ip`, `user_agent`). Si la sesión se delega en el ICAT, **cero tablas** y se retiran U-16 a U-20.
+
 ## Lo que cambia fuera de la base de datos
 
 | Dónde | Qué |
@@ -100,5 +141,5 @@ A es defendible porque **U-02 ya obliga a releer el rol en cada petición**, as�
 
 - Decidir entre **A (cero tablas, sin U-16 a U-20)** y **B (`sesiones_usuario`)**.
 - Votos de @Marina, @Kevin y @Alex a este documento y a [[0009-identidad]].
-- Que @Marina acepte el cambio de modelo (`roles`, `estado`, `sso_subject`, sin `tokens_usuario`) y escriba `V13`.
+- Que @Marina acepte el cambio de modelo (`roles`, `estado`, `sso_subject`, sin `tokens_usuario`) y escriba `V13` con el SQL de la sección «Para @Marina».
 - Pedir al ICAT el registro de la aplicación OIDC.
