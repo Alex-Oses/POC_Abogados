@@ -4,7 +4,7 @@
 - **Fecha**: 2026-11-17
 - **Autor**: @ia-opencode-ruben (a petición de @Rubén)
 - **Se decide con**: @Rubén (backend), @Kevin (despliegue), @Marina (BD), @Alex (frontend)
-- **Votos**: @Rubén (backend), 2026-11-17: **opción 3**. Faltan @Kevin, @Marina y @Alex.
+- **Votos**: @Rubén (backend), 2026-11-18: **opción 3**, entendida como SSO sin gestión de cuentas y admin local **solo para desarrollo y pruebas**, no desplegado (ver [[0012-identidad-y-roles]]). Faltan @Kevin, @Marina y @Alex.
 
 ## Contexto
 
@@ -19,7 +19,7 @@ Es el bloqueante B2 de [[Coherencia]] y bloquea a B1: de la respuesta depende qu
 
 1. **Solo SSO Office 365** (OIDC). Sin contraseñas, sin invitaciones, sin proveedor de correo. Depende de que el ICAT registre la aplicación y de que su tenant esté disponible: si el proveedor cae o el ICAT retira el permiso, **nadie puede entrar**, ni siquiera a consultar lo ya aprobado.
 2. **Solo cuentas locales** (lo que hay hoy). Contraseña Argon2id, invitación y reset por email. No depende de nadie de fuera, pero hay que mantener contraseñas, política, bloqueos y un SMTP, y el usuario tiene una cuenta más que recordar.
-3. **SSO + un admin local de emergencia.** SSO como camino normal; una cuenta local —una, no una por usuario— fuera del tenant, con contraseña fuerte, usada solo para entrar si el SSO falla: dar de alta, desbloquear o revocar sesiones. Todo uso queda en `auditoria`.
+3. **SSO + un admin local de desarrollo.** SSO como camino normal; una cuenta local —una, no una por usuario— fuera del tenant, con contraseña fuerte, **solo para desarrollo y pruebas** (arrancar sin el ICAT, probar permisos). **No se despliega en producción**: en producción la única entrada es el SSO. Todo uso queda en `auditoria`.
 
 ## Decisión
 
@@ -27,9 +27,9 @@ Es el bloqueante B2 de [[Coherencia]] y bloquea a B1: de la respuesta depende qu
 
 ## Consecuencias
 
-- `sesiones_usuario` sigue siendo necesaria en las tres opciones: la sesión es de la aplicación, no del proveedor.
-- `tokens_usuario` solo hace falta para el reset de la cuenta de emergencia; la invitación por email deja de existir para el resto.
-- `usuarios.password_hash` pasa a ser opcional y solo lo tiene el admin local.
-- El SSO exige registro de aplicación en el ICAT (redirect URI, secreto, grupos) y mapear el rol desde el directorio o desde `usuarios.rol`.
-- El login local de emergencia se audita siempre y conviene avisar al supervisor cuando se use.
+- `sesiones_usuario` solo es necesaria si la sesión es de la aplicación. Con SSO se puede delegar en la caducidad del token del ICAT y entonces **no hace falta ninguna tabla**; se pierden el tope de 3 dispositivos y el logout remoto ([[0012-identidad-y-roles]]).
+- `tokens_usuario` **no se usa en producción**: no hay invitación ni reset por correo. La contraseña del admin de desarrollo se siembra por variable de entorno, no por enlace.
+- `usuarios.password_hash` pasa a ser opcional y solo lo tiene el admin de desarrollo.
+- El SSO exige registro de aplicación en el ICAT (redirect URI, secreto, grupos) y mapear los roles desde el directorio o desde `usuarios.roles`.
+- El login local de desarrollo se audita siempre y no se despliega en producción.
 - Si el ICAT no puede dar SSO en plazo, la opción 2 sigue siendo válida para el piloto y no cierra la puerta al SSO después.

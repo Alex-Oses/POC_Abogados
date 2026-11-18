@@ -62,7 +62,7 @@ Sobre el punto 10: el renombrado es `ALTER TABLE revisiones RENAME COLUMN reviso
 
 | # | Contenido | ¿Se puede escribir ya? |
 |---|---|---|
-| `V13` | Identidad: `usuarios`, `tokens_usuario`, `sesiones_usuario`, `sso_subject` si 0009 sale con SSO | **No**: espera [[0009-identidad]]. Es el único sitio donde esperar sale gratis |
+| `V13` | Identidad: `usuarios.roles`, `estado`, `sso_subject`; `sesiones_usuario` solo si no se delega la sesión en el ICAT; `tokens_usuario` no se crea | **No**: espera [[0009-identidad]] y [[0012-identidad-y-roles]]. Es el único sitio donde esperar sale gratis |
 | `V14` | Estructura: `bloques_layout`, `paginas_documento`, `num_paginas` | **Sí.** Escrita y sin dependencias; desbloquea OCR, semáforo y PDF |
 | `V15` | Flujo: estados, visto bueno, `revisiones`, `anotaciones_entidad.bloque_id`, seeds H6/H8 | **Sí, salvo el hash**: espera a que se acepte [[0005-reglas-usuarios-y-aprobacion]] |
 | `V16` | Hash del PDF (B8): `versiones_documento.hash_export` + `exportado_en` o las dos en `documentos`, **un solo dueño** | No: espera B8 |
@@ -70,6 +70,15 @@ Sobre el punto 10: el renombrado es `ALTER TABLE revisiones RENAME COLUMN reviso
 Ninguna toca `V1`-`V12` ni borra tablas. `V15` **renombra** una columna (`revisor_id` → `asignado_a`), y lo dice en el fichero.
 
 `V14` se puede aplicar hoy porque no depende de identidad, de las reglas ni de B8. `V15` espera a 0005, pero su contenido ya está escrito para que la revisión de @Rubén sea sobre SQL y no sobre una idea.
+
+## Anexo del 18/11: qué deja de usarse
+
+No cambia nada de lo aceptado, pero dos reglas que `V15` bajó al modelo se han movido:
+
+- **A-20 retirada**: `revisiones.fecha_limite` y `revisiones.aviso_24h_enviado_en` existen y **se quedan sin uso**; los seeds `revision_plazo_horas`, `revision_aviso_horas` y `calendario_laboral` también. No se borran: quitar columnas es otra migración y no urge.
+- **A-15 en pausa**: `documentos.requiere_visto_bueno` se queda siempre en `false` y ningún documento pasa a `pendiente_visto_bueno`. Las columnas y el estado ya están en `V15`.
+
+Lo que sí cambia de fondo es la identidad: ver [[0012-identidad-y-roles]], que deja `V13` en estas columnas y **sin tabla de roles**.
 
 ## Fuera de lo aceptado: el hash del PDF (B8)
 

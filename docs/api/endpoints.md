@@ -46,52 +46,50 @@
 
 ## Roles
 
-`transcriptor` (T), `revisor` (R), `admin` (A), `supervisor` (S). Cada usuario tiene uno solo en `usuarios.rol`; no hay tabla N:M.
+`transcriptor` (T), `revisor` (R), `admin` (A). Un usuario puede tener **varios roles**; el permiso es la unión. **El rol `supervisor` se elimina** y sus funciones pasan al revisor ([[0012-identidad-y-roles]], propuesta).
 
-El rol se relee de `usuarios` en cada petición: un token no arrastra el rol con el que se emitió. Las rutas marcadas `público` son las únicas que no exigen `Authorization`.
+Los roles se releen de la base de datos en cada petición: un token no arrastra los roles con los que se emitió. Las rutas marcadas `público` son las únicas que no exigen `Authorization`.
 
 ## Resumen
 
 | Método | Ruta | Roles | Tablas |
 | --- | --- | --- | --- |
-| `POST` | `/api/v1/user/invitation/accept` | público | `usuarios`, `tokens_usuario` |
+| `GET` | `/api/v1/auth/sso/login` | público | — |
+| `GET` | `/api/v1/auth/sso/callback` | público | `usuarios`, `sesiones_usuario` |
 | `POST` | `/api/v1/user/login` | público | `usuarios`, `sesiones_usuario` |
 | `POST` | `/api/v1/user/logout` | todos | `sesiones_usuario` |
 | `GET` | `/api/v1/user/me` | todos | `usuarios` |
 | `POST` | `/api/v1/user/password/change` | todos | `usuarios`, `sesiones_usuario` |
-| `POST` | `/api/v1/user/password/reset` | público | `usuarios`, `tokens_usuario` |
-| `POST` | `/api/v1/user/password/reset/confirm` | público | `usuarios`, `tokens_usuario`, `sesiones_usuario` |
-| `GET` | `/api/v1/admin/users` | A, S | `usuarios` |
-| `POST` | `/api/v1/admin/users` | A | `usuarios`, `tokens_usuario` |
+| `GET` | `/api/v1/admin/users` | A | `usuarios` |
 | `PATCH` | `/api/v1/admin/users/{id}` | A | `usuarios`, `sesiones_usuario` |
 | `DELETE` | `/api/v1/admin/users/{id}/sessions` | A | `sesiones_usuario` |
 | `POST` | `/api/v1/transform/document` | T | `documentos`, `versiones_documento`, `bloques_layout` |
 | `POST` | `/api/v1/transform/plain-text` | T, R | `versiones_documento` |
 | `POST` | `/api/v1/transform/build` | T, R | `versiones_documento` |
-| `GET` | `/api/v1/documents` | T, R, S | `documentos` |
-| `GET` | `/api/v1/documents/{id}` | T, R, S | `documentos`, `versiones_documento` |
+| `GET` | `/api/v1/documents` | T, R | `documentos` |
+| `GET` | `/api/v1/documents/{id}` | T, R | `documentos`, `versiones_documento` |
 | `DELETE` | `/api/v1/documents/{id}` | T (dueño), A | `documentos` |
-| `GET` | `/api/v1/documents/{id}/versions` | R, S | `versiones_documento` |
-| `GET` | `/api/v1/documents/{id}/versions/{numero_version}` | R, S | `versiones_documento` |
-| `GET` | `/api/v1/documents/{id}/versions/{numero_version}/blocks` | R, S | `bloques_layout` |
+| `GET` | `/api/v1/documents/{id}/versions` | R | `versiones_documento` |
+| `GET` | `/api/v1/documents/{id}/versions/{numero_version}` | R | `versiones_documento` |
+| `GET` | `/api/v1/documents/{id}/versions/{numero_version}/blocks` | R | `bloques_layout` |
 | `POST` | `/api/v1/documents/{id}/anonymize` | T, R | `versiones_documento`, `anotaciones_entidad`, `reglas_anonimizacion` |
 | `GET` | `/api/v1/documents/{id}/annotations` | R | `anotaciones_entidad` |
 | `PATCH` | `/api/v1/annotations/{id}` | R | `anotaciones_entidad` |
-| `GET` | `/api/v1/reviews` | R, S | `revisiones` |
+| `GET` | `/api/v1/reviews` | R | `revisiones` |
 | `POST` | `/api/v1/documents/{id}/reviews` | R | `revisiones`, `documentos` |
 | `POST` | `/api/v1/reviews/{id}/claim` | R | `revisiones` |
-| `PATCH` | `/api/v1/reviews/{id}/assign` | S | `revisiones` |
+| `PATCH` | `/api/v1/reviews/{id}/assign` | R | `revisiones` |
 | `PATCH` | `/api/v1/reviews/{id}` | R | `revisiones`, `versiones_documento`, `documentos`, `anotaciones_entidad` |
-| `POST` | `/api/v1/documents/{id}/reopen` | R, S | `documentos`, `versiones_documento`, `revisiones` |
-| `POST` | `/api/v1/documents/{id}/sign-off` | S | `documentos` |
-| `POST` | `/api/v1/documents/{id}/export` | T (dueño), S | `documentos`, `versiones_documento` |
+| `POST` | `/api/v1/documents/{id}/reopen` | R | `documentos`, `versiones_documento`, `revisiones` |
+| `POST` | `/api/v1/documents/{id}/sign-off` | R | `documentos` |
+| `POST` | `/api/v1/documents/{id}/export` | T (dueño), R | `documentos`, `versiones_documento` |
 | `GET` | `/api/v1/rules` | A | `reglas_anonimizacion`, `regla_categorias` |
 | `POST` | `/api/v1/rules` | A | `reglas_anonimizacion`, `regla_categorias` |
 | `PATCH` | `/api/v1/rules/{id}` | A | `reglas_anonimizacion`, `regla_categorias` |
 | `GET` | `/api/v1/categories` | A | `categorias_sensibles` |
 | `POST` | `/api/v1/categories` | A | `categorias_sensibles` |
 | `PATCH` | `/api/v1/categories/{id}` | A | `categorias_sensibles` |
-| `GET` | `/api/v1/audit` | S, A | `auditoria` |
+| `GET` | `/api/v1/audit` | R, A | `auditoria` |
 | `GET` | `/api/v1/config` | A | `configuracion_sistema` |
 | `PUT` | `/api/v1/config/{clave}` | A | `configuracion_sistema` |
 
@@ -99,21 +97,26 @@ El rol se relee de `usuarios` en cada petición: un token no arrastra el rol con
 
 ## 1. Autenticación
 
-No hay autoregistro. La cuenta la crea un admin y el usuario la activa con el token de invitación.
+El camino de producción es el **SSO del ICAT**: no hay alta, invitación ni contraseñas de usuario. Las rutas `/user/*` de esta sección son el **camino local del admin de desarrollo**, no se exponen en producción y, desde el 18/11, no tienen reglas propias ([[0012-identidad-y-roles]], U-21).
 
-### `POST /user/invitation/accept`
+### `GET /auth/sso/login` *(propuesta)*
 
-Fija la contraseña y activa la cuenta. Es el único camino de `invitado` a `activo`.
+Redirige al proveedor del ICAT con `state` y `nonce`. Depende de que [[0009-identidad]] se acepte y de que el ICAT registre la aplicación OIDC.
 
-```json
-{ "token": "token-en-claro-del-email", "password": "contraseña" }
-```
+`302` → proveedor, con `redirect_uri` = `/api/v1/auth/sso/callback`.
 
-`200` → `{ "id": "uuid", "email": "...", "rol": "transcriptor" }`.
+### `GET /auth/sso/callback` *(propuesta)*
 
-Errores: `400` si la contraseña no cumple la política, `404` si el token no existe, `410` si ha caducado o ya se usó.
+Recibe `code` y `state`, valida el `state` y canjea el `code`. Busca la ficha por `usuarios.sso_subject`; si no existe, la crea en `activo` y **sin roles**. Abre sesión y redirige a la aplicación.
 
-El token se guarda hasheado en `tokens_usuario` (`tipo = invitacion`). Al consumirlo se marca `usado_en` y no se puede reutilizar.
+- Con roles: sesión normal.
+- Sin roles: sesión abierta y `GET /user/me` devuelve `roles: []`; el cliente muestra «sin permisos» hasta que un admin los asigne.
+
+`401` si el `state` no coincide o el proveedor rechaza el `code`. Sin `sub` no se crea nada.
+
+### Camino local de desarrollo
+
+Estas rutas existen para arrancar y probar sin el ICAT. No hay autoregistro: la cuenta del admin de desarrollo se siembra por variable de entorno (U-21) y no se despliega en producción. **Invitación y recuperación de contraseña se retiran** con U-10 a U-15 (18/11): no hay tabla `tokens_usuario` ni proveedor de correo.
 
 ### `POST /user/login`
 
@@ -125,7 +128,7 @@ Devuelve el token y lo guarda hasheado en `sesiones_usuario`.
 
 `200` → `{ "access_token": "...", "token_type": "Bearer", "expires_in": 3600 }`.
 
-Errores: `401` genérico (no distingue email inexistente de contraseña incorrecta), `403` si la cuenta está `invitado` o `bloqueado`, `429` tras N intentos.
+Errores: `401` genérico (no distingue email inexistente de contraseña incorrecta), `403` si la cuenta está `bloqueado` o `baja`, `429` tras N intentos.
 
 Con la cuarta sesión simultánea se revoca la más antigua: el login responde `200` y la sesión desalojada recibe `401` en su siguiente petición.
 
@@ -135,7 +138,7 @@ Con la cuarta sesión simultánea se revoca la más antigua: el login responde `
 
 ### `GET /user/me`
 
-`200` → `{ "id", "nombre", "apellidos", "email", "rol", "estado" }`.
+`200` → `{ "id", "nombre", "apellidos", "email", "roles", "estado" }`.
 
 ### `POST /user/password/change`
 
@@ -147,59 +150,27 @@ Autenticado. Cambia la contraseña y revoca todas las sesiones del usuario, incl
 
 `204`. Errores: `400` si la nueva no cumple la política, `401` si la actual no coincide.
 
-### `POST /user/password/reset`
-
-Público. Envía el enlace de recuperación. Responde siempre `202`, exista o no el email: no se puede usar para enumerar cuentas.
-
-```json
-{ "email": "correo@electronico.com" }
-```
-
-`202` → `{ "mensaje": "Si la cuenta existe, se ha enviado un correo" }`.
-
-### `POST /user/password/reset/confirm`
-
-Público. Consume el token (`tipo = reset`), fija la contraseña y revoca todas las sesiones.
-
-```json
-{ "token": "token-en-claro-del-email", "password": "contraseña-nueva" }
-```
-
-`204`. Errores: `400` (política), `404` (token inexistente), `410` (caducado o usado).
-
 ---
 
 ## 2. Usuarios (administración)
 
-### `GET /admin/users?rol=&estado=&page=`
+### `GET /admin/users?roles=&estado=&page=`
 
-Listado paginado. `estado` filtra por `invitado|activo|bloqueado|baja`.
+Listado paginado. `estado` filtra por `activo|bloqueado|baja`; `roles` acepta un rol y devuelve quien lo tenga (la unión de roles decide el permiso, no un rol único).
 
-`200` → `{ "items": [ { "id", "email", "nombre", "apellidos", "rol", "estado", "ultimo_acceso" } ], "page", "limit", "total" }`.
+`200` → `{ "items": [ { "id", "email", "nombre", "apellidos", "roles", "estado", "ultimo_acceso" } ], "page", "limit", "total" }`.
 
-### `POST /admin/users`
-
-Alta por invitación. Crea la cuenta en `estado = invitado`, sin contraseña, y envía el token de un solo uso.
-
-```json
-{ "nombre": "nombre", "apellidos": "apellidos", "email": "correo@electronico.com", "rol": "revisor" }
-```
-
-`201` → `{ "id": "uuid", "email": "...", "rol": "revisor", "estado": "invitado", "expira_en": "2026-11-19T10:00:00Z" }`.
-
-Errores: `409` si el email ya existe (comparación en minúsculas). El token solo viaja en el correo, nunca en la respuesta.
-
-Reenviar la invitación es el mismo `POST` sobre un email ya existente en estado `invitado`: devuelve `200` y emite un token nuevo, invalidando el anterior.
+No hay alta: la ficha nace en el primer acceso por SSO, sin roles (U-05). Los roles y el estado se cambian con `PATCH`, y la cuenta del admin de desarrollo se siembra por variable de entorno (U-21).
 
 ### `PATCH /admin/users/{id}`
 
 ```json
-{ "rol": "supervisor", "estado": "bloqueado", "motivo_baja": null }
+{ "roles": ["revisor"], "estado": "bloqueado", "motivo_baja": null }
 ```
 
 `200`. Reglas:
 
-- Cambiar `rol` o pasar a `bloqueado`/`baja` revoca todas las sesiones del usuario.
+- Cambiar `roles` o pasar a `bloqueado`/`baja` revoca todas las sesiones del usuario.
 - `estado = baja` es irreversible y exige `motivo_baja`. No borra filas: rellena `eliminado_en`.
 - `estado = activo` sobre un `bloqueado` desbloquea y reinicia `intentos_fallidos`.
 
@@ -257,7 +228,7 @@ Errores: `404` si el documento no existe, `500` si falla la generación.
 
 ### `GET /documents?estado=&page=&limit=`
 
-Lista documentos. El transcriptor ve solo los suyos; el revisor y el supervisor ven todos.
+Lista documentos. El transcriptor ve solo los suyos; el revisor ve todos.
 
 `200` → `{ "items": [ { "id", "nombre_original", "estado", "num_paginas", "creado_en" } ], ... }`.
 
@@ -373,15 +344,15 @@ Decisión del revisor sobre una entidad detectada.
 
 Cola de trabajo. `estado=en_cola` devuelve lo que nadie ha tomado; `asignado_a=me` lo que tengo yo.
 
-`200` → `{ "items": [ { "id", "documento_id", "numero_intento", "estado", "asignado_a", "fecha_limite", "creado_en" } ] }`.
+`200` → `{ "items": [ { "id", "documento_id", "numero_intento", "estado", "asignado_a", "creado_en" } ] }`.
 
 ### `POST /documents/{id}/reviews`
 
 Abre una revisión sobre la versión vigente. Nace en `en_cola` y **sin** revisor asignado: se toma después con `claim`. El documento pasa a `en_revision`.
 
-`201` → `{ "id": "uuid", "numero_intento": 1, "estado": "en_cola", "fecha_limite": "2026-11-18T17:00:00Z" }`.
+`201` → `{ "id": "uuid", "numero_intento": 1, "estado": "en_cola" }`.
 
-`fecha_limite` se calcula al crear, con `configuracion_sistema.calendario_laboral`.
+Sin plazo: A-20 está retirada. `revisiones.fecha_limite` y `aviso_24h_enviado_en` existen en `V15` y se quedan sin uso.
 
 Errores: `409` si ya hay una revisión abierta o el documento no está anonimizado, `422` si no hay versión `anonimizado_ia`.
 
@@ -389,15 +360,15 @@ Errores: `409` si ya hay una revisión abierta o el documento no está anonimiza
 
 Toma la revisión de la cola. Rellena `asignado_a` y `asignado_en`, y pasa la revisión a `en_proceso`.
 
-`200` → `{ "id", "estado": "en_proceso", "asignado_a", "asignado_en", "fecha_limite" }`.
+`200` → `{ "id", "estado": "en_proceso", "asignado_a", "asignado_en" }`.
 
-Errores: `409` si otro revisor la tomó primero o la revisión no está `en_cola`; `403` si el documento lo subió el propio revisor.
+Errores: `409` si otro revisor la tomó primero o la revisión no está `en_cola`.
 
 La toma es un único `UPDATE ... WHERE estado = 'en_cola'`: no usa `If-Match` y no puede dejar dos dueños.
 
 ### `PATCH /reviews/{id}/assign`
 
-Solo supervisor. Asigna una revisión en cola o reasigna una en proceso.
+Cualquier revisor. Asigna una revisión en cola o reasigna una en proceso. **Excepción, no norma**: A-06 propone que el revisor elija libremente de la cola; si se confirma, la ruta desaparece.
 
 ```json
 { "asignado_a": "uuid", "comentario": "Expediente delicado" }
@@ -405,7 +376,9 @@ Solo supervisor. Asigna una revisión en cola o reasigna una en proceso.
 
 `200`. `asignado_a: null` la devuelve a la cola. La reasignación de una revisión `en_proceso` exige `comentario` y queda en `auditoria`.
 
-Errores: `403` si el destino es el `creado_por` del documento, `409` si la revisión ya está cerrada.
+Errores: `409` si la revisión ya está cerrada.
+
+No hay comprobación de «nadie revisa lo suyo»: A-07 está retirada (18/11), así que un revisor puede asignarse un documento que subió él.
 
 ### `PATCH /reviews/{id}`
 
@@ -445,7 +418,9 @@ Errores: `409` si el documento no está `rechazado`, `422` si no hay texto que a
 
 ### `POST /documents/{id}/sign-off`
 
-Solo supervisor. Libera un documento en `pendiente_visto_bueno`. No crea versión: `final_aprobado` ya se creó al aprobar el revisor.
+Cualquier revisor, **salvo quien cerró la revisión**. Libera un documento en `pendiente_visto_bueno`. No crea versión: `final_aprobado` ya se creó al aprobar el revisor.
+
+**En pausa con A-15** (18/11): mientras la doble firma esté parada, `requiere_visto_bueno` es siempre `false` y esta ruta no se usa. Se conserva en el contrato para no reescribirlo si se retoma.
 
 ```json
 { "comentario": "Firmado" }
@@ -572,15 +547,15 @@ aprobado ──POST /documents/{id}/export──→ exportado
 - `ocr_procesando` y `anonimizando` son transitorios: si el proceso falla, el documento vuelve al estado anterior y se registra en `auditoria`.
 - `pendiente_visto_bueno` solo existe si la versión tiene alguna anotación de una categoría con `rgpd_especial = true`.
 - `exportado` lo marca únicamente `POST /documents/{id}/export`. `POST /transform/build` es vista previa y no cambia estados.
-- `aprobado` está congelado: no admite versiones nuevas salvo reapertura explícita del supervisor.
+- `aprobado` está congelado: no admite versiones nuevas salvo reapertura explícita de un revisor.
 - Ningún endpoint permite saltarse un estado; el `409` lo impide.
 
 ## 10. Qué endpoint escribe qué
 
 | Acción | Escribe |
 | --- | --- |
-| Alta por invitación | `usuarios` (`invitado`), `tokens_usuario` |
-| Aceptar invitación / reset | `usuarios`, `tokens_usuario`, `sesiones_usuario` |
+| Primera entrada por SSO | `usuarios` (ficha sin roles) |
+| Login local de desarrollo | `usuarios` (admin de desarrollo), `sesiones_usuario` |
 | Login / logout | `sesiones_usuario` |
 | Cambio de rol, bloqueo o baja | `usuarios`, `sesiones_usuario` |
 | Revocar sesiones | `sesiones_usuario` |
