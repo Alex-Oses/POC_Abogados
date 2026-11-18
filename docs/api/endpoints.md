@@ -56,15 +56,11 @@ Los roles se releen de la base de datos en cada petición: un token no arrastra 
 | --- | --- | --- | --- |
 | `GET` | `/api/v1/auth/sso/login` | público | — |
 | `GET` | `/api/v1/auth/sso/callback` | público | `usuarios`, `sesiones_usuario` |
-| `POST` | `/api/v1/user/invitation/accept` | público | `usuarios`, `tokens_usuario` |
 | `POST` | `/api/v1/user/login` | público | `usuarios`, `sesiones_usuario` |
 | `POST` | `/api/v1/user/logout` | todos | `sesiones_usuario` |
 | `GET` | `/api/v1/user/me` | todos | `usuarios` |
 | `POST` | `/api/v1/user/password/change` | todos | `usuarios`, `sesiones_usuario` |
-| `POST` | `/api/v1/user/password/reset` | público | `usuarios`, `tokens_usuario` |
-| `POST` | `/api/v1/user/password/reset/confirm` | público | `usuarios`, `tokens_usuario`, `sesiones_usuario` |
 | `GET` | `/api/v1/admin/users` | A | `usuarios` |
-| `POST` | `/api/v1/admin/users` | A | `usuarios`, `tokens_usuario` |
 | `PATCH` | `/api/v1/admin/users/{id}` | A | `usuarios`, `sesiones_usuario` |
 | `DELETE` | `/api/v1/admin/users/{id}/sessions` | A | `sesiones_usuario` |
 | `POST` | `/api/v1/transform/document` | T | `documentos`, `versiones_documento`, `bloques_layout` |
@@ -120,21 +116,7 @@ Recibe `code` y `state`, valida el `state` y canjea el `code`. Busca la ficha po
 
 ### Camino local de desarrollo
 
-Estas rutas existen para arrancar y probar sin el ICAT. No hay autoregistro; la cuenta la crea el admin.
-
-### `POST /user/invitation/accept`
-
-Fija la contraseña y activa la cuenta. Es el único camino de `invitado` a `activo`.
-
-```json
-{ "token": "token-en-claro-del-email", "password": "contraseña" }
-```
-
-`200` → `{ "id": "uuid", "email": "...", "roles": ["transcriptor"] }`.
-
-Errores: `400` si la contraseña no cumple la política, `404` si el token no existe, `410` si ha caducado o ya se usó.
-
-El token se guarda hasheado en `tokens_usuario` (`tipo = invitacion`). Al consumirlo se marca `usado_en` y no se puede reutilizar.
+Estas rutas existen para arrancar y probar sin el ICAT. No hay autoregistro: la cuenta del admin de desarrollo se siembra por variable de entorno (U-21) y no se despliega en producción. **Invitación y recuperación de contraseña se retiran** con U-10 a U-15 (18/11): no hay tabla `tokens_usuario` ni proveedor de correo.
 
 ### `POST /user/login`
 
@@ -146,7 +128,7 @@ Devuelve el token y lo guarda hasheado en `sesiones_usuario`.
 
 `200` → `{ "access_token": "...", "token_type": "Bearer", "expires_in": 3600 }`.
 
-Errores: `401` genérico (no distingue email inexistente de contraseña incorrecta), `403` si la cuenta está `invitado` o `bloqueado`, `429` tras N intentos.
+Errores: `401` genérico (no distingue email inexistente de contraseña incorrecta), `403` si la cuenta está `bloqueado` o `baja`, `429` tras N intentos.
 
 Con la cuarta sesión simultánea se revoca la más antigua: el login responde `200` y la sesión desalojada recibe `401` en su siguiente petición.
 
@@ -168,49 +150,17 @@ Autenticado. Cambia la contraseña y revoca todas las sesiones del usuario, incl
 
 `204`. Errores: `400` si la nueva no cumple la política, `401` si la actual no coincide.
 
-### `POST /user/password/reset`
-
-Público. Envía el enlace de recuperación. Responde siempre `202`, exista o no el email: no se puede usar para enumerar cuentas.
-
-```json
-{ "email": "correo@electronico.com" }
-```
-
-`202` → `{ "mensaje": "Si la cuenta existe, se ha enviado un correo" }`.
-
-### `POST /user/password/reset/confirm`
-
-Público. Consume el token (`tipo = reset`), fija la contraseña y revoca todas las sesiones.
-
-```json
-{ "token": "token-en-claro-del-email", "password": "contraseña-nueva" }
-```
-
-`204`. Errores: `400` (política), `404` (token inexistente), `410` (caducado o usado).
-
 ---
 
 ## 2. Usuarios (administración)
 
-### `GET /admin/users?rol=&estado=&page=`
+### `GET /admin/users?roles=&estado=&page=`
 
-Listado paginado. `estado` filtra por `invitado|activo|bloqueado|baja`.
+Listado paginado. `estado` filtra por `activo|bloqueado|baja`; `roles` acepta un rol y devuelve quien lo tenga (la unión de roles decide el permiso, no un rol único).
 
 `200` → `{ "items": [ { "id", "email", "nombre", "apellidos", "roles", "estado", "ultimo_acceso" } ], "page", "limit", "total" }`.
 
-### `POST /admin/users`
-
-Alta por invitación. Crea la cuenta en `estado = invitado`, sin contraseña, y envía el token de un solo uso.
-
-```json
-{ "nombre": "nombre", "apellidos": "apellidos", "email": "correo@electronico.com", "roles": ["revisor"] }
-```
-
-`201` → `{ "id": "uuid", "email": "...", "roles": ["revisor"], "estado": "invitado", "expira_en": "2026-11-19T10:00:00Z" }`.
-
-Errores: `409` si el email ya existe (comparación en minúsculas). El token solo viaja en el correo, nunca en la respuesta.
-
-Reenviar la invitación es el mismo `POST` sobre un email ya existente en estado `invitado`: devuelve `200` y emite un token nuevo, invalidando el anterior.
+No hay alta: la ficha nace en el primer acceso por SSO, sin roles (U-05). Los roles y el estado se cambian con `PATCH`, y la cuenta del admin de desarrollo se siembra por variable de entorno (U-21).
 
 ### `PATCH /admin/users/{id}`
 
@@ -220,7 +170,7 @@ Reenviar la invitación es el mismo `POST` sobre un email ya existente en estado
 
 `200`. Reglas:
 
-- Cambiar `rol` o pasar a `bloqueado`/`baja` revoca todas las sesiones del usuario.
+- Cambiar `roles` o pasar a `bloqueado`/`baja` revoca todas las sesiones del usuario.
 - `estado = baja` es irreversible y exige `motivo_baja`. No borra filas: rellena `eliminado_en`.
 - `estado = activo` sobre un `bloqueado` desbloquea y reinicia `intentos_fallidos`.
 
@@ -604,8 +554,8 @@ aprobado ──POST /documents/{id}/export──→ exportado
 
 | Acción | Escribe |
 | --- | --- |
-| Alta por invitación | `usuarios` (`invitado`), `tokens_usuario` |
-| Aceptar invitación / reset | `usuarios`, `tokens_usuario`, `sesiones_usuario` |
+| Primera entrada por SSO | `usuarios` (ficha sin roles) |
+| Login local de desarrollo | `usuarios` (admin de desarrollo), `sesiones_usuario` |
 | Login / logout | `sesiones_usuario` |
 | Cambio de rol, bloqueo o baja | `usuarios`, `sesiones_usuario` |
 | Revocar sesiones | `sesiones_usuario` |

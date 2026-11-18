@@ -8,7 +8,7 @@
 
 ## 1. Identidad y sesiones (B1, B2 · [0009](../vault/Decisiones/0009-identidad.md))
 
-**Dónde estamos.** `V1__create_usuarios.sql` tiene `email`, `nombre_completo`, `rol`, `activo`. El contrato pide contraseña, invitación por token, login, reset, tres sesiones simultáneas y una cuenta con estados (`invitado | activo | bloqueado | baja`). `docs/reglas/usuarios.md` §7 ya escribió la lista; el modelo no la tiene.
+**Dónde estamos.** `V1__create_usuarios.sql` tiene `email`, `nombre_completo`, `rol`, `activo`. El contrato pide SSO, login local solo del admin de desarrollo, tres sesiones simultáneas y una cuenta con estados (`activo | bloqueado | baja`). `docs/reglas/usuarios.md` §7 ya escribió la lista; el modelo no la tiene.
 
 **Qué falta decidir.** [0009](../vault/Decisiones/0009-identidad.md) está en Propuesta: SSO del ICAT, cuentas locales o SSO + admin local de emergencia. Voto de @Rubén por la tercera; faltan @Kevin, @Marina y @Alex. Y hay una dependencia externa que no vota nadie del equipo: **el ICAT tiene que registrar la aplicación OIDC** (redirect URI, secreto, grupos). Son 1-2 semanas de terceros; si no llegan, la opción de cuentas locales sigue valiendo para el piloto y no cierra la puerta al SSO.
 
@@ -75,7 +75,7 @@ Lo aplicado queda en `origen_geometria` para que el render sea reproducible.
 
 | # | Contenido | Se puede empezar |
 |---|---|---|
-| V13 | Identidad: `usuarios`, `tokens_usuario`, `sesiones_usuario`, índices | **No**: espera 0009 |
+| V13 | Identidad: `usuarios.roles`, `estado`, `sso_subject`, índices; `sesiones_usuario` solo si no se delega la sesión en el ICAT; `tokens_usuario` no se crea | **No**: espera 0009 y 0012 |
 | V14 | Estructura: `bloques_layout`, `paginas_documento`, `num_paginas`, índices | **Escrita** (`V14__create_bloques_layout.sql`): no depende de identidad |
 | V15 | Flujo y export: estados, columnas del visto bueno, `revisiones`, seeds corregidos | **Escrita** (`V15__flujo_revision_y_export.sql`), salvo el hash: espera 0005 |
 | V16 | Hash del PDF (B8), cuando se decida el dueño | No: espera B8 |

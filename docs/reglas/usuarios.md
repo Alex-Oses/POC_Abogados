@@ -45,18 +45,17 @@ Quién puede entrar, qué puede hacer y cómo se le retira el acceso. No describ
 ## 4. Ciclo de vida de la cuenta
 
 ```text
-invitado → activo → bloqueado → activo
-              └──→ baja (irreversible)
+activo → bloqueado → activo
+   └──→ baja (irreversible)
 ```
 
 | Estado | Quién lo provoca | Efecto |
 | --- | --- | --- |
-| `invitado` | Solo camino local de desarrollo | Tiene token de invitación; no puede iniciar sesión hasta fijar contraseña. Con SSO no se usa |
-| `activo` | Primer acceso con SSO (o aceptación de invitación en el camino local) | Acceso completo |
-| `bloqueado` | Admin, o 10 intentos fallidos | Login denegado; sesiones revocadas |
+| `activo` | Primer acceso con SSO; el admin de desarrollo se siembra ya activo | Acceso completo |
+| `bloqueado` | Admin, o N intentos fallidos (solo login local) | Login denegado; sesiones revocadas |
 | `baja` | Admin | Login denegado; datos conservados según plazo legal |
 
-**Regla U-04 — el estado es explícito.** `usuarios.estado` sustituye al booleano `activo`. Con un booleano no se distingue «invitado» de «bloqueado», y la auditoría no puede explicar por qué alguien no entra.
+**Regla U-04 — el estado es explícito.** `usuarios.estado` sustituye al booleano `activo`. Con un booleano no se distingue «bloqueado» de «baja», y la auditoría no puede explicar por qué alguien no entra.
 
 **Regla U-05 — alta por SSO (propuesta en [[0009-identidad]] y [[0012-identidad-y-roles]]).** No hay autoregistro, ni invitación, ni contraseñas de usuario. El primer acceso con SSO crea la ficha en `activo` y **sin roles**; un admin le asigna los suyos y hasta entonces no ve documentos. El administrador de desarrollo se siembra por variable de entorno (U-21).
 
@@ -72,7 +71,7 @@ U-07 (validez de 72 h de la invitación) se retira el 18/11: con SSO no hay invi
 
 Con SSO ([[0009-identidad]]), esta sección ya solo mira al **admin de desarrollo**: no hay contraseñas de usuario. U-10 a U-15 se retiran el 18/11; el admin local sigue funcionando igual, pero deja de tener reglamento propio.
 
-**Regla U-21 — la credencial del admin de desarrollo no vive en el repo.** Se siembra por variable de entorno, no se versiona y **no se despliega en producción**. El admin local funciona igual que antes (login, cambio y reset de contraseña); lo que desaparece es el reglamento sobre cómo se gestiona su contraseña. El hash, la política, el bloqueo por intentos y el mensaje de error se quedan en el código como están.
+**Regla U-21 — la credencial del admin de desarrollo no vive en el repo.** Se siembra por variable de entorno, no se versiona y **no se despliega en producción**. El admin local funciona igual que antes (login y cambio de contraseña); lo que desaparece es el reglamento sobre cómo se gestiona su contraseña y, con U-10 a U-15, el reset por correo. El hash, la política, el bloqueo por intentos y el mensaje de error se quedan en el código como están.
 
 ## 6. Sesiones
 
@@ -93,11 +92,10 @@ Con SSO ([[0009-identidad]]), esta sección ya solo mira al **admin de desarroll
 | Estado real de la cuenta | `usuarios.estado` (sustituye a `activo`) | U-04 |
 | Identidad del proveedor | `usuarios.sso_subject` (único) | U-05 |
 | Roles, varios por usuario | `usuarios.roles TEXT[]` con `CHECK (roles <@ ARRAY['transcriptor','revisor','admin'])` e índice GIN (columna, no tabla) | U-01 |
-| Estado de la cuenta | `usuarios.estado` sustituye a `activo` | U-04 |
 | Motivo de la baja | `usuarios.motivo_baja` | U-08 |
 | Fecha del último cambio de contraseña | `usuarios.password_cambiado_en` (solo admin de desarrollo, sin regla propia) | — |
-| Tokens de un solo uso | tabla `tokens_usuario`: **solo camino local de desarrollo**; en producción no se usa (no hay invitación ni reset) | U-05 |
-| Orden de antigüedad de sesiones | `sesiones_usuario.creado_en` (ya existe) | U-17 |
+| Tokens de un solo uso | **no se crea `tokens_usuario`**: U-10 a U-15 retiradas (18/11); la credencial del admin de desarrollo viene de entorno (U-21) | — |
+| Orden de antigüedad de sesiones | `sesiones_usuario.creado_en`, **solo si no se delega la sesión en el ICAT** | U-17 |
 
 Nada de esta tabla está todavía en `docs/architecture/`: son columnas propuestas, pendientes de bajar al modelo en `V13`.
 
@@ -105,19 +103,17 @@ Nada de esta tabla está todavía en `docs/architecture/`: son columnas propuest
 
 Todos están ya en `docs/api/endpoints.md`, que es el dueño de los payloads.
 
-`POST /user/register` se elimina del contrato. Con SSO, las rutas de invitación y contraseña quedan como **camino del admin de desarrollo**; el usuario real entra por el callback SSO, que el contrato aún no tiene ([[0009-identidad]]).
+`POST /user/register` se elimina del contrato. Con SSO, las rutas de contraseña quedan como **camino del admin de desarrollo** y la invitación y el reset se retiran (U-10 a U-15); el usuario real entra por el callback SSO, que el contrato aún no tiene ([[0009-identidad]]).
 
 ```text
-POST   /admin/users                  alta por SSO o siembra del admin de desarrollo
-POST   /user/invitation/accept       solo camino local de desarrollo
+GET    /auth/sso/login               propuesta: único camino de producción
+GET    /auth/sso/callback            propuesta: crea la ficha sin roles
 POST   /user/password/change         solo admin de desarrollo
-POST   /user/password/reset          solo admin de desarrollo
-POST   /user/password/reset/confirm  solo admin de desarrollo
 DELETE /admin/users/{id}/sessions  revocar todas las sesiones
 GET    /user/me
 POST   /user/login                   solo admin de desarrollo
 POST   /user/logout
-GET    /admin/users?rol=&estado=
+GET    /admin/users?roles=&estado=
 PATCH  /admin/users/{id}
 ```
 

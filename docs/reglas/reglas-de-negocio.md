@@ -69,7 +69,7 @@ Los roles se releen de la base de datos en cada petición; el token no arrastra 
 Quien tiene **únicamente** el rol de transcriptor solo ve y opera sobre documentos con `creado_por = usuario_id`. En cuanto tiene también el rol de revisor, ve y revisa todos los documentos, aunque haya subido alguno. El admin no ve contenido de documentos, solo metadatos.
 
 **U-04 · El estado de la cuenta es explícito.**
-`usuarios.estado` sustituye al booleano `activo`: `activo`, `bloqueado` o `baja`. Con un booleano no se distingue «invitado» de «bloqueado» y la auditoría no puede explicar por qué alguien no entra.
+`usuarios.estado` sustituye al booleano `activo`: `activo`, `bloqueado` o `baja`. Con un booleano no se distingue «bloqueado» de «baja» y la auditoría no puede explicar por qué alguien no entra.
 
 **U-05 · Alta por SSO** *(propuesta, 0009/0012)*
 No hay autoregistro, ni invitación, ni contraseñas de usuario. El primer acceso con SSO crea la ficha en `activo` y **sin roles**; un admin le asigna los suyos y hasta entonces no ve documentos.
