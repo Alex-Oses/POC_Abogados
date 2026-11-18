@@ -16,7 +16,7 @@ El contrato de la API tenía 5 rutas y no decía nada de quién puede entrar, c�
 
 Se cierran estas reglas, que son las que cambian el contrato y el modelo:
 
-1. **Roles múltiples por usuario en `usuarios.roles TEXT[]`**: el permiso es la unión y no se crea tabla de roles ([[0012-identidad-y-roles]]). Tres roles: `transcriptor`, `revisor` y `admin`; el supervisor desaparece y sus funciones pasan al revisor.
+1. **Roles múltiples por usuario en la tabla `usuarios_roles (usuario_id, rol)`**: el permiso es la unión ([[0012-identidad-y-roles]]). Tres roles: `transcriptor`, `revisor` y `admin`; el supervisor desaparece y sus funciones pasan al revisor.
 2. **Alta por SSO**: la ficha se crea al primer acceso y un admin le asigna los roles. No hay autoregistro, ni invitación, ni contraseñas de usuario; solo el admin de desarrollo tiene credencial local ([[0009-identidad]]).
 3. **Máximo 3 sesiones simultáneas**; la cuarta revoca la más antigua.
 4. **Cola de revisión libre**: la revisión nace `en_cola` y el revisor toma el documento que quiere con `claim`; no se asigna de oficio. La asignación directa queda como excepción (propuesta de @Rubén, 18/11).

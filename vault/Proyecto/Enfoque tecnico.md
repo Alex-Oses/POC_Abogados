@@ -60,7 +60,7 @@ Los payloads y códigos de cada ruta viven en el contrato; aquí solo va lo que 
 | Primer acceso | Se crea la ficha con `sub`, nombre y email, **sin roles**; hasta que un admin le asigne uno, solo ve un aviso |
 | Único login local | **Una cuenta de admin, solo para desarrollo y pruebas**, sembrada por migración y no desplegada en producción |
 | Sesión | Token opaco revocable (no JWT), **3 a la vez**, 1 h con renovación, 12 h máximo; se revoca al cambiar roles, bloquear o dar de baja |
-| Roles | `usuarios.roles TEXT[]`: **un usuario puede tener varios**; el permiso es la unión. Sin tabla de roles |
+| Roles | Tabla `usuarios_roles (usuario_id, rol)`: **un usuario puede tener varios**; el permiso es la unión. Tres valores con `CHECK` |
 | Comprobación | Los roles se releen en cada petición: el token no arrastra rol |
 | Sin permiso | Sin sesión `401`; con sesión pero sin permiso `403`, o `404` si además el recurso no es suyo |
 
@@ -68,7 +68,7 @@ Los tres roles son **transcriptor, revisor y admin**. **El supervisor desaparece
 
 La doble firma queda **en pausa** (18/11): A-07 (nadie revisa lo suyo) se retira y A-15 (otro revisor firma) se para, así que hoy un revisor puede cerrar un documento que subió él. Si se retoman, el visto bueno vuelve a exigir un revisor distinto de quien cerró.
 
-Consecuencia para el modelo de @Marina: `usuarios.rol` sale y entra **una columna `roles`**, no una tabla; entra `usuarios.sso_subject` y `tokens_usuario` no se crea (no hay invitaciones ni reset, U-10 a U-15 retiradas). `usuarios.estado` se queda. **La única tabla nueva es `sesiones_usuario`** (opción B, 18/11): la sesión es de la aplicación ([[0012-identidad-y-roles]]).
+Consecuencia para el modelo de @Marina: `usuarios.rol` sale y entra la **tabla `usuarios_roles`**; entra `usuarios.sso_subject` y `tokens_usuario` no se crea (no hay invitaciones ni reset, U-10 a U-15 retiradas). `usuarios.estado` se queda. **Las tablas nuevas son `usuarios_roles` y `sesiones_usuario`** (opción B, 18/11): la sesión es de la aplicación ([[0012-identidad-y-roles]]).
 
 El contrato de autenticación ya tiene el camino de producción: `GET /auth/sso/login` y `GET /auth/sso/callback`, marcadas como propuesta. Las rutas de contraseña e invitación quedan agrupadas como bloque del admin local de desarrollo. El callback no se implementa hasta que 0009 se acepte y el ICAT registre la aplicación OIDC.
 
@@ -131,8 +131,8 @@ Cada promesa del backend tiene su prueba; si no la tiene, no es una promesa:
 |---|---|---|
 | [[0008-stack-backend]] | @Marina, @Kevin, @Alex | El primer endpoint |
 | [[0009-identidad]]: SSO sin gestión de cuentas, admin local solo en desarrollo | @Kevin, @Marina, @Alex + registro OIDC del ICAT (1-2 semanas de terceros) | El login real y la primera ruta con permisos |
-| Modelo de datos ([[0010-modelo-de-datos]]): `usuarios.roles` (columna, sin tabla) y sin `tokens_usuario` | @Marina | La migración `V13` |
-| Sesión propia en `sesiones_usuario` ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | `V13`: la única tabla nueva |
+| Modelo de datos ([[0010-modelo-de-datos]]): `usuarios_roles` (tabla N:M, decisión de @Marina) y sin `tokens_usuario` | @Marina | La migración `V13` |
+| Sesión propia en `sesiones_usuario` ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | `V13`: la otra tabla nueva |
 | Dueño del hash del PDF (B8) | @Rubén | El export idempotente |
 | OCR síncrono o por página (I5) | sin dueño | La forma de las rutas de OCR |
 | Frontera fina con el ETL (§2) | @Rubén y @Yaser | Quién escribe bloques y anotaciones |
