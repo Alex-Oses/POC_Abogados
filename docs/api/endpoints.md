@@ -46,14 +46,16 @@
 
 ## Roles
 
-`transcriptor` (T), `revisor` (R), `admin` (A). Un usuario puede tener **varios roles** en `usuarios_roles`; el permiso es la unión. **El rol `supervisor` se elimina** y sus funciones pasan al revisor ([[0012-identidad-y-roles]], propuesta).
+`transcriptor` (T), `revisor` (R), `admin` (A). Un usuario puede tener **varios roles**; el permiso es la unión. **El rol `supervisor` se elimina** y sus funciones pasan al revisor ([[0012-identidad-y-roles]], propuesta).
 
-Los roles se releen de `usuarios_roles` en cada petición: un token no arrastra los roles con los que se emitió. Las rutas marcadas `público` son las únicas que no exigen `Authorization`.
+Los roles se releen de la base de datos en cada petición: un token no arrastra los roles con los que se emitió. Las rutas marcadas `público` son las únicas que no exigen `Authorization`.
 
 ## Resumen
 
 | Método | Ruta | Roles | Tablas |
 | --- | --- | --- | --- |
+| `GET` | `/api/v1/auth/sso/login` | público | — |
+| `GET` | `/api/v1/auth/sso/callback` | público | `usuarios`, `sesiones_usuario` |
 | `POST` | `/api/v1/user/invitation/accept` | público | `usuarios`, `tokens_usuario` |
 | `POST` | `/api/v1/user/login` | público | `usuarios`, `sesiones_usuario` |
 | `POST` | `/api/v1/user/logout` | todos | `sesiones_usuario` |
@@ -61,30 +63,30 @@ Los roles se releen de `usuarios_roles` en cada petición: un token no arrastra 
 | `POST` | `/api/v1/user/password/change` | todos | `usuarios`, `sesiones_usuario` |
 | `POST` | `/api/v1/user/password/reset` | público | `usuarios`, `tokens_usuario` |
 | `POST` | `/api/v1/user/password/reset/confirm` | público | `usuarios`, `tokens_usuario`, `sesiones_usuario` |
-| `GET` | `/api/v1/admin/users` | A, S | `usuarios` |
+| `GET` | `/api/v1/admin/users` | A | `usuarios` |
 | `POST` | `/api/v1/admin/users` | A | `usuarios`, `tokens_usuario` |
 | `PATCH` | `/api/v1/admin/users/{id}` | A | `usuarios`, `sesiones_usuario` |
 | `DELETE` | `/api/v1/admin/users/{id}/sessions` | A | `sesiones_usuario` |
 | `POST` | `/api/v1/transform/document` | T | `documentos`, `versiones_documento`, `bloques_layout` |
 | `POST` | `/api/v1/transform/plain-text` | T, R | `versiones_documento` |
 | `POST` | `/api/v1/transform/build` | T, R | `versiones_documento` |
-| `GET` | `/api/v1/documents` | T, R, S | `documentos` |
-| `GET` | `/api/v1/documents/{id}` | T, R, S | `documentos`, `versiones_documento` |
+| `GET` | `/api/v1/documents` | T, R | `documentos` |
+| `GET` | `/api/v1/documents/{id}` | T, R | `documentos`, `versiones_documento` |
 | `DELETE` | `/api/v1/documents/{id}` | T (dueño), A | `documentos` |
-| `GET` | `/api/v1/documents/{id}/versions` | R, S | `versiones_documento` |
-| `GET` | `/api/v1/documents/{id}/versions/{numero_version}` | R, S | `versiones_documento` |
-| `GET` | `/api/v1/documents/{id}/versions/{numero_version}/blocks` | R, S | `bloques_layout` |
+| `GET` | `/api/v1/documents/{id}/versions` | R | `versiones_documento` |
+| `GET` | `/api/v1/documents/{id}/versions/{numero_version}` | R | `versiones_documento` |
+| `GET` | `/api/v1/documents/{id}/versions/{numero_version}/blocks` | R | `bloques_layout` |
 | `POST` | `/api/v1/documents/{id}/anonymize` | T, R | `versiones_documento`, `anotaciones_entidad`, `reglas_anonimizacion` |
 | `GET` | `/api/v1/documents/{id}/annotations` | R | `anotaciones_entidad` |
 | `PATCH` | `/api/v1/annotations/{id}` | R | `anotaciones_entidad` |
-| `GET` | `/api/v1/reviews` | R, S | `revisiones` |
+| `GET` | `/api/v1/reviews` | R | `revisiones` |
 | `POST` | `/api/v1/documents/{id}/reviews` | R | `revisiones`, `documentos` |
 | `POST` | `/api/v1/reviews/{id}/claim` | R | `revisiones` |
 | `PATCH` | `/api/v1/reviews/{id}/assign` | R | `revisiones` |
 | `PATCH` | `/api/v1/reviews/{id}` | R | `revisiones`, `versiones_documento`, `documentos`, `anotaciones_entidad` |
-| `POST` | `/api/v1/documents/{id}/reopen` | R, S | `documentos`, `versiones_documento`, `revisiones` |
+| `POST` | `/api/v1/documents/{id}/reopen` | R | `documentos`, `versiones_documento`, `revisiones` |
 | `POST` | `/api/v1/documents/{id}/sign-off` | R | `documentos` |
-| `POST` | `/api/v1/documents/{id}/export` | T (dueño), S | `documentos`, `versiones_documento` |
+| `POST` | `/api/v1/documents/{id}/export` | T (dueño), R | `documentos`, `versiones_documento` |
 | `GET` | `/api/v1/rules` | A | `reglas_anonimizacion`, `regla_categorias` |
 | `POST` | `/api/v1/rules` | A | `reglas_anonimizacion`, `regla_categorias` |
 | `PATCH` | `/api/v1/rules/{id}` | A | `reglas_anonimizacion`, `regla_categorias` |
@@ -99,9 +101,26 @@ Los roles se releen de `usuarios_roles` en cada petición: un token no arrastra 
 
 ## 1. Autenticación
 
-Con SSO ([[0009-identidad]], propuesta), el camino normal es el del ICAT: no hay alta, invitación ni contraseñas de usuario. Las siete rutas de esta sección quedan como **camino del admin de desarrollo** y el callback SSO es una ruta nueva, aún sin escribir ([[0012-identidad-y-roles]]).
+El camino de producción es el **SSO del ICAT**: no hay alta, invitación ni contraseñas de usuario. Las rutas `/user/*` de esta sección son el **camino local del admin de desarrollo**, no se exponen en producción y, desde el 18/11, no tienen reglas propias ([[0012-identidad-y-roles]], U-21).
 
-No hay autoregistro. En el camino local, la cuenta la crea el admin y se activa con el token de invitación.
+### `GET /auth/sso/login` *(propuesta)*
+
+Redirige al proveedor del ICAT con `state` y `nonce`. Depende de que [[0009-identidad]] se acepte y de que el ICAT registre la aplicación OIDC.
+
+`302` → proveedor, con `redirect_uri` = `/api/v1/auth/sso/callback`.
+
+### `GET /auth/sso/callback` *(propuesta)*
+
+Recibe `code` y `state`, valida el `state` y canjea el `code`. Busca la ficha por `usuarios.sso_subject`; si no existe, la crea en `activo` y **sin roles**. Abre sesión y redirige a la aplicación.
+
+- Con roles: sesión normal.
+- Sin roles: sesión abierta y `GET /user/me` devuelve `roles: []`; el cliente muestra «sin permisos» hasta que un admin los asigne.
+
+`401` si el `state` no coincide o el proveedor rechaza el `code`. Sin `sub` no se crea nada.
+
+### Camino local de desarrollo
+
+Estas rutas existen para arrancar y probar sin el ICAT. No hay autoregistro; la cuenta la crea el admin.
 
 ### `POST /user/invitation/accept`
 
@@ -375,15 +394,15 @@ Decisión del revisor sobre una entidad detectada.
 
 Cola de trabajo. `estado=en_cola` devuelve lo que nadie ha tomado; `asignado_a=me` lo que tengo yo.
 
-`200` → `{ "items": [ { "id", "documento_id", "numero_intento", "estado", "asignado_a", "fecha_limite", "creado_en" } ] }`.
+`200` → `{ "items": [ { "id", "documento_id", "numero_intento", "estado", "asignado_a", "creado_en" } ] }`.
 
 ### `POST /documents/{id}/reviews`
 
 Abre una revisión sobre la versión vigente. Nace en `en_cola` y **sin** revisor asignado: se toma después con `claim`. El documento pasa a `en_revision`.
 
-`201` → `{ "id": "uuid", "numero_intento": 1, "estado": "en_cola", "fecha_limite": "2026-11-18T17:00:00Z" }`.
+`201` → `{ "id": "uuid", "numero_intento": 1, "estado": "en_cola" }`.
 
-`fecha_limite` se calcula al crear, con `configuracion_sistema.calendario_laboral`.
+Sin plazo: A-20 está retirada. `revisiones.fecha_limite` y `aviso_24h_enviado_en` existen en `V15` y se quedan sin uso.
 
 Errores: `409` si ya hay una revisión abierta o el documento no está anonimizado, `422` si no hay versión `anonimizado_ia`.
 
@@ -391,9 +410,9 @@ Errores: `409` si ya hay una revisión abierta o el documento no está anonimiza
 
 Toma la revisión de la cola. Rellena `asignado_a` y `asignado_en`, y pasa la revisión a `en_proceso`.
 
-`200` → `{ "id", "estado": "en_proceso", "asignado_a", "asignado_en", "fecha_limite" }`.
+`200` → `{ "id", "estado": "en_proceso", "asignado_a", "asignado_en" }`.
 
-Errores: `409` si otro revisor la tomó primero o la revisión no está `en_cola`; `403` si el documento lo subió el propio revisor.
+Errores: `409` si otro revisor la tomó primero o la revisión no está `en_cola`.
 
 La toma es un único `UPDATE ... WHERE estado = 'en_cola'`: no usa `If-Match` y no puede dejar dos dueños.
 
@@ -407,7 +426,9 @@ Cualquier revisor. Asigna una revisión en cola o reasigna una en proceso. **Exc
 
 `200`. `asignado_a: null` la devuelve a la cola. La reasignación de una revisión `en_proceso` exige `comentario` y queda en `auditoria`.
 
-Errores: `403` si el destino es el `creado_por` del documento, `409` si la revisión ya está cerrada.
+Errores: `409` si la revisión ya está cerrada.
+
+No hay comprobación de «nadie revisa lo suyo»: A-07 está retirada (18/11), así que un revisor puede asignarse un documento que subió él.
 
 ### `PATCH /reviews/{id}`
 

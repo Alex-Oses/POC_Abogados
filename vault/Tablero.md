@@ -15,7 +15,7 @@ Resto:
 - [ ] Decidir identidad: SSO del ICAT sin gestión de cuentas y admin local solo de desarrollo · [[0009-identidad]] · @Rubén @Kevin @Marina @Alex
 - [ ] Aceptar el modelo de roles: tres roles, sin supervisor y varios por usuario · [[0012-identidad-y-roles]] · @Marina @Kevin @Alex
 - [ ] Escribir `V13` con `usuarios_roles` y `sso_subject` (espera 0009 y 0012) · @Marina
-- [ ] Sustituir el login por el callback SSO en el contrato (espera 0009) · @Rubén
+- [ ] Aceptar 0009 y completar el callback SSO del contrato con el registro OIDC del ICAT (ya hay dos rutas propuestas) · @Rubén @Kevin
 - [ ] Decidir la doble transcripción (A-24): qué se guarda de la segunda lectura y cómo se marca el diff en la revisión · [[0005-reglas-usuarios-y-aprobacion]] · @Rubén @Alex
 - [ ] Confirmar si `/assign` y `/sign-off` salen del contrato (cola libre y A-15 en pausa) · @Rubén
 - [ ] Unificar el hash del PDF (B8): un solo dueño, por versión · [[Coherencia]] · @Rubén
