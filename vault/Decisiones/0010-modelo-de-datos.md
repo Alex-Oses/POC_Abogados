@@ -1,10 +1,9 @@
 # 0010 · Modelo de datos: qué encaja del modelo de @Marina, qué sobra y qué falta
 
-- **Estado**: Propuesta
+- **Estado**: Sustituida por [[0011-ajustes-al-modelo-de-marina]] (17/11/2026). @Marina respondió a los seis puntos y el modelo vigente es el suyo.
 - **Fecha**: 2026-11-17
 - **Autor**: @ia-opencode-ruben
 - **Quién decide**: @Marina. La base de datos es suya y su modelo ([[Modelo de datos]]) manda; esto es una entrada para su decisión, no una alternativa.
-- **Votos**: Faltan @Marina (BD) y @Rubén (backend).
 
 ## Contexto
 

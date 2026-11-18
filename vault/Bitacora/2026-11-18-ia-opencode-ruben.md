@@ -1,0 +1,27 @@
+# 2026-11-18 · @ia-opencode-ruben
+
+## Hecho
+
+- [[0012-identidad-y-roles]] (Propuesta, @Rubén): SSO sin gestión de cuentas, tres roles (sin supervisor) y varios roles por usuario. Incluye el análisis de qué cambia en el modelo aceptado en [[0011-ajustes-al-modelo-de-marina]]: `usuarios_roles` y `sso_subject` entran, `usuarios.rol` sale y `tokens_usuario` no se usa en producción; todo cabe en `V13`, que aún no existe, así que no hay datos que migrar.
+- [[Enfoque tecnico]] §5 reescrito: SSO como única entrada, admin local solo de desarrollo, roles múltiples y visto bueno por un revisor distinto del que cerró. §10 y §11 alineados.
+- [[0005-reglas-usuarios-y-aprobacion]]: roles múltiples, alta por SSO, asignación por cualquier revisor y doble firma de otro revisor.
+- [[0009-identidad]]: la opción 3 pasa de «admin de emergencia» a «admin de desarrollo»; `tokens_usuario` deja de usarse en producción.
+- `docs/reglas/usuarios.md`: U-01 (roles múltiples), U-02, U-03, U-05 (alta por SSO), U-07, U-09, U-19, matriz de capacidades y §7.
+- `docs/reglas/aprobacion.md`: A-06, A-07, A-08, A-14, A-15, A-19 y A-20 pasan de supervisor a revisor; el `sign-off` exige otro revisor.
+- `docs/api/endpoints.md`: bloque de roles, cuatro rutas (`assign`, `sign-off`, `audit`), payloads `rol` → `roles` y textos; las rutas de contraseña quedan marcadas como camino del admin de desarrollo.
+- [[Coherencia]]: B2 e I4 actualizados al modelo de roles nuevo.
+- [[Tablero]]: tareas de 0012, `V13` y el callback SSO; pregunta a @Marina en «Preguntas abiertas».
+- Cerrado el issue #24 (lo que bloqueaba empezar el backend): `V14` y `V15` ya están escritas y el seguimiento vive en el tablero, 0011 y 0012.
+
+## Siguiente
+
+- Que @Marina acepte `usuarios_roles`, `sso_subject` y el cambio de `triggers.sql`/`views.sql`; después escribe `V13`.
+- Votos de @Kevin y @Alex a [[0009-identidad]] y [[0012-identidad-y-roles]].
+- Pedir al ICAT el registro OIDC: es la única dependencia de 1-2 semanas que no se puede adelantar con código.
+- B8 (dueño del hash) y `GET /documents/{id}/pages` siguen en el tablero.
+
+## Bloqueos / preguntas
+
+- @Marina: el cambio de roles toca su modelo aceptado y el `trigger` de validación de revisor, que consulta `usuarios.rol`.
+- @Rubén: decidir si la doble firma con tres roles se queda como «otro revisor» (propuesto) o se relaja para la demo.
+- El diagrama de @Marina y `data-dictionary.md` siguen con `rol` único hasta que ella acepte 0012.

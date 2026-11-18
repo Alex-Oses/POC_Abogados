@@ -41,23 +41,36 @@ Puntos a cerrar con @Yaser antes de escribir código (no los decido yo):
 
 40 rutas REST y JSON bajo `/api/v1`, en kebab-case, sin barra final ni extensiones. `application/json` (subidas `multipart/form-data`), `Authorization: Bearer <token>`.
 
-| Convención | Valor |
-|---|---|
-| Errores | `{"error": {"code": "...", "message": "..."}}`; `code` estable, `message` para la persona |
-| Paginación | `?page=1&limit=20` |
-| Fechas | ISO 8601 en UTC |
-| Cierres | `If-Match` obligatorio (ver §6) |
-| Versión | Global en la ruta; solo sube ante un cambio incompatible |
+| Convención | Valor                                                                                     |
+| ---------- | ----------------------------------------------------------------------------------------- |
+| Errores    | `{"error": {"code": "...", "message": "..."}}`; `code` estable, `message` para la persona |
+| Paginación | `?page=1&limit=20`                                                                        |
+| Fechas     | ISO 8601 en UTC                                                                           |
+| Cierres    | `If-Match` obligatorio (ver §6)                                                           |
+| Versión    | Global en la ruta; solo sube ante un cambio incompatible                                  |
 
 Los payloads y códigos de cada ruta viven en el contrato; aquí solo va lo que condiciona la implementación.
 
-## 5. Sesiones y permisos
+## 5. Sesiones, roles y permisos
 
-- **Token opaco revocable**, no JWT: con JWT no se puede cerrar una sesión antes de que caduque, y el contrato exige cerrarlas al cambiar contraseña o rol.
-- Contraseñas con **Argon2id**; máximo **3 sesiones** por usuario; sin autoregistro (alta por invitación del admin).
-- Cuatro roles: transcriptor (T), revisor (R), supervisor (S), admin (A). El transcriptor solo ve lo suyo; revisor y supervisor ven todo.
-- El `401` **no revela si el email existe**: misma respuesta y mismo tiempo para usuario inexistente y contraseña mala.
-- Identidad definitiva pendiente de [[0009-identidad]] (SSO del ICAT + admin local de emergencia). Si sale SSO, esta sección pierde el login por contraseña pero no los roles ni las sesiones.
+**Entrada por SSO del ICAT** ([[0009-identidad]], Propuesta). El backend **no gestiona cuentas**: no hay invitación, ni alta manual, ni contraseñas, ni proveedor de correo. El proveedor valida a la persona y devuelve su identificador (`sub`); el backend busca o crea la ficha y abre sesión.
+
+| Qué | Cómo |
+|---|---|
+| Primer acceso | Se crea la ficha con `sub`, nombre y email, **sin roles**; hasta que un admin le asigne uno, solo ve un aviso |
+| Único login local | **Una cuenta de admin, solo para desarrollo y pruebas**, sembrada por migración y no desplegada en producción |
+| Sesión | Token opaco revocable (no JWT), **3 a la vez**, 1 h con renovación, 12 h máximo; se revoca al cambiar roles, bloquear o dar de baja |
+| Roles | `usuarios_roles` (N:M): **un usuario puede tener varios**; el permiso es la unión |
+| Comprobación | Los roles se releen en cada petición: el token no arrastra rol |
+| Sin permiso | Sin sesión `401`; con sesión pero sin permiso `403`, o `404` si además el recurso no es suyo |
+
+Los tres roles son **transcriptor, revisor y admin**. **El supervisor desaparece** y sus funciones pasan al revisor: asignar y reasignar (A-06), liberar o devolver el visto bueno (A-15), reabrir un aprobado (A-19), recibir los avisos de plazo (A-20) y consultar la auditoría.
+
+Para que la doble firma siga siendo doble, **el visto bueno lo libera un revisor distinto de quien cerró la revisión**, y nadie revisa un documento que subió (A-07).
+
+Consecuencia para el modelo de @Marina: entra `usuarios_roles` (N:M), entra `usuarios.sso_subject` y `tokens_usuario` deja de usarse en producción (no hay invitaciones ni reset). `sesiones_usuario` y `usuarios.estado` se quedan.
+
+He dejado el contrato de autenticación como está a propósito: sus siete rutas de contraseña e invitación pasan a ser el camino del admin local de desarrollo, y el callback SSO es una ruta nueva. Esa parte no se escribe hasta que 0009 se acepte y el ICAT registre la aplicación OIDC.
 
 ## 6. Transacciones y concurrencia
 
@@ -108,15 +121,15 @@ Cada promesa del backend tiene su prueba; si no la tiene, no es una promesa:
 | El export es idempotente | Dos ejecuciones seguidas dan el mismo SHA-256 y una sola versión |
 | No se exporta con dudas | Una anotación sin decisión devuelve error, no PDF |
 | Todo queda auditado | Tras cada operación existe su fila, con el hash anterior correcto |
-| El `401` no filtra | Email inexistente y contraseña mala dan la misma respuesta |
+| Nadie revisa lo suyo | Un usuario con roles de transcriptor y revisor no puede tomar ni cerrar su propio documento |
 
 ## 11. Qué no está decidido
 
 | Abierto | Quién | Qué bloquea |
 |---|---|---|
 | [[0008-stack-backend]] | @Marina, @Kevin, @Alex | El primer endpoint |
-| [[0009-identidad]] | @Kevin, @Marina, @Alex + registro OIDC del ICAT (1-2 semanas de terceros) | Alta de usuarios y tabla de identidad |
-| Modelo de datos ([[0010-modelo-de-datos]]) | @Marina | La migración `V13`-`V15` |
+| [[0009-identidad]]: SSO sin gestión de cuentas, admin local solo en desarrollo | @Kevin, @Marina, @Alex + registro OIDC del ICAT (1-2 semanas de terceros) | El login real y la primera ruta con permisos |
+| Modelo de datos ([[0010-modelo-de-datos]]): `usuarios_roles` y sin `tokens_usuario` | @Marina | La migración `V13`-`V15` |
 | Dueño del hash del PDF (B8) | @Rubén | El export idempotente |
 | OCR síncrono o por página (I5) | sin dueño | La forma de las rutas de OCR |
 | Frontera fina con el ETL (§2) | @Rubén y @Yaser | Quién escribe bloques y anotaciones |

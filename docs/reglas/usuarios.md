@@ -1,6 +1,6 @@
 # Usuarios — ciclo de vida, roles y sesiones
 
-**Estado:** propuesta con decisiones cerradas (16/11/2026).
+**Estado:** propuesta; roles e identidad en revisión por [[0012-identidad-y-roles]] (18/11/2026).
 **Contrato HTTP:** `docs/api/endpoints.md` (aquí solo se referencian rutas, no se redefinen).
 **Modelo de datos:** `docs/architecture/` (migraciones Flyway).
 
@@ -13,33 +13,33 @@ Quién puede entrar, qué puede hacer y cómo se le retira el acceso. No describ
 | Rol | Para quién | Alcance |
 | --- | --- | --- |
 | `transcriptor` | Personal que digitaliza expedientes | Sus propios documentos |
-| `revisor` | Abogado que valida la anonimización | Todos los documentos en revisión |
-| `supervisor` | Responsable del despacho | Lectura completa y visto bueno final |
-| `admin` | Sistemas | Usuarios, reglas, categorías y configuración |
+| `revisor` | Abogado que valida la anonimización | Todos los documentos en revisión, asignación, visto bueno y auditoría |
+| `admin` | Sistemas | Usuarios y roles, reglas, categorías y configuración |
 
-**Regla U-01 — un rol por usuario (decidido).** `usuarios.rol` es un valor único. Es suficiente para separar funciones y evita la tabla N:M.
+**Regla U-01 — varios roles por usuario (propuesto, [[0012-identidad-y-roles]]).** Los roles viven en `usuarios_roles (usuario_id, rol)` (N:M) y el permiso es la **unión**. `usuarios.rol` desaparece. Hay tres roles: `transcriptor`, `revisor` y `admin`; **el supervisor se elimina** y sus funciones pasan al revisor.
 
-*Riesgo asumido:* en un despacho de dos o tres personas no habrá nadie que solo revise. Si eso ocurre, la migración es `usuarios_roles` y afecta a la matriz de permisos y a la regla A-06 de `docs/reglas/aprobacion.md`. No se construye hasta que duela.
+*Riesgo asumido:* un rol único obligaba a cuentas duplicadas cuando la misma persona sube, revisa y administra. Con roles múltiples, A-07 (nadie revisa lo suyo) y A-15 (otro revisor firma) son las que mantienen la separación de funciones.
 
-**Regla U-02 — el permiso se comprueba en el servidor, siempre.** El rol se relee de `usuarios` en cada petición; el token no arrastra el rol con el que se emitió.
+**Regla U-02 — el permiso se comprueba en el servidor, siempre.** Los roles se releen de `usuarios_roles` en cada petición; el token no arrastra los roles con los que se emitió.
 
 ## 3. Matriz de capacidades
 
-| Capacidad | transcriptor | revisor | supervisor | admin |
-| --- | --- | --- | --- | --- |
-| Subir documentos | sí | — | — | — |
-| Ver sus documentos | sí | sí (todos) | sí (todos) | — |
-| Lanzar anonimización | sí | sí | — | — |
-| Revisar anotaciones | — | sí | — | — |
-| Cerrar revisión | — | sí | — | — |
-| Visto bueno final | — | — | sí | — |
-| Exportar aprobado | sus documentos | — | sí | — |
-| Reglas y categorías | — | — | lectura | sí |
-| Usuarios y sesiones | — | — | lectura | sí |
-| Auditoría | — | — | sí | sí |
-| Configuración del sistema | — | — | — | sí |
+| Capacidad | transcriptor | revisor | admin |
+| --- | --- | --- | --- |
+| Subir documentos | sí | — | — |
+| Ver sus documentos | sí | sí (todos) | — |
+| Lanzar anonimización | sí | sí | — |
+| Revisar anotaciones | — | sí | — |
+| Cerrar revisión | — | sí | — |
+| Asignar y reasignar | — | sí | — |
+| Visto bueno final | — | otro revisor, no quien cerró | — |
+| Exportar aprobado | sus documentos | sí | — |
+| Reglas y categorías | — | — | sí |
+| Usuarios y roles | — | — | sí |
+| Auditoría | — | lectura | lectura |
+| Configuración del sistema | — | — | sí |
 
-**Regla U-03 — propiedad del recurso.** El transcriptor solo ve y opera sobre documentos con `creado_por = usuario_id`. El revisor y el supervisor ven todos; el admin no ve contenido de documentos, solo metadatos.
+**Regla U-03 — propiedad del recurso.** El transcriptor solo ve y opera sobre documentos con `creado_por = usuario_id`. El revisor ve todos; el admin no ve contenido de documentos, solo metadatos.
 
 ## 4. Ciclo de vida de la cuenta
 
@@ -50,24 +50,26 @@ invitado → activo → bloqueado → activo
 
 | Estado | Quién lo provoca | Efecto |
 | --- | --- | --- |
-| `invitado` | Admin crea la cuenta | Tiene token de invitación; no puede iniciar sesión hasta fijar contraseña |
+| `invitado` | Solo camino local de desarrollo | Tiene token de invitación; no puede iniciar sesión hasta fijar contraseña. Con SSO no se usa |
 | `activo` | Acepta la invitación (o reset de contraseña) | Acceso completo |
 | `bloqueado` | Admin, o 10 intentos fallidos | Login denegado; sesiones revocadas |
 | `baja` | Admin | Login denegado; datos conservados según plazo legal |
 
 **Regla U-04 — el estado es explícito.** `usuarios.estado` sustituye al booleano `activo`. Con un booleano no se distingue «invitado» de «bloqueado», y la auditoría no puede explicar por qué alguien no entra.
 
-**Regla U-05 — solo por invitación (decidido).** No hay autoregistro. El admin crea la cuenta en estado `invitado`, el sistema envía un token de un solo uso al email y el usuario fija su contraseña con ese token. El autoregistro abierto es un agujero en un producto legal: cualquiera con la URL se crea una cuenta.
+**Regla U-05 — alta por SSO (propuesta en [[0009-identidad]] y [[0012-identidad-y-roles]]).** No hay autoregistro, ni invitación, ni contraseñas de usuario. El primer acceso con SSO crea la ficha en `activo` y **sin roles**; un admin le asigna los suyos y hasta entonces no ve documentos. El administrador de desarrollo se siembra por migración o variable de entorno.
 
-**Regla U-06 — el primer admin se siembra.** El admin inicial se crea por migración o variable de entorno, nunca por endpoint público. Sin esta regla, el sistema no arranca.
+**Regla U-06 — el primer admin se siembra.** El admin de desarrollo se crea por migración o variable de entorno, nunca por endpoint público. Sin esta regla, el sistema no arranca. No se despliega en producción.
 
-**Regla U-07 — la invitación caduca.** Token de un solo uso, validez 72 h (`configuracion_sistema.invitacion_ttl_horas`). Caducado, el admin reenvía una nueva.
+**Regla U-07 — sin invitación con SSO.** Con SSO no hay token de invitación: U-07 queda sin efecto. Si el piloto vuelve a cuentas locales, se recupera la validez de 72 h (`configuracion_sistema.invitacion_ttl_horas`).
 
 **Regla U-08 — la baja no borra.** Se marca `estado = baja` y `eliminado_en`. Las anotaciones, revisiones y auditoría siguen apuntando al usuario; un `DELETE` real rompería la trazabilidad.
 
-**Regla U-09 — cambio de rol con efecto inmediato.** Al cambiar `rol` se revocan todas las sesiones abiertas del usuario. Si no, sigue operando con el rol anterior hasta que caduque el token.
+**Regla U-09 — cambio de roles con efecto inmediato.** Al cambiar los roles de un usuario se revocan todas sus sesiones abiertas. Si no, sigue operando con los roles anteriores hasta que caduque el token.
 
 ## 5. Contraseñas
+
+Con SSO ([[0009-identidad]]), esta sección solo aplica al **admin de desarrollo**: no hay contraseñas de usuario.
 
 **Regla U-10 — el servidor hashea, el cliente nunca.** Argon2id con sal por usuario. La contraseña viaja en claro dentro de TLS y no se registra en logs.
 
@@ -89,7 +91,7 @@ invitado → activo → bloqueado → activo
 
 **Regla U-18 — caducidad.** Acceso 1 hora; renovación mientras haya actividad y la cuenta siga `activo`. Máximo absoluto 12 horas por sesión.
 
-**Regla U-19 — revocación.** Se revoca al: cambiar contraseña, cambiar rol, bloquear o dar de baja al usuario, superar el límite de sesiones y cuando el admin fuerza el cierre. Toda revocación se escribe en `auditoria`.
+**Regla U-19 — revocación.** Se revoca al: cambiar contraseña, cambiar los roles, bloquear o dar de baja al usuario, superar el límite de sesiones y cuando el admin fuerza el cierre. Toda revocación se escribe en `auditoria`.
 
 **Regla U-20 — logout es revocación, no borrado.** `revocado_en`, nunca `DELETE`: la sesión forma parte de la auditoría.
 
@@ -98,33 +100,35 @@ invitado → activo → bloqueado → activo
 | Necesidad | Columna o tabla | Regla |
 | --- | --- | --- |
 | Estado real de la cuenta | `usuarios.estado` (sustituye a `activo`) | U-04 |
+| Identidad del proveedor | `usuarios.sso_subject` (único) | U-05 |
+| Roles, varios por usuario | tabla `usuarios_roles`: `usuario_id`, `rol` (`transcriptor`\|`revisor`\|`admin`), PK compuesta | U-01 |
 | Motivo de la baja | `usuarios.motivo_baja` | U-08 |
-| Fecha del último cambio de contraseña | `usuarios.password_cambiado_en` | U-13 |
-| Tokens de un solo uso | tabla `tokens_usuario`: `usuario_id`, `tipo` (`invitacion`\|`reset`), `token_hash`, `expira_en`, `usado_en` | U-05, U-12 |
+| Fecha del último cambio de contraseña | `usuarios.password_cambiado_en` (solo admin de desarrollo) | U-13 |
+| Tokens de un solo uso | tabla `tokens_usuario`: **solo camino local de desarrollo**; en producción no se usa (no hay invitación ni reset) | U-05, U-12 |
 | Orden de antigüedad de sesiones | `sesiones_usuario.creado_en` (ya existe) | U-17 |
 
-`usuarios_roles` **no** se crea (U-01). Nada de esta tabla está todavía en `docs/architecture/`: son columnas propuestas, pendientes de bajar al modelo.
+Nada de esta tabla está todavía en `docs/architecture/`: son columnas propuestas, pendientes de bajar al modelo en `V13`.
 
 ## 8. Endpoints
 
 Todos están ya en `docs/api/endpoints.md`, que es el dueño de los payloads.
 
-`POST /user/register` se elimina del contrato: el alta pasa por `POST /admin/users` y la aceptación por `POST /user/invitation/accept`.
+`POST /user/register` se elimina del contrato. Con SSO, las rutas de invitación y contraseña quedan como **camino del admin de desarrollo**; el usuario real entra por el callback SSO, que el contrato aún no tiene ([[0009-identidad]]).
 
 ```text
-POST   /admin/users                  alta por invitación
-POST   /user/invitation/accept       fijar contraseña con token de invitación
-POST   /user/password/change
-POST   /user/password/reset
-POST   /user/password/reset/confirm
+POST   /admin/users                  alta por SSO o siembra del admin de desarrollo
+POST   /user/invitation/accept       solo camino local de desarrollo
+POST   /user/password/change         solo admin de desarrollo
+POST   /user/password/reset          solo admin de desarrollo
+POST   /user/password/reset/confirm  solo admin de desarrollo
 DELETE /admin/users/{id}/sessions  revocar todas las sesiones
 GET    /user/me
-POST   /user/login
+POST   /user/login                   solo admin de desarrollo
 POST   /user/logout
 GET    /admin/users?rol=&estado=
 PATCH  /admin/users/{id}
 ```
 
-**Decisiones cerradas:** U-01 (rol único), U-05 (solo invitación), U-17 (3 sesiones).
+**Decisiones cerradas:** U-05 (alta por SSO, propuesta en 0009/0012), U-17 (3 sesiones). **Abierta:** U-01, roles múltiples ([[0012-identidad-y-roles]]).
 
 **Pendiente de negocio (no bloquea):** plazo legal de conservación tras la baja.

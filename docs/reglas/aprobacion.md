@@ -30,11 +30,11 @@ aprobado ──export──→ exportado
 | `anonimizando` | `en_revision` | sistema | A-03 |
 | `en_revision` | `pendiente_visto_bueno` | sistema, si `requiere_visto_bueno` | A-15 |
 | `en_revision` | `aprobado` | revisor | A-09 |
-| `pendiente_visto_bueno` | `aprobado` | supervisor | A-15 |
-| `pendiente_visto_bueno` | `en_revision` | supervisor (con motivo) | A-15 |
+| `pendiente_visto_bueno` | `aprobado` | otro revisor | A-15 |
+| `pendiente_visto_bueno` | `en_revision` | otro revisor (con motivo) | A-15 |
 | `en_revision` | `rechazado` | revisor | A-13 |
-| `rechazado` | `en_revision` | revisor, supervisor | A-12 |
-| `aprobado` | `exportado` | supervisor, transcriptor dueño | A-16 |
+| `rechazado` | `en_revision` | revisor | A-12 |
+| `aprobado` | `exportado` | revisor, transcriptor dueño | A-16 |
 
 **Regla A-01 — el estado lo escribe el servidor.** El cliente nunca envía `estado`; solo dispara acciones. Un `PATCH` con `estado` en el cuerpo se rechaza.
 
@@ -64,11 +64,11 @@ La toma es un `UPDATE ... WHERE estado = 'en_cola'` de una sola sentencia. Si do
 
 *Por qué cola y no reparto automático:* con un equipo pequeño el reparto round-robin solo añade una pieza que mantener. Se migra cuando el volumen haga que la cola se atasque, y para entonces `asignado_a` ya existe.
 
-**Regla A-06 — el supervisor puede saltarse la cola.** `PATCH /reviews/{id}/assign` fija `asignado_a` directamente sobre una revisión `en_cola` o reasigna una `en_proceso`. Para expedientes delicados. La reasignación queda en `auditoria` con el motivo.
+**Regla A-06 — un revisor puede saltarse la cola.** `PATCH /reviews/{id}/assign` fija `asignado_a` directamente sobre una revisión `en_cola` o reasigna una `en_proceso`. Para expedientes delicados. La reasignación queda en `auditoria` con el motivo.
 
-**Regla A-07 — nadie revisa lo suyo.** Si `asignado_a` coincide con el `creado_por` del documento, la toma y la asignación se rechazan. Con rol único (U-01) casi no puede pasar; si algún día hay roles múltiples, esta es la regla que evita el conflicto de interés.
+**Regla A-07 — nadie revisa lo suyo.** Si `asignado_a` coincide con el `creado_por` del documento, la toma y la asignación se rechazan. Con varios roles (U-01) esta regla es la que evita que alguien se revise a sí mismo.
 
-**Regla A-08 — la asignación es visible.** El revisor ve la cola completa y solo puede editar las revisiones que tiene en `en_proceso`. El supervisor ve quién tiene qué y desde cuándo.
+**Regla A-08 — la asignación es visible.** El revisor ve la cola completa y solo puede editar las revisiones que tiene en `en_proceso`, y ve quién tiene qué y desde cuándo.
 
 ## 5. Revisión por anotaciones
 
@@ -88,7 +88,7 @@ Sin esa reentrada, un documento rechazado se queda muerto: era el hueco más gra
 
 **Regla A-13 — el motivo es obligatorio al rechazar.** `comentario_general` no puede ir vacío en `rechazado_con_cambios` ni en `devuelto`.
 
-**Regla A-14 — `devuelto` no mata el documento.** Un documento ilegible no es un rechazo: vuelve a `en_cola` para que otro revisor lo mire. `devuelto` es transitorio: se escribe con su motivo y la fila vuelve a `en_cola` en la misma transacción, así que el estado persistido que se ve es `en_cola`. Tras dos devoluciones para la misma versión, el supervisor recibe el aviso y decide si se reescanea.
+**Regla A-14 — `devuelto` no mata el documento.** Un documento ilegible no es un rechazo: vuelve a `en_cola` para que otro revisor lo mire. `devuelto` es transitorio: se escribe con su motivo y la fila vuelve a `en_cola` en la misma transacción, así que el estado persistido que se ve es `en_cola`. Tras dos devoluciones para la misma versión, los revisores reciben el aviso y deciden si se reescanea.
 
 ## 7. Visto bueno y exportación
 
@@ -101,9 +101,9 @@ Si negocio quiere un conjunto propio, independiente del art. 9, se añade `categ
 Se guarda el valor calculado, no se recalcula después: la regla que se aplicó en ese momento es la que debe poder auditarse.
 
 - `requiere_visto_bueno = false` → el documento pasa directo a `aprobado`.
-- `requiere_visto_bueno = true` → pasa a `pendiente_visto_bueno`. El supervisor lo libera con `POST /documents/{id}/sign-off`, que rellena `visto_bueno_por` y `visto_bueno_en` y deja el documento en `aprobado`.
+- `requiere_visto_bueno = true` → pasa a `pendiente_visto_bueno`. Lo libera con `POST /documents/{id}/sign-off` **un revisor distinto del que cerró la revisión**, que rellena `visto_bueno_por` y `visto_bueno_en` y deja el documento en `aprobado`.
 
-El visto bueno no es una segunda revisión: el supervisor no re-anota, solo firma o devuelve a `en_revision` con motivo.
+El visto bueno no es una segunda revisión: quien firma no re-anota, solo firma o devuelve a `en_revision` con motivo. Al no existir el rol `supervisor` ([[0012-identidad-y-roles]]), la garantía de que son dos personas la da esta regla, no el rol.
 
 **Regla A-16 — exportar es una acción explícita.** `POST /documents/{id}/export` genera el PDF definitivo, calcula su hash y pasa el documento a `exportado`. No se exporta al vuelo desde el visor: un PDF descargado sin dejar rastro no es un expediente. `POST /transform/build` sigue siendo la vista previa con formato, no el cierre del expediente.
 
@@ -111,17 +111,17 @@ El visto bueno no es una segunda revisión: el supervisor no re-anota, solo firm
 
 **Regla A-18 — lo exportado es inmutable.** Se guarda `hash_export` y `exportado_en`; si el documento se reabre, el hash anterior se conserva. Sobrescribir el PDF de un expediente cerrado es exactamente lo que una auditoría no perdona.
 
-**Regla A-19 — aprobar congela.** Tras `aprobado` no se crean versiones nuevas salvo reapertura explícita del supervisor, que rellena `cerrado_en` al reabrir. Queda en `auditoria` quién reabrió y por qué.
+**Regla A-19 — aprobar congela.** Tras `aprobado` no se crean versiones nuevas salvo reapertura explícita de un revisor, que rellena `cerrado_en` al reabrir. Queda en `auditoria` quién reabrió y por qué.
 
 Cómo se compone el PDF (estructura guardada, reconstrucción sin píxeles del original y determinismo del hash): [docs/export/pdf.md](../export/pdf.md).
 
 ## 8. Plazos
 
-**Regla A-20 — 48 h laborables con aviso a las 24 h (decidido).** Al crear la revisión se calcula `revisiones.fecha_limite` sumando `revision_plazo_horas` (48) horas laborables. Al cruzar `revision_aviso_horas` (24) sin decisión se rellena `aviso_24h_enviado_en` y se notifica al revisor asignado y, si la revisión sigue `en_cola`, al supervisor.
+**Regla A-20 — 48 h laborables con aviso a las 24 h (decidido).** Al crear la revisión se calcula `revisiones.fecha_limite` sumando `revision_plazo_horas` (48) horas laborables. Al cruzar `revision_aviso_horas` (24) sin decisión se rellena `aviso_24h_enviado_en` y se notifica al revisor asignado y, si la revisión sigue `en_cola`, a los revisores.
 
 Qué es laborable sale de `configuracion_sistema.calendario_laboral`: lunes a viernes, 09:00-18:00, más la lista de `festivos` en formato ISO. Con la lista vacía no se descuenta ningún festivo, y el plazo saldrá largo en Semana Santa o Navidad; es el primer valor que hay que cargar al desplegar.
 
-A las 48 h vencidas no cambia nada por sí solo: el supervisor recibe el aviso y reasigna con A-06.
+A las 48 h vencidas no cambia nada por sí solo: los revisores reciben el aviso y reasignan con A-06.
 
 **Regla A-21 — el expediente no caduca.** No hay plazo sobre el documento: una vez subido, sus versiones y su PDF siguen disponibles mientras exista. El TTL (propuesta: 24 h) se aplica solo a los ficheros temporales del OCR —páginas renderizadas y salidas intermedias—, que se borran al cerrar el proceso; perderlos no impide exportar, porque el PDF se reconstruye desde la estructura guardada. El original cifrado (decisión 0004) tampoco caduca mientras el expediente exista.
 
@@ -157,11 +157,11 @@ Todos están ya en `docs/api/endpoints.md`, que es el dueño de los payloads. Aq
 ```text
 GET    /reviews?estado=en_cola      cola de trabajo
 POST   /reviews/{id}/claim          tomar de la cola (atómico)
-PATCH  /reviews/{id}/assign         asignar o reasignar (supervisor)
+PATCH  /reviews/{id}/assign         asignar o reasignar (cualquier revisor)
 POST   /documents/{id}/reviews      abrir revisión (nace en_cola)
 PATCH  /reviews/{id}                cerrar revisión (If-Match)
 POST   /documents/{id}/reopen       rechazado → en_revision, nueva versión
-POST   /documents/{id}/sign-off  pendiente_visto_bueno → aprobado (supervisor)
+POST   /documents/{id}/sign-off  pendiente_visto_bueno → aprobado (otro revisor)
 POST   /documents/{id}/export       aprobado → exportado, con hash
 ```
 

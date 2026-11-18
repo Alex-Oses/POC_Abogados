@@ -46,9 +46,9 @@
 
 ## Roles
 
-`transcriptor` (T), `revisor` (R), `admin` (A), `supervisor` (S). Cada usuario tiene uno solo en `usuarios.rol`; no hay tabla N:M.
+`transcriptor` (T), `revisor` (R), `admin` (A). Un usuario puede tener **varios roles** en `usuarios_roles`; el permiso es la unión. **El rol `supervisor` se elimina** y sus funciones pasan al revisor ([[0012-identidad-y-roles]], propuesta).
 
-El rol se relee de `usuarios` en cada petición: un token no arrastra el rol con el que se emitió. Las rutas marcadas `público` son las únicas que no exigen `Authorization`.
+Los roles se releen de `usuarios_roles` en cada petición: un token no arrastra los roles con los que se emitió. Las rutas marcadas `público` son las únicas que no exigen `Authorization`.
 
 ## Resumen
 
@@ -80,10 +80,10 @@ El rol se relee de `usuarios` en cada petición: un token no arrastra el rol con
 | `GET` | `/api/v1/reviews` | R, S | `revisiones` |
 | `POST` | `/api/v1/documents/{id}/reviews` | R | `revisiones`, `documentos` |
 | `POST` | `/api/v1/reviews/{id}/claim` | R | `revisiones` |
-| `PATCH` | `/api/v1/reviews/{id}/assign` | S | `revisiones` |
+| `PATCH` | `/api/v1/reviews/{id}/assign` | R | `revisiones` |
 | `PATCH` | `/api/v1/reviews/{id}` | R | `revisiones`, `versiones_documento`, `documentos`, `anotaciones_entidad` |
 | `POST` | `/api/v1/documents/{id}/reopen` | R, S | `documentos`, `versiones_documento`, `revisiones` |
-| `POST` | `/api/v1/documents/{id}/sign-off` | S | `documentos` |
+| `POST` | `/api/v1/documents/{id}/sign-off` | R | `documentos` |
 | `POST` | `/api/v1/documents/{id}/export` | T (dueño), S | `documentos`, `versiones_documento` |
 | `GET` | `/api/v1/rules` | A | `reglas_anonimizacion`, `regla_categorias` |
 | `POST` | `/api/v1/rules` | A | `reglas_anonimizacion`, `regla_categorias` |
@@ -91,7 +91,7 @@ El rol se relee de `usuarios` en cada petición: un token no arrastra el rol con
 | `GET` | `/api/v1/categories` | A | `categorias_sensibles` |
 | `POST` | `/api/v1/categories` | A | `categorias_sensibles` |
 | `PATCH` | `/api/v1/categories/{id}` | A | `categorias_sensibles` |
-| `GET` | `/api/v1/audit` | S, A | `auditoria` |
+| `GET` | `/api/v1/audit` | R, A | `auditoria` |
 | `GET` | `/api/v1/config` | A | `configuracion_sistema` |
 | `PUT` | `/api/v1/config/{clave}` | A | `configuracion_sistema` |
 
@@ -99,7 +99,9 @@ El rol se relee de `usuarios` en cada petición: un token no arrastra el rol con
 
 ## 1. Autenticación
 
-No hay autoregistro. La cuenta la crea un admin y el usuario la activa con el token de invitación.
+Con SSO ([[0009-identidad]], propuesta), el camino normal es el del ICAT: no hay alta, invitación ni contraseñas de usuario. Las siete rutas de esta sección quedan como **camino del admin de desarrollo** y el callback SSO es una ruta nueva, aún sin escribir ([[0012-identidad-y-roles]]).
+
+No hay autoregistro. En el camino local, la cuenta la crea el admin y se activa con el token de invitación.
 
 ### `POST /user/invitation/accept`
 
@@ -109,7 +111,7 @@ Fija la contraseña y activa la cuenta. Es el único camino de `invitado` a `act
 { "token": "token-en-claro-del-email", "password": "contraseña" }
 ```
 
-`200` → `{ "id": "uuid", "email": "...", "rol": "transcriptor" }`.
+`200` → `{ "id": "uuid", "email": "...", "roles": ["transcriptor"] }`.
 
 Errores: `400` si la contraseña no cumple la política, `404` si el token no existe, `410` si ha caducado o ya se usó.
 
@@ -135,7 +137,7 @@ Con la cuarta sesión simultánea se revoca la más antigua: el login responde `
 
 ### `GET /user/me`
 
-`200` → `{ "id", "nombre", "apellidos", "email", "rol", "estado" }`.
+`200` → `{ "id", "nombre", "apellidos", "email", "roles", "estado" }`.
 
 ### `POST /user/password/change`
 
@@ -175,17 +177,17 @@ Público. Consume el token (`tipo = reset`), fija la contraseña y revoca todas 
 
 Listado paginado. `estado` filtra por `invitado|activo|bloqueado|baja`.
 
-`200` → `{ "items": [ { "id", "email", "nombre", "apellidos", "rol", "estado", "ultimo_acceso" } ], "page", "limit", "total" }`.
+`200` → `{ "items": [ { "id", "email", "nombre", "apellidos", "roles", "estado", "ultimo_acceso" } ], "page", "limit", "total" }`.
 
 ### `POST /admin/users`
 
 Alta por invitación. Crea la cuenta en `estado = invitado`, sin contraseña, y envía el token de un solo uso.
 
 ```json
-{ "nombre": "nombre", "apellidos": "apellidos", "email": "correo@electronico.com", "rol": "revisor" }
+{ "nombre": "nombre", "apellidos": "apellidos", "email": "correo@electronico.com", "roles": ["revisor"] }
 ```
 
-`201` → `{ "id": "uuid", "email": "...", "rol": "revisor", "estado": "invitado", "expira_en": "2026-11-19T10:00:00Z" }`.
+`201` → `{ "id": "uuid", "email": "...", "roles": ["revisor"], "estado": "invitado", "expira_en": "2026-11-19T10:00:00Z" }`.
 
 Errores: `409` si el email ya existe (comparación en minúsculas). El token solo viaja en el correo, nunca en la respuesta.
 
@@ -194,7 +196,7 @@ Reenviar la invitación es el mismo `POST` sobre un email ya existente en estado
 ### `PATCH /admin/users/{id}`
 
 ```json
-{ "rol": "supervisor", "estado": "bloqueado", "motivo_baja": null }
+{ "roles": ["revisor"], "estado": "bloqueado", "motivo_baja": null }
 ```
 
 `200`. Reglas:
@@ -257,7 +259,7 @@ Errores: `404` si el documento no existe, `500` si falla la generación.
 
 ### `GET /documents?estado=&page=&limit=`
 
-Lista documentos. El transcriptor ve solo los suyos; el revisor y el supervisor ven todos.
+Lista documentos. El transcriptor ve solo los suyos; el revisor ve todos.
 
 `200` → `{ "items": [ { "id", "nombre_original", "estado", "num_paginas", "creado_en" } ], ... }`.
 
@@ -397,7 +399,7 @@ La toma es un único `UPDATE ... WHERE estado = 'en_cola'`: no usa `If-Match` y 
 
 ### `PATCH /reviews/{id}/assign`
 
-Solo supervisor. Asigna una revisión en cola o reasigna una en proceso.
+Cualquier revisor. Asigna una revisión en cola o reasigna una en proceso.
 
 ```json
 { "asignado_a": "uuid", "comentario": "Expediente delicado" }
@@ -445,7 +447,7 @@ Errores: `409` si el documento no está `rechazado`, `422` si no hay texto que a
 
 ### `POST /documents/{id}/sign-off`
 
-Solo supervisor. Libera un documento en `pendiente_visto_bueno`. No crea versión: `final_aprobado` ya se creó al aprobar el revisor.
+Cualquier revisor, **salvo quien cerró la revisión**. Libera un documento en `pendiente_visto_bueno`. No crea versión: `final_aprobado` ya se creó al aprobar el revisor.
 
 ```json
 { "comentario": "Firmado" }
@@ -572,7 +574,7 @@ aprobado ──POST /documents/{id}/export──→ exportado
 - `ocr_procesando` y `anonimizando` son transitorios: si el proceso falla, el documento vuelve al estado anterior y se registra en `auditoria`.
 - `pendiente_visto_bueno` solo existe si la versión tiene alguna anotación de una categoría con `rgpd_especial = true`.
 - `exportado` lo marca únicamente `POST /documents/{id}/export`. `POST /transform/build` es vista previa y no cambia estados.
-- `aprobado` está congelado: no admite versiones nuevas salvo reapertura explícita del supervisor.
+- `aprobado` está congelado: no admite versiones nuevas salvo reapertura explícita de un revisor.
 - Ningún endpoint permite saltarse un estado; el `409` lo impide.
 
 ## 10. Qué endpoint escribe qué
