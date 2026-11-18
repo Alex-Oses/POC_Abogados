@@ -60,10 +60,10 @@
 ## Usuarios
 
 **U-01 · Varios roles por usuario** *(propuesta, 0012)*
-Los roles viven en `usuarios_roles (usuario_id, rol)` (N:M) y el permiso es la **unión**. Hay tres roles: `transcriptor`, `revisor` y `admin`. El `supervisor` se elimina y sus funciones pasan al revisor.
+Los roles viven en una **columna `usuarios.roles`** (`TEXT[]`, sin tabla N:M) y el permiso es la **unión**. Hay tres roles: `transcriptor`, `revisor` y `admin`. El `supervisor` se elimina y sus funciones pasan al revisor.
 
 **U-02 · El permiso se comprueba en el servidor, siempre.**
-Los roles se releen de `usuarios_roles` en cada petición; el token no arrastra los roles con los que se emitió.
+Los roles se releen de la base de datos en cada petición; el token no arrastra los roles con los que se emitió.
 
 **U-03 · Propiedad del recurso (solo transcriptor puro).**
 Quien tiene **únicamente** el rol de transcriptor solo ve y opera sobre documentos con `creado_por = usuario_id`. En cuanto tiene también el rol de revisor, ve y revisa todos los documentos, aunque haya subido alguno. El admin no ve contenido de documentos, solo metadatos.

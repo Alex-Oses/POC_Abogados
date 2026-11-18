@@ -13,8 +13,9 @@ Resto:
 - [ ] Decidir el stack del backend: Python + FastAPI o C# · [[0008-stack-backend]] · @Rubén @Kevin
 - [ ] Cerrar los 8 bloqueantes de [[Coherencia]]: identidad, modelo, export y visto bueno · @Rubén @Marina
 - [ ] Decidir identidad: SSO del ICAT sin gestión de cuentas y admin local solo de desarrollo · [[0009-identidad]] · @Rubén @Kevin @Marina @Alex
-- [ ] Aceptar el modelo de roles: tres roles, sin supervisor y varios por usuario · [[0012-identidad-y-roles]] · @Marina @Kevin @Alex
-- [ ] Escribir `V13` con `usuarios_roles` y `sso_subject` (espera 0009 y 0012) · @Marina
+- [ ] Aceptar el modelo de roles: tres roles, sin supervisor, varios por usuario y **en columna `usuarios.roles`, sin tabla nueva** · [[0012-identidad-y-roles]] · @Marina @Kevin @Alex
+- [ ] Decidir la sesión: delegarla en el ICAT (cero tablas, sin U-16 a U-20) o `sesiones_usuario` · [[0012-identidad-y-roles]] · @Rubén @Kevin
+- [ ] Escribir `V13` con `roles`, `estado`, `sso_subject` y sin `tokens_usuario` (espera 0009 y 0012) · @Marina
 - [ ] Aceptar 0009 y completar el callback SSO del contrato con el registro OIDC del ICAT (ya hay dos rutas propuestas) · @Rubén @Kevin
 - [ ] Decidir la doble transcripción (A-24): qué se guarda de la segunda lectura y cómo se marca el diff en la revisión · [[0005-reglas-usuarios-y-aprobacion]] · @Rubén @Alex
 - [ ] Confirmar si `/assign` y `/sign-off` salen del contrato (cola libre y A-15 en pausa) · @Rubén
@@ -64,4 +65,4 @@ Resto:
 <!-- - @destinatario: pregunta · @autor -->
 - @Alex: ¿bajamos la protección de `main`? Hoy exige 1 aprobación en todo, y con dos personas con escritura cada PR mío espera a que lo mires: es el mayor freno del día a día. Propuesta en tres pasos, de menos a más: **(1)** `CODEOWNERS` con revisión obligatoria solo de `backend/`, `docs/api/`, `docs/reglas/` y `docs/architecture/migrations/`, y los PR que solo tocan `vault/`, `maqueta/` o `docs/export/` se auto-mergean con CI verde; **(2)** si GitHub no les encaja así, bajar a 0 aprobaciones y exigir solo `Require status checks` + `Require conversation resolution`; **(3)** mantener el bloqueo de push directo a `main` en cualquier caso. Lo que no propongo es quitar la protección: solo el paso por revisión en lo que no es código. · @ia-opencode-ruben
 - @Rubén: con `V14` y `V15` escritas quedan dos cosas fuera de la BD: **B8** (¿el hash del PDF es de la versión o del documento?) y el endpoint **`GET /documents/{id}/pages`**, sin el cual `paginas_documento` no tiene lector. Mi recomendación para B8 está en [[0011-ajustes-al-modelo-de-marina]]. · @ia-opencode-maga369
-- @Marina: [[0012-identidad-y-roles]] cambia tu modelo aceptado en tres puntos: `usuarios_roles` (N:M) en lugar de `usuarios.rol`, `usuarios.sso_subject` y `tokens_usuario` sin uso en producción. Cabe entero en `V13`, que aún no existe, así que no hay datos que migrar; pero el diagrama y `data-dictionary.md` los decides tú. ¿Lo aceptas o lo corriges? · @ia-opencode-ruben
+- @Marina: [[0012-identidad-y-roles]] cambia tu modelo aceptado. Lo que propongo **no crea tablas**: `usuarios.rol` pasa a `usuarios.roles TEXT[]` (una columna con su `CHECK` y un índice GIN), entra `usuarios.sso_subject`, `usuarios.activo` pasa a `usuarios.estado` y `tokens_usuario` no se crea. **La única tabla candidata es `sesiones_usuario`**, y solo si no delegamos la sesión en el ICAT. Todo cabe en `V13`, que aún no existe: cero datos que migrar. ¿Lo aceptas o lo corriges? · @ia-opencode-ruben

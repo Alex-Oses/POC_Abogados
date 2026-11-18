@@ -16,14 +16,14 @@
 
 | Tabla | Qué se crea o cambia | Lo pide |
 |---|---|---|
-| `usuarios` | `estado` sustituye a `activo`; `nombre` y `apellidos` separados; `password_hash` (nulo si SSO), `password_cambiado_en`, `intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `motivo_baja` y `sso_subject` (UNIQUE) si hay SSO | U-04, U-08, contrato §1-2, 0009 |
-| `tokens_usuario` (nueva) | `usuario_id`, `tipo` (`invitacion` \| `reset`), `token_hash`, `expira_en`, `usado_en`; solo camino local de desarrollo, sin regla propia desde el 18/11 | U-05 |
-| `sesiones_usuario` (nueva) | `usuario_id`, `token_hash`, `creado_en`, `revocado_en`, `ip`, `user_agent`; tope de 3 con desalojo de la más antigua | U-17, contrato §1 |
-| `idx_usuarios_rol_activo` | pasa a `(rol, estado)`: al quitar `activo` el índice actual se cae | B1 |
+| `usuarios` | `roles TEXT[]` con `CHECK` de tres valores e índice GIN (sin tabla N:M); `estado` sustituye a `activo`; `nombre` y `apellidos` separados; `password_hash` (nulo si SSO), `password_cambiado_en`, `intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `motivo_baja` y `sso_subject` (UNIQUE) si hay SSO | U-01, U-04, U-08, contrato §1-2, 0009, 0012 |
+| `tokens_usuario` (nueva) | **no se crea**: U-10 a U-15 retiradas (18/11) y la contraseña del admin de desarrollo viene de variable de entorno (U-21) | — |
+| `sesiones_usuario` (nueva) | `usuario_id`, `token_hash`, `creado_en`, `revocado_en`, `ip`, `user_agent`; tope de 3 con desalojo de la más antigua. **Solo si no se delega la sesión en el ICAT** | U-17, contrato §1, 0012 |
+| `idx_usuarios_rol_activo` | se cae con `rol`/`activo`; entran `(estado)` y GIN `(roles)` | B1, 0012 |
 
-Con SSO, `password_hash` y `tokens_usuario` quedan **solo** para el admin de emergencia, y la invitación por email desaparece. Eso importa porque **no hay proveedor de correo elegido** (B2): si se mantienen invitaciones o reset, hay que montar SMTP.
+Con SSO, `password_hash` queda **solo** para el admin de desarrollo y la invitación por email desaparece; `tokens_usuario` no se crea. Eso importa porque **no hay proveedor de correo elegido** (B2): sin invitaciones ni reset no hace falta SMTP.
 
-**Qué no se puede escribir hasta decidir:** el alta de usuarios, el middleware de sesión y la pantalla de login. Y la única caducidad que queda viva es la del **token de invitación/reset**; la del expediente se retiró (B6, A-21).
+**Qué no se puede escribir hasta decidir:** el alta de usuarios, el middleware de sesión y la pantalla de login. Sin U-10 a U-15 no queda ninguna caducidad de token de invitación o reset; la del expediente se retiró (B6, A-21).
 
 ## 2. `bbox`, OCR y reconstrucción del PDF (B3, I5 · [0007](../vault/Decisiones/0007-generacion-pdf-final.md) y [pdf.md](export/pdf.md))
 
@@ -53,8 +53,8 @@ Lo aplicado queda en `origen_geometria` para que el render sea reproducible.
 | Tabla | Qué falta o cambia | Lo pide | Depende de |
 |---|---|---|---|
 | `usuarios` | estado, contraseña, SSO, intentos y último acceso | B1 | 0009 |
-| `tokens_usuario` | tabla nueva | B1 | 0009 |
-| `sesiones_usuario` | tabla nueva | B1 | 0009 |
+| `tokens_usuario` | **no se crea**: U-10 a U-15 retiradas (18/11); la contraseña del admin de desarrollo viene de variable de entorno | — | — |
+| `sesiones_usuario` | tabla nueva, solo si no se delega la sesión en el ICAT | B1 | 0009, 0012 |
 | `documentos` | `num_paginas` | B5 | — |
 | `documentos` | CHECK de `estado`: falta `pendiente_visto_bueno`; decidir si hace falta un estado de reapertura | A-15, A-19, B7 | 0005 |
 | `documentos` | `visto_bueno_por`, `visto_bueno_en`, `cerrado_en` | A-15, A-19 | 0005 |

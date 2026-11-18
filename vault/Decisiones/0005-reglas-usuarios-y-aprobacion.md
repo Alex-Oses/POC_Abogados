@@ -16,7 +16,7 @@ El contrato de la API tenía 5 rutas y no decía nada de quién puede entrar, c�
 
 Se cierran estas reglas, que son las que cambian el contrato y el modelo:
 
-1. **Roles múltiples por usuario** (`usuarios_roles`, N:M); el permiso es la unión. Tres roles: `transcriptor`, `revisor` y `admin`; el supervisor desaparece y sus funciones pasan al revisor ([[0012-identidad-y-roles]]).
+1. **Roles múltiples por usuario en `usuarios.roles TEXT[]`**: el permiso es la unión y no se crea tabla de roles ([[0012-identidad-y-roles]]). Tres roles: `transcriptor`, `revisor` y `admin`; el supervisor desaparece y sus funciones pasan al revisor.
 2. **Alta por SSO**: la ficha se crea al primer acceso y un admin le asigna los roles. No hay autoregistro, ni invitación, ni contraseñas de usuario; solo el admin de desarrollo tiene credencial local ([[0009-identidad]]).
 3. **Máximo 3 sesiones simultáneas**; la cuarta revoca la más antigua.
 4. **Cola de revisión libre**: la revisión nace `en_cola` y el revisor toma el documento que quiere con `claim`; no se asigna de oficio. La asignación directa queda como excepción (propuesta de @Rubén, 18/11).
@@ -27,6 +27,6 @@ Se cierran estas reglas, que son las que cambian el contrato y el modelo:
 ## Consecuencias
 
 - El contrato pasa de 5 a 40 rutas; `/user/register` desaparece. Con SSO, las rutas de invitación y contraseña quedan como camino del admin de desarrollo ([[0012-identidad-y-roles]]).
-- Hacen falta columnas y una tabla que hoy no están en `docs/architecture/` (`usuarios_roles`, `sesiones_usuario`, `revisiones.asignado_a`, `documentos.requiere_visto_bueno`/`hash_export`). **No se toca el modelo en este PR**: el encaje queda pendiente y se decidirá aparte.
+- Hacen falta columnas que hoy no están en `docs/architecture/` (`roles`, `estado`, `sso_subject`, `motivo_baja`, `revisiones.asignado_a` ya está en `V15`, `documentos.requiere_visto_bueno`/`hash_export`) y, solo si se elige sesión propia, la tabla `sesiones_usuario`. **No se toca el modelo en este PR**: el encaje queda pendiente y se decidirá aparte.
 - Depende de [[0004-anonimizacion-antes-o-despues-de-revision]]: el flujo asume que se conserva el original y se anonimiza antes de la revisión.
 - Queda abierto el plazo legal de conservación tras la baja; mientras no exista, no se purga nada.
