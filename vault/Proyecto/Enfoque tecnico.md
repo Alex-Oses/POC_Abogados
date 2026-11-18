@@ -68,7 +68,7 @@ Los tres roles son **transcriptor, revisor y admin**. **El supervisor desaparece
 
 La doble firma queda **en pausa** (18/11): A-07 (nadie revisa lo suyo) se retira y A-15 (otro revisor firma) se para, así que hoy un revisor puede cerrar un documento que subió él. Si se retoman, el visto bueno vuelve a exigir un revisor distinto de quien cerró.
 
-Consecuencia para el modelo de @Marina: `usuarios.rol` sale y entra **una columna `roles`**, no una tabla; entra `usuarios.sso_subject` y `tokens_usuario` no se crea (no hay invitaciones ni reset, U-10 a U-15 retiradas). `usuarios.estado` se queda. **La única tabla candidata es `sesiones_usuario`** y solo si no se delega la sesión en el ICAT ([[0012-identidad-y-roles]]).
+Consecuencia para el modelo de @Marina: `usuarios.rol` sale y entra **una columna `roles`**, no una tabla; entra `usuarios.sso_subject` y `tokens_usuario` no se crea (no hay invitaciones ni reset, U-10 a U-15 retiradas). `usuarios.estado` se queda. **La única tabla nueva es `sesiones_usuario`** (opción B, 18/11): la sesión es de la aplicación ([[0012-identidad-y-roles]]).
 
 El contrato de autenticación ya tiene el camino de producción: `GET /auth/sso/login` y `GET /auth/sso/callback`, marcadas como propuesta. Las rutas de contraseña e invitación quedan agrupadas como bloque del admin local de desarrollo. El callback no se implementa hasta que 0009 se acepte y el ICAT registre la aplicación OIDC.
 
@@ -132,7 +132,7 @@ Cada promesa del backend tiene su prueba; si no la tiene, no es una promesa:
 | [[0008-stack-backend]] | @Marina, @Kevin, @Alex | El primer endpoint |
 | [[0009-identidad]]: SSO sin gestión de cuentas, admin local solo en desarrollo | @Kevin, @Marina, @Alex + registro OIDC del ICAT (1-2 semanas de terceros) | El login real y la primera ruta con permisos |
 | Modelo de datos ([[0010-modelo-de-datos]]): `usuarios.roles` (columna, sin tabla) y sin `tokens_usuario` | @Marina | La migración `V13` |
-| Sesión propia o delegada en el ICAT ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | Si hay tabla `sesiones_usuario` o cero tablas |
+| Sesión propia en `sesiones_usuario` ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | `V13`: la única tabla nueva |
 | Dueño del hash del PDF (B8) | @Rubén | El export idempotente |
 | OCR síncrono o por página (I5) | sin dueño | La forma de las rutas de OCR |
 | Frontera fina con el ETL (§2) | @Rubén y @Yaser | Quién escribe bloques y anotaciones |

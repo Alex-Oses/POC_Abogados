@@ -16,16 +16,17 @@
 - U-10 a U-15 retiradas (18/11) y sustituidas por **U-21**: la credencial del admin de desarrollo se siembra por variable de entorno, no vive en el repo y no se despliega en producción. El admin local sigue funcionando igual, sin reglamento propio.
 - Contrato alineado con lo anterior: fuera `fecha_limite` (A-20) y los `403` por «nadie revisa lo suyo» (A-07); fuera el rol `S` de la tabla de rutas; las rutas de contraseña quedan como bloque de desarrollo; entran `GET /auth/sso/login` y `GET /auth/sso/callback` marcadas como propuesta.
 - `.docx` de `local/` regenerados desde el markdown: `endpoints.docx`, `usuarios.docx`, `aprobaciones.docx` y, nuevo, `reglas-negocio.docx` con la lista única.
-- Análisis del modelo de @Marina a petición de @Rubén: con las reglas de hoy **no hace falta ninguna tabla nueva para los roles** (columna `roles TEXT[]` con su `CHECK` e índice GIN). La única tabla candidata es `sesiones_usuario`, y solo si no se delega la sesión en el ICAT. `tokens_usuario` no se crea. Detalle y SQL en [[0012-identidad-y-roles]].
+- Análisis del modelo de @Marina a petición de @Rubén: los roles **no necesitan tabla** (columna `roles TEXT[]` con su `CHECK` e índice GIN) y la sesión sí: **una sola tabla nueva, `sesiones_usuario`** (opción B, decidida por @Rubén). `tokens_usuario` no se crea. Detalle y SQL en [[0012-identidad-y-roles]].
 - Propagado a la bóveda: [[0012-identidad-y-roles]], [[0005-reglas-usuarios-y-aprobacion]], [[0009-identidad]], [[0011-ajustes-al-modelo-de-marina]] (anexo con A-20 retirada y A-15 en pausa), [[Enfoque tecnico]] §5 y §11, [[Coherencia]] (B1 y B4), [[Tablero]] y `docs/pendientes.md`.
 - `docs/api/endpoints.md`: sin `tokens_usuario` no hay dónde guardar el token de invitación, así que se retiran `POST /admin/users`, `POST /user/invitation/accept` y los dos de `password/reset`; el estado `invitado` desaparece (`activo | bloqueado | baja`) y el filtro de `/admin/users` pasa a `roles`. Regenerados `endpoints.docx`, `usuarios.docx` y `reglas-negocio.docx`.
-- [[0012-identidad-y-roles]] gana la sección «Para @Marina: `V13` en 20 líneas»: el SQL exacto y copiable, sin tabla de roles y con `sesiones_usuario` como única tabla, condicionada a la decisión de sesión. Tarea y pregunta del [[Tablero]] apuntan a esa sección.
+- [[0012-identidad-y-roles]] gana la sección «Para @Marina: el SQL de `V13`»: el SQL exacto y copiable, sin tabla de roles y con `sesiones_usuario` como única tabla nueva. Tarea y pregunta del [[Tablero]] apuntan a esa sección.
+- **Sesión decidida** (18/11, @Rubén): opción B, `sesiones_usuario`. U-16 a U-20 siguen vigentes; `tokens_usuario` no se crea. Propagado a [[0005-reglas-usuarios-y-aprobacion]], [[0009-identidad]], [[0011-ajustes-al-modelo-de-marina]], [[Enfoque tecnico]], [[Coherencia]] B1, [[Tablero]], `docs/pendientes.md` y `docs/reglas/usuarios.md`.
 - Cerrado el issue #24 (lo que bloqueaba empezar el backend): `V14` y `V15` ya están escritas y el seguimiento vive en el tablero, 0011 y 0012.
 
 ## Siguiente
 
-- Que @Marina acepte `roles`, `estado`, `sso_subject` y el cambio de `triggers.sql`/`views.sql`; después escribe `V13`.
-- Decidir la sesión: delegarla en el ICAT (cero tablas, se retiran U-16 a U-20) o `sesiones_usuario`.
+- Que @Marina acepte `roles`, `estado`, `sso_subject`, `sesiones_usuario` y el cambio de `triggers.sql`/`views.sql`; después escribe `V13`.
+- Sesión: **decidido**, opción B (`sesiones_usuario`).
 - Votos de @Kevin y @Alex a [[0009-identidad]] y [[0012-identidad-y-roles]].
 - Pedir al ICAT el registro OIDC: es la única dependencia de 1-2 semanas que no se puede adelantar con código.
 - B8 (dueño del hash) y `GET /documents/{id}/pages` siguen en el tablero.

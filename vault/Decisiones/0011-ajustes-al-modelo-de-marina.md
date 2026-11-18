@@ -62,7 +62,7 @@ Sobre el punto 10: el renombrado es `ALTER TABLE revisiones RENAME COLUMN reviso
 
 | # | Contenido | ¿Se puede escribir ya? |
 |---|---|---|
-| `V13` | Identidad: `usuarios.roles`, `estado`, `sso_subject`; `sesiones_usuario` solo si no se delega la sesión en el ICAT; `tokens_usuario` no se crea | **No**: espera [[0009-identidad]] y [[0012-identidad-y-roles]]. Es el único sitio donde esperar sale gratis |
+| `V13` | Identidad: `usuarios.roles`, `estado`, `sso_subject`; `sesiones_usuario` (única tabla nueva); `tokens_usuario` no se crea | **No**: espera [[0009-identidad]] y [[0012-identidad-y-roles]]. Es el único sitio donde esperar sale gratis |
 | `V14` | Estructura: `bloques_layout`, `paginas_documento`, `num_paginas` | **Sí.** Escrita y sin dependencias; desbloquea OCR, semáforo y PDF |
 | `V15` | Flujo: estados, visto bueno, `revisiones`, `anotaciones_entidad.bloque_id`, seeds H6/H8 | **Sí, salvo el hash**: espera a que se acepte [[0005-reglas-usuarios-y-aprobacion]] |
 | `V16` | Hash del PDF (B8): `versiones_documento.hash_export` + `exportado_en` o las dos en `documentos`, **un solo dueño** | No: espera B8 |

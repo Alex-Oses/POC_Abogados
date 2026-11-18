@@ -95,7 +95,7 @@ Con SSO ([[0009-identidad]]), esta sección ya solo mira al **admin de desarroll
 | Motivo de la baja | `usuarios.motivo_baja` | U-08 |
 | Fecha del último cambio de contraseña | `usuarios.password_cambiado_en` (solo admin de desarrollo, sin regla propia) | — |
 | Tokens de un solo uso | **no se crea `tokens_usuario`**: U-10 a U-15 retiradas (18/11); la credencial del admin de desarrollo viene de entorno (U-21) | — |
-| Orden de antigüedad de sesiones | `sesiones_usuario.creado_en`, **solo si no se delega la sesión en el ICAT** | U-17 |
+| Orden de antigüedad de sesiones | `sesiones_usuario.creado_en` (tabla de `V13`) | U-17 |
 
 Nada de esta tabla está todavía en `docs/architecture/`: son columnas propuestas, pendientes de bajar al modelo en `V13`.
 
