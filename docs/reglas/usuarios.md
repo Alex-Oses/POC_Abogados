@@ -1,7 +1,7 @@
 # Usuarios — ciclo de vida, roles y sesiones
 
 **Estado:** propuesta; roles e identidad en revisión por [[0012-identidad-y-roles]] (18/11/2026).
-**Lista completa para revisar:** [`reglas-de-negocio.md`](reglas-de-negocio.md) (U-01 a U-20 y A-01 a A-23 en un solo fichero).
+**Lista completa para revisar:** [`reglas-de-negocio.md`](reglas-de-negocio.md) (U-01 a U-21 y A-01 a A-24 en un solo fichero).
 **Contrato HTTP:** `docs/api/endpoints.md` (aquí solo se referencian rutas, no se redefinen).
 **Modelo de datos:** `docs/architecture/` (migraciones Flyway).
 
@@ -58,9 +58,9 @@ invitado → activo → bloqueado → activo
 
 **Regla U-04 — el estado es explícito.** `usuarios.estado` sustituye al booleano `activo`. Con un booleano no se distingue «invitado» de «bloqueado», y la auditoría no puede explicar por qué alguien no entra.
 
-**Regla U-05 — alta por SSO (propuesta en [[0009-identidad]] y [[0012-identidad-y-roles]]).** No hay autoregistro, ni invitación, ni contraseñas de usuario. El primer acceso con SSO crea la ficha en `activo` y **sin roles**; un admin le asigna los suyos y hasta entonces no ve documentos. El administrador de desarrollo se siembra por migración o variable de entorno.
+**Regla U-05 — alta por SSO (propuesta en [[0009-identidad]] y [[0012-identidad-y-roles]]).** No hay autoregistro, ni invitación, ni contraseñas de usuario. El primer acceso con SSO crea la ficha en `activo` y **sin roles**; un admin le asigna los suyos y hasta entonces no ve documentos. El administrador de desarrollo se siembra por variable de entorno (U-21).
 
-**Regla U-06 — el primer admin se siembra.** El admin de desarrollo se crea por migración o variable de entorno, nunca por endpoint público. Sin esta regla, el sistema no arranca. No se despliega en producción.
+**Regla U-06 — el primer admin se siembra.** El admin de desarrollo se crea por variable de entorno, nunca por endpoint público. Sin esta regla, el sistema no arranca. No se despliega en producción (U-21).
 
 **Regla U-08 — la baja no borra.** Se marca `estado = baja` y `eliminado_en`. Las anotaciones, revisiones y auditoría siguen apuntando al usuario; un `DELETE` real rompería la trazabilidad.
 
@@ -70,19 +70,9 @@ U-07 (validez de 72 h de la invitación) se retira el 18/11: con SSO no hay invi
 
 ## 5. Contraseñas
 
-Con SSO ([[0009-identidad]]), esta sección solo aplica al **admin de desarrollo**: no hay contraseñas de usuario.
+Con SSO ([[0009-identidad]]), esta sección ya solo mira al **admin de desarrollo**: no hay contraseñas de usuario. U-10 a U-15 se retiran el 18/11; el admin local sigue funcionando igual, pero deja de tener reglamento propio.
 
-**Regla U-10 — el servidor hashea, el cliente nunca.** Argon2id con sal por usuario. La contraseña viaja en claro dentro de TLS y no se registra en logs.
-
-**Regla U-11 — política mínima.** 12 caracteres, sin exigir composición artificial (mayúsculas y símbolos obligatorios producen contraseñas peores). Opcional: rechazo contra listas de contraseñas comprometidas.
-
-**Regla U-12 — recuperación con enlace de un solo uso.** Token de 32 bytes guardado **hasheado**, caducidad 30 minutos, un uso. Al consumirse se revocan todas las sesiones del usuario. Es el mismo mecanismo que la invitación, con distinto `tipo` en `tokens_usuario`.
-
-**Regla U-13 — cambio de contraseña revoca sesiones.** Incluido el cambio hecho por el propio usuario.
-
-**Regla U-14 — bloqueo progresivo.** 5 intentos fallidos en 15 minutos → `429`. 10 acumulados → `estado = bloqueado` y aviso al admin. El contador se reinicia con un login correcto.
-
-**Regla U-15 — respuesta de login indistinguible.** Mismo mensaje y mismo tiempo de respuesta para «email inexistente» y «contraseña incorrecta».
+**Regla U-21 — la credencial del admin de desarrollo no vive en el repo.** Se siembra por variable de entorno, no se versiona y **no se despliega en producción**. El admin local funciona igual que antes (login, cambio y reset de contraseña); lo que desaparece es el reglamento sobre cómo se gestiona su contraseña. El hash, la política, el bloqueo por intentos y el mensaje de error se quedan en el código como están.
 
 ## 6. Sesiones
 
@@ -104,8 +94,8 @@ Con SSO ([[0009-identidad]]), esta sección solo aplica al **admin de desarrollo
 | Identidad del proveedor | `usuarios.sso_subject` (único) | U-05 |
 | Roles, varios por usuario | tabla `usuarios_roles`: `usuario_id`, `rol` (`transcriptor`\|`revisor`\|`admin`), PK compuesta | U-01 |
 | Motivo de la baja | `usuarios.motivo_baja` | U-08 |
-| Fecha del último cambio de contraseña | `usuarios.password_cambiado_en` (solo admin de desarrollo) | U-13 |
-| Tokens de un solo uso | tabla `tokens_usuario`: **solo camino local de desarrollo**; en producción no se usa (no hay invitación ni reset) | U-05, U-12 |
+| Fecha del último cambio de contraseña | `usuarios.password_cambiado_en` (solo admin de desarrollo, sin regla propia) | — |
+| Tokens de un solo uso | tabla `tokens_usuario`: **solo camino local de desarrollo**; en producción no se usa (no hay invitación ni reset) | U-05 |
 | Orden de antigüedad de sesiones | `sesiones_usuario.creado_en` (ya existe) | U-17 |
 
 Nada de esta tabla está todavía en `docs/architecture/`: son columnas propuestas, pendientes de bajar al modelo en `V13`.

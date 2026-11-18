@@ -16,8 +16,8 @@
 
 | Tabla | Qué se crea o cambia | Lo pide |
 |---|---|---|
-| `usuarios` | `estado` sustituye a `activo`; `nombre` y `apellidos` separados; `password_hash` (nulo si SSO), `password_cambiado_en`, `intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `motivo_baja` y `sso_subject` (UNIQUE) si hay SSO | U-04, U-08, U-13, contrato §1-2, 0009 |
-| `tokens_usuario` (nueva) | `usuario_id`, `tipo` (`invitacion` \| `reset`), `token_hash`, `expira_en`, `usado_en` | U-05, U-12 |
+| `usuarios` | `estado` sustituye a `activo`; `nombre` y `apellidos` separados; `password_hash` (nulo si SSO), `password_cambiado_en`, `intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `motivo_baja` y `sso_subject` (UNIQUE) si hay SSO | U-04, U-08, contrato §1-2, 0009 |
+| `tokens_usuario` (nueva) | `usuario_id`, `tipo` (`invitacion` \| `reset`), `token_hash`, `expira_en`, `usado_en`; solo camino local de desarrollo, sin regla propia desde el 18/11 | U-05 |
 | `sesiones_usuario` (nueva) | `usuario_id`, `token_hash`, `creado_en`, `revocado_en`, `ip`, `user_agent`; tope de 3 con desalojo de la más antigua | U-17, contrato §1 |
 | `idx_usuarios_rol_activo` | pasa a `(rol, estado)`: al quitar `activo` el índice actual se cae | B1 |
 

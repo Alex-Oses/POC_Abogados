@@ -13,6 +13,7 @@
 - [[Tablero]]: tareas de 0012, `V13` y el callback SSO; pregunta a @Marina en «Preguntas abiertas».
 - [`docs/reglas/reglas-de-negocio.md`](../../docs/reglas/reglas-de-negocio.md): las reglas numeradas en un solo fichero para leerlas seguidas y editarlas a mano, con el estado de cada una y una sección «Cambios pedidos».
 - Revisión de @Rubén aplicada a las reglas: U-03 solo limita al transcriptor puro; U-07 (72 h), A-07 (nadie revisa lo suyo) y A-20 (plazos) se retiran; A-06 pasa a cola libre; A-15 (doble firma) queda en pausa; A-04 no cambia y la idea de transcribir dos veces entra como A-24 (propuesta).
+- U-10 a U-15 retiradas (18/11) y sustituidas por **U-21**: la credencial del admin de desarrollo se siembra por variable de entorno, no vive en el repo y no se despliega en producción. El admin local sigue funcionando igual, sin reglamento propio.
 - Cerrado el issue #24 (lo que bloqueaba empezar el backend): `V14` y `V15` ya están escritas y el seguimiento vive en el tablero, 0011 y 0012.
 
 ## Siguiente

@@ -1,7 +1,7 @@
 # Reglas de negocio
 
 - **Estado**: borrador de trabajo · 18/11/2026
-- **Para qué**: una sola lista con las **41 reglas vigentes** del proyecto (19 de usuarios, 22 de aprobación), para leerlas seguidas y **editar a mano lo que no convenza**. Hay 3 retiradas, al final.
+- **Para qué**: una sola lista con las **36 reglas vigentes** del proyecto (14 de usuarios, 22 de aprobación), para leerlas seguidas y **editar a mano lo que no convenza**. Hay 9 retiradas, al final.
 - **De dónde salen**: `usuarios.md` y `aprobacion.md`, en esta misma carpeta. Allí está el detalle y su contexto; aquí, la regla en una frase.
 - **Cómo se mantiene**: si cambias una regla aquí, se traslada al fichero de origen y al contrato en el mismo PR. Este fichero no puede quedarse por delante de los otros dos.
 - **No incluye**: payloads ni códigos HTTP (`docs/api/endpoints.md`), la composición del PDF (`docs/export/pdf.md`) ni el esquema (`V14`/`V15`).
@@ -21,17 +21,12 @@
 | U-06 | El primer admin se siembra | cerrada |
 | U-08 | La baja no borra | cerrada |
 | U-09 | Cambio de roles con efecto inmediato | cerrada |
-| U-10 | El servidor hashea, el cliente nunca | cerrada |
-| U-11 | Política de contraseña mínima | cerrada |
-| U-12 | Recuperación con enlace de un solo uso | cerrada |
-| U-13 | Cambio de contraseña revoca sesiones | cerrada |
-| U-14 | Bloqueo progresivo | cerrada |
-| U-15 | Login indistinguible | cerrada |
 | U-16 | Token opaco, no JWT | cerrada |
 | U-17 | Máximo 3 sesiones | cerrada |
 | U-18 | Caducidad de sesión | cerrada |
 | U-19 | Cuándo se revoca una sesión | cerrada |
 | U-20 | Logout es revocación, no borrado | cerrada |
+| U-21 | La credencial del admin de desarrollo no vive en el repo | cerrada |
 
 ### Aprobación
 
@@ -88,23 +83,7 @@ Se marca `estado = baja` y `eliminado_en`. Las anotaciones, revisiones y auditor
 **U-09 · Cambio de roles con efecto inmediato.**
 Al cambiar los roles de un usuario se revocan todas sus sesiones abiertas.
 
-**U-10 · El servidor hashea, el cliente nunca.** *(solo admin de desarrollo)*
-Argon2id con sal por usuario. La contraseña viaja en claro dentro de TLS y no se registra en logs.
-
-**U-11 · Política mínima de contraseña.** *(solo admin de desarrollo)*
-12 caracteres, sin exigir mayúsculas ni símbolos: la composición artificial produce contraseñas peores.
-
-**U-12 · Recuperación con enlace de un solo uso.** *(solo admin de desarrollo)*
-Token de 32 bytes guardado hasheado, caducidad 30 minutos, un uso. Al consumirse se revocan todas las sesiones.
-
-**U-13 · Cambio de contraseña revoca sesiones.** *(solo admin de desarrollo)*
-Incluido el cambio hecho por el propio usuario.
-
-**U-14 · Bloqueo progresivo.** *(solo admin de desarrollo)*
-5 intentos fallidos en 15 minutos → `429`. 10 acumulados → `estado = bloqueado` y aviso al admin. El contador se reinicia con un login correcto.
-
-**U-15 · Login indistinguible.** *(solo admin de desarrollo)*
-Mismo mensaje y mismo tiempo de respuesta para «email inexistente» y «contraseña incorrecta».
+*U-10 a U-15, retiradas el 18/11.* El admin de desarrollo deja de tener reglamento propio; su credencial queda en U-21. Los números no se reutilizan.
 
 **U-16 · Token opaco, no JWT.**
 `sesiones_usuario` guarda `token_hash`, `expira_en` y `revocado_en`: la revocación es inmediata, sin lista negra.
@@ -120,6 +99,9 @@ Al cambiar contraseña, cambiar los roles, bloquear o dar de baja, superar el l�
 
 **U-20 · Logout es revocación, no borrado.**
 Se escribe `revocado_en`, nunca `DELETE`: la sesión forma parte de la auditoría.
+
+**U-21 · La credencial del admin de desarrollo no vive en el repo.**
+Se siembra por variable de entorno, no se versiona y **no se despliega en producción**. El admin local funciona igual que antes (login, cambio y reset de contraseña); lo que desaparece es el reglamento sobre cómo se gestiona su contraseña.
 
 ---
 
@@ -204,6 +186,12 @@ Se conservan los números para no reutilizarlos; no se renumeran las demás.
 | ID | Qué era | Por qué se retira |
 |---|---|---|
 | U-07 | Validez de 72 h de la invitación | Con SSO no hay invitación. @Rubén la elimina |
+| U-10 | El servidor hashea, el cliente nunca | El admin de desarrollo deja de tener reglamento propio. Queda U-21 |
+| U-11 | Política de contraseña mínima | Ídem: una sola regla para el admin local |
+| U-12 | Recuperación con enlace de un solo uso | Ídem: la ruta sigue existiendo, sin regla que la gobierne |
+| U-13 | Cambio de contraseña revoca sesiones | Ídem |
+| U-14 | Bloqueo progresivo | Ídem |
+| U-15 | Login indistinguible | Ídem |
 | A-07 | Nadie revisa lo suyo | @Rubén la elimina. Consecuencia dicha: un revisor puede cerrar un documento que subió él |
 | A-20 | 48 h laborables con aviso a las 24 h | @Rubén la elimina: el piloto no lleva plazos |
 
