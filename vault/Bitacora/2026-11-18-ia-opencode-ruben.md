@@ -18,6 +18,7 @@
 - `.docx` de `local/` regenerados desde el markdown: `endpoints.docx`, `usuarios.docx`, `aprobaciones.docx` y, nuevo, `reglas-negocio.docx` con la lista única.
 - Análisis del modelo de @Marina a petición de @Rubén: con las reglas de hoy **no hace falta ninguna tabla nueva para los roles** (columna `roles TEXT[]` con su `CHECK` e índice GIN). La única tabla candidata es `sesiones_usuario`, y solo si no se delega la sesión en el ICAT. `tokens_usuario` no se crea. Detalle y SQL en [[0012-identidad-y-roles]].
 - Propagado a la bóveda: [[0012-identidad-y-roles]], [[0005-reglas-usuarios-y-aprobacion]], [[0009-identidad]], [[0011-ajustes-al-modelo-de-marina]] (anexo con A-20 retirada y A-15 en pausa), [[Enfoque tecnico]] §5 y §11, [[Coherencia]] (B1 y B4), [[Tablero]] y `docs/pendientes.md`.
+- `docs/api/endpoints.md`: sin `tokens_usuario` no hay dónde guardar el token de invitación, así que se retiran `POST /admin/users`, `POST /user/invitation/accept` y los dos de `password/reset`; el estado `invitado` desaparece (`activo | bloqueado | baja`) y el filtro de `/admin/users` pasa a `roles`. Regenerados `endpoints.docx`, `usuarios.docx` y `reglas-negocio.docx`.
 - Cerrado el issue #24 (lo que bloqueaba empezar el backend): `V14` y `V15` ya están escritas y el seguimiento vive en el tablero, 0011 y 0012.
 
 ## Siguiente
