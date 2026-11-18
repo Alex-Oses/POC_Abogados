@@ -1,6 +1,7 @@
 # Aprobación — estados, asignación y cierre
 
 **Estado:** propuesta con decisiones cerradas (16/11/2026).
+**Lista completa para revisar:** [`reglas-de-negocio.md`](reglas-de-negocio.md) (U-01 a U-20 y A-01 a A-23 en un solo fichero).
 **Contrato HTTP:** `docs/api/endpoints.md` (aquí solo se referencian rutas, no se redefinen).
 **Modelo de datos:** `docs/architecture/` (migraciones Flyway).
 

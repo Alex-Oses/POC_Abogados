@@ -1,6 +1,7 @@
 # Usuarios — ciclo de vida, roles y sesiones
 
 **Estado:** propuesta; roles e identidad en revisión por [[0012-identidad-y-roles]] (18/11/2026).
+**Lista completa para revisar:** [`reglas-de-negocio.md`](reglas-de-negocio.md) (U-01 a U-20 y A-01 a A-23 en un solo fichero).
 **Contrato HTTP:** `docs/api/endpoints.md` (aquí solo se referencian rutas, no se redefinen).
 **Modelo de datos:** `docs/architecture/` (migraciones Flyway).
 

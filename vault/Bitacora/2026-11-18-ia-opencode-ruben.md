@@ -11,6 +11,7 @@
 - `docs/api/endpoints.md`: bloque de roles, cuatro rutas (`assign`, `sign-off`, `audit`), payloads `rol` → `roles` y textos; las rutas de contraseña quedan marcadas como camino del admin de desarrollo.
 - [[Coherencia]]: B2 e I4 actualizados al modelo de roles nuevo.
 - [[Tablero]]: tareas de 0012, `V13` y el callback SSO; pregunta a @Marina en «Preguntas abiertas».
+- [`docs/reglas/reglas-de-negocio.md`](../../docs/reglas/reglas-de-negocio.md): las 43 reglas numeradas (U-01 a U-20 y A-01 a A-23) en un solo fichero para leerlas seguidas y editarlas a mano, con el estado de cada una y una sección «Cambios pedidos».
 - Cerrado el issue #24 (lo que bloqueaba empezar el backend): `V14` y `V15` ya están escritas y el seguimiento vive en el tablero, 0011 y 0012.
 
 ## Siguiente
