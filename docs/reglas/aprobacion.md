@@ -65,9 +65,7 @@ La toma es un `UPDATE ... WHERE estado = 'en_cola'` de una sola sentencia. Si do
 
 *Por qué cola y no reparto automático:* con un equipo pequeño el reparto round-robin solo añade una pieza que mantener. Se migra cuando el volumen haga que la cola se atasque, y para entonces `asignado_a` ya existe.
 
-**Regla A-06 — un revisor puede saltarse la cola.** `PATCH /reviews/{id}/assign` fija `asignado_a` directamente sobre una revisión `en_cola` o reasigna una `en_proceso`. Para expedientes delicados. La reasignación queda en `auditoria` con el motivo.
-
-**Regla A-07 — nadie revisa lo suyo.** Si `asignado_a` coincide con el `creado_por` del documento, la toma y la asignación se rechazan. Con varios roles (U-01) esta regla es la que evita que alguien se revise a sí mismo.
+**Regla A-06 — el revisor elige de la cola (propuesta, 18/11).** El revisor toma el documento que quiere con `POST /reviews/{id}/claim`; no se asigna de oficio. `PATCH /reviews/{id}/assign` queda como excepción para un encargo concreto; si se confirma que sobra, se retira del contrato.
 
 **Regla A-08 — la asignación es visible.** El revisor ve la cola completa y solo puede editar las revisiones que tiene en `en_proceso`, y ve quién tiene qué y desde cuándo.
 
@@ -93,7 +91,9 @@ Sin esa reentrada, un documento rechazado se queda muerto: era el hueco más gra
 
 ## 7. Visto bueno y exportación
 
-**Regla A-15 — doble firma solo en categorías especiales (decidido).** Al cerrar la revisión, el servidor calcula `requiere_visto_bueno` y lo persiste: es cierto si la versión lleva alguna anotación cuya categoría tenga `rgpd_especial = true`, es decir, datos del art. 9-10 RGPD (salud, menores, violencia, discapacidad, condenas, origen racial, religión, sindicato, orientación sexual, biométricos y genéticos). El admin controla el conjunto marcando o desmarcando `rgpd_especial` en `categorias_sensibles`: el alta o baja de una categoría no exige desplegar.
+**Regla A-15 — doble firma solo en categorías especiales.** **En pausa desde el 18/11 por decisión de @Rubén**: exige identificar los datos del art. 9-10 y montar una segunda firma, y complica más de lo que aporta. Mientras dure la pausa, `requiere_visto_bueno` se queda en `false` y ningún documento entra en `pendiente_visto_bueno`.
+
+Si se retoma: al cerrar la revisión, el servidor calcula `requiere_visto_bueno` y lo persiste: es cierto si la versión lleva alguna anotación cuya categoría tenga `rgpd_especial = true`, es decir, datos del art. 9-10 RGPD (salud, menores, violencia, discapacidad, condenas, origen racial, religión, sindicato, orientación sexual, biométricos y genéticos). El admin controla el conjunto marcando o desmarcando `rgpd_especial` en `categorias_sensibles`: el alta o baja de una categoría no exige desplegar.
 
 `nivel_riesgo` **no** decide esto. Gradúa cuánto esfuerzo de detección y revisión pide una categoría, y casi todos los identificadores directos (DNI, nombre, dirección, IBAN) están en `alto`: usarlo aquí mandaba a doble firma cualquier expediente y vaciaba la regla.
 
@@ -118,15 +118,11 @@ Cómo se compone el PDF (estructura guardada, reconstrucción sin píxeles del o
 
 ## 8. Plazos
 
-**Regla A-20 — 48 h laborables con aviso a las 24 h (decidido).** Al crear la revisión se calcula `revisiones.fecha_limite` sumando `revision_plazo_horas` (48) horas laborables. Al cruzar `revision_aviso_horas` (24) sin decisión se rellena `aviso_24h_enviado_en` y se notifica al revisor asignado y, si la revisión sigue `en_cola`, a los revisores.
-
-Qué es laborable sale de `configuracion_sistema.calendario_laboral`: lunes a viernes, 09:00-18:00, más la lista de `festivos` en formato ISO. Con la lista vacía no se descuenta ningún festivo, y el plazo saldrá largo en Semana Santa o Navidad; es el primer valor que hay que cargar al desplegar.
-
-A las 48 h vencidas no cambia nada por sí solo: los revisores reciben el aviso y reasignan con A-06.
+**Regla A-20 — retirada (18/11).** El piloto no lleva plazos de revisión: sin fecha límite, sin aviso de 24 h y sin notificaciones. El número no se reutiliza. `A-22` queda sin efecto con ella.
 
 **Regla A-21 — el expediente no caduca.** No hay plazo sobre el documento: una vez subido, sus versiones y su PDF siguen disponibles mientras exista. El TTL (propuesta: 24 h) se aplica solo a los ficheros temporales del OCR —páginas renderizadas y salidas intermedias—, que se borran al cerrar el proceso; perderlos no impide exportar, porque el PDF se reconstruye desde la estructura guardada. El original cifrado (decisión 0004) tampoco caduca mientras el expediente exista.
 
-**Regla A-22 — los plazos no cambian el estado solos.** Un documento vencido sigue `en_revision`; el vencimiento genera aviso, no una transición automática silenciosa.
+**Regla A-22 — los plazos no cambian el estado solos.** Sin A-20 no hay vencimiento ni aviso: hoy no se implementa nada. Se conserva el número por si vuelve un plazo.
 
 ## 9. Concurrencia
 
@@ -134,15 +130,21 @@ A las 48 h vencidas no cambia nada por sí solo: los revisores reciben el aviso 
 
 La toma de la cola (A-05) no depende de `If-Match`: la resuelve el `WHERE estado = 'en_cola'` de la propia sentencia.
 
+### Doble transcripción (A-24)
+
+**Regla A-24 — doble transcripción y comparación (propuesta, idea de @Rubén).** Cada documento se transcribe dos veces; se muestra una de las dos lecturas y se marcan como aviso las diferencias con la otra, para que solo se revise lo que no coincide. Sustituye a la idea anterior de «dos lecturas» del mismo OCR (I5).
+
+Coste: duplica el OCR (~1.375 pág/h en vez de ~2.750 con la RTX 3050) y exige guardar la segunda lectura o un diff por bloque. Antes de aceptarla hay que decidir qué se guarda de la segunda lectura y cómo se pinta la diferencia en la revisión.
+
 ## 10. Lo que falta en el esquema
 
 | Necesidad | Columna o tabla | Regla |
 | --- | --- | --- |
 | Revisor asignado | `revisiones.asignado_a` (FK `usuarios`, nulo en `en_cola`) | A-05 |
 | Cuándo se tomó | `revisiones.asignado_en` | A-05 |
-| Plazo | `revisiones.fecha_limite` | A-20 |
-| Aviso de 24 h ya enviado | `revisiones.aviso_24h_enviado_en` | A-20 |
-| Doble firma aplicable | `documentos.requiere_visto_bueno` (booleano persistido) | A-15 |
+| Plazo | `revisiones.fecha_limite` | A-20 (retirada: columna ya creada en `V15`, sin uso) |
+| Aviso de 24 h ya enviado | `revisiones.aviso_24h_enviado_en` | A-20 (retirada: columna ya creada en `V15`, sin uso) |
+| Doble firma aplicable | `documentos.requiere_visto_bueno` (booleano persistido) | A-15 (en pausa: siempre `false`) |
 | Firmante del visto bueno | `documentos.visto_bueno_por`, `documentos.visto_bueno_en` | A-15 |
 | Estado nuevo | `documentos.estado` gana `pendiente_visto_bueno` | A-15 |
 | Cierre del expediente | `documentos.cerrado_en` | A-19 |
@@ -156,16 +158,16 @@ La toma de la cola (A-05) no depende de `If-Match`: la resuelve el `WHERE estado
 Todos están ya en `docs/api/endpoints.md`, que es el dueño de los payloads. Aquí solo queda la referencia.
 
 ```text
-GET    /reviews?estado=en_cola      cola de trabajo
+GET    /reviews?estado=en_cola      cola de trabajo (se elige libremente)
 POST   /reviews/{id}/claim          tomar de la cola (atómico)
-PATCH  /reviews/{id}/assign         asignar o reasignar (cualquier revisor)
+PATCH  /reviews/{id}/assign         excepción: encargo concreto (A-06 propuesta)
 POST   /documents/{id}/reviews      abrir revisión (nace en_cola)
 PATCH  /reviews/{id}                cerrar revisión (If-Match)
 POST   /documents/{id}/reopen       rechazado → en_revision, nueva versión
-POST   /documents/{id}/sign-off  pendiente_visto_bueno → aprobado (otro revisor)
+POST   /documents/{id}/sign-off  en pausa con A-15
 POST   /documents/{id}/export       aprobado → exportado, con hash
 ```
 
-**Decisiones cerradas:** A-05 (cola), A-09 (no aprobar con pendientes), A-15 (doble firma solo en categorías especiales, art. 9-10), A-20 (48 h + aviso 24 h). Las columnas que estas reglas necesitan y que todavía no están en `docs/architecture/` se listan en la sección 10; bajarlas al modelo está pendiente de decisión.
+**Decisiones cerradas:** A-05 (cola), A-09 (no aprobar con pendientes). **En pausa:** A-15 (doble firma). **Retiradas (18/11):** A-07 (nadie revisa lo suyo) y A-20 (plazos). Las columnas que estas reglas necesitan y que todavía no están en `docs/architecture/` se listan en la sección 10; bajarlas al modelo está pendiente de decisión.
 
 **Único pendiente de negocio:** plazo legal de conservación tras la baja (U-08). No bloquea la construcción: mientras no haya plazo, `eliminado_en` se guarda y no se purga nada.

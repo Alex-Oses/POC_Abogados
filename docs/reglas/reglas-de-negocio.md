@@ -1,11 +1,11 @@
 # Reglas de negocio
 
 - **Estado**: borrador de trabajo · 18/11/2026
-- **Para qué**: una sola lista con las **43 reglas numeradas** del proyecto (20 de usuarios, 23 de aprobación), para leerlas seguidas y **editar a mano lo que no convenza**.
+- **Para qué**: una sola lista con las **41 reglas vigentes** del proyecto (19 de usuarios, 22 de aprobación), para leerlas seguidas y **editar a mano lo que no convenza**. Hay 3 retiradas, al final.
 - **De dónde salen**: `usuarios.md` y `aprobacion.md`, en esta misma carpeta. Allí está el detalle y su contexto; aquí, la regla en una frase.
 - **Cómo se mantiene**: si cambias una regla aquí, se traslada al fichero de origen y al contrato en el mismo PR. Este fichero no puede quedarse por delante de los otros dos.
 - **No incluye**: payloads ni códigos HTTP (`docs/api/endpoints.md`), la composición del PDF (`docs/export/pdf.md`) ni el esquema (`V14`/`V15`).
-- **Lo marcado `(propuesta)`** todavía no está aceptado; lo demás son decisiones cerradas en su fichero.
+- **Lo marcado `(propuesta)` o `(en pausa)`** todavía no está aceptado; lo demás son decisiones cerradas en su fichero.
 
 ## Índice
 
@@ -15,11 +15,10 @@
 |---|---|---|
 | U-01 | Varios roles por usuario | propuesta (0012) |
 | U-02 | El permiso se comprueba en el servidor | cerrada |
-| U-03 | Propiedad del recurso | cerrada |
+| U-03 | Propiedad del recurso (solo transcriptor puro) | cerrada |
 | U-04 | El estado de la cuenta es explícito | cerrada |
 | U-05 | Alta por SSO | propuesta (0009/0012) |
 | U-06 | El primer admin se siembra | cerrada |
-| U-07 | Sin invitación con SSO | propuesta |
 | U-08 | La baja no borra | cerrada |
 | U-09 | Cambio de roles con efecto inmediato | cerrada |
 | U-10 | El servidor hashea, el cliente nunca | cerrada |
@@ -43,8 +42,7 @@
 | A-03 | Solo se anonimiza texto existente | cerrada |
 | A-04 | Una sola revisión abierta por documento | cerrada |
 | A-05 | Cola con toma atómica | cerrada |
-| A-06 | Un revisor puede saltarse la cola | cerrada |
-| A-07 | Nadie revisa lo suyo | cerrada |
+| A-06 | El revisor elige de la cola | propuesta |
 | A-08 | La asignación es visible | cerrada |
 | A-09 | No se aprueba con anotaciones pendientes | cerrada |
 | A-10 | El revisor corrige, no reescribe | cerrada |
@@ -52,15 +50,15 @@
 | A-12 | El rechazo no es el final | cerrada |
 | A-13 | Motivo obligatorio al rechazar | cerrada |
 | A-14 | `devuelto` no mata el documento | cerrada |
-| A-15 | Doble firma solo en categorías especiales | cerrada |
+| A-15 | Doble firma solo en categorías especiales | en pausa |
 | A-16 | Exportar es una acción explícita | cerrada |
 | A-17 | Solo se exporta lo aprobado | cerrada |
 | A-18 | Lo exportado es inmutable | cerrada |
 | A-19 | Aprobar congela | cerrada |
-| A-20 | 48 h laborables con aviso a las 24 h | cerrada |
 | A-21 | El expediente no caduca | cerrada |
-| A-22 | Los plazos no cambian el estado solos | cerrada |
+| A-22 | Los plazos no cambian el estado solos | sin efecto |
 | A-23 | Cierre optimista | cerrada |
+| A-24 | Doble transcripción y comparación | propuesta |
 
 ---
 
@@ -72,8 +70,8 @@ Los roles viven en `usuarios_roles (usuario_id, rol)` (N:M) y el permiso es la *
 **U-02 · El permiso se comprueba en el servidor, siempre.**
 Los roles se releen de `usuarios_roles` en cada petición; el token no arrastra los roles con los que se emitió.
 
-**U-03 · Propiedad del recurso.**
-El transcriptor solo ve y opera sobre documentos con `creado_por = usuario_id`. El revisor ve todos. El admin no ve contenido de documentos, solo metadatos.
+**U-03 · Propiedad del recurso (solo transcriptor puro).**
+Quien tiene **únicamente** el rol de transcriptor solo ve y opera sobre documentos con `creado_por = usuario_id`. En cuanto tiene también el rol de revisor, ve y revisa todos los documentos, aunque haya subido alguno. El admin no ve contenido de documentos, solo metadatos.
 
 **U-04 · El estado de la cuenta es explícito.**
 `usuarios.estado` sustituye al booleano `activo`: `activo`, `bloqueado` o `baja`. Con un booleano no se distingue «invitado» de «bloqueado» y la auditoría no puede explicar por qué alguien no entra.
@@ -83,9 +81,6 @@ No hay autoregistro, ni invitación, ni contraseñas de usuario. El primer acces
 
 **U-06 · El primer admin se siembra.**
 El admin de desarrollo se crea por migración o variable de entorno, nunca por endpoint público. Sin esta regla el sistema no arranca. No se despliega en producción.
-
-**U-07 · Sin invitación con SSO.** *(propuesta)*
-Con SSO no hay token de invitación. Si el piloto vuelve a cuentas locales, se recupera la validez de 72 h.
 
 **U-08 · La baja no borra.**
 Se marca `estado = baja` y `eliminado_en`. Las anotaciones, revisiones y auditoría siguen apuntando al usuario; un `DELETE` real rompería la trazabilidad.
@@ -145,11 +140,8 @@ Se considera abierta si está en `en_cola` o `en_proceso`. Un nuevo intento devu
 **A-05 · Cola con toma atómica.** *(cerrada)*
 La revisión nace `en_cola` y sin `asignado_a`. El revisor la toma con `POST /reviews/{id}/claim`, que rellena `asignado_a` y `asignado_en` en un solo `UPDATE ... WHERE estado = 'en_cola'`. Si dos pulsan a la vez, uno recibe `409`.
 
-**A-06 · Un revisor puede saltarse la cola.**
-`PATCH /reviews/{id}/assign` fija `asignado_a` sobre una revisión en cola o reasigna una en proceso. La reasignación queda en `auditoria` con el motivo.
-
-**A-07 · Nadie revisa lo suyo.**
-Si `asignado_a` coincide con el `creado_por` del documento, la toma y la asignación se rechazan.
+**A-06 · El revisor elige de la cola.** *(propuesta)*
+El revisor toma de la cola el documento que quiere (`claim`); no se asigna de oficio a una persona. La asignación directa queda como excepción para un encargo concreto, no como norma. Si se confirma que sobra, `PATCH /reviews/{id}/assign` desaparece del contrato.
 
 **A-08 · La asignación es visible.**
 El revisor ve la cola completa, solo edita lo que tiene en `en_proceso`, y ve quién tiene qué y desde cuándo.
@@ -172,9 +164,10 @@ Puede cambiar `accion_aplicada`, `texto_sustitucion` y la decisión. Cambiar el 
 **A-14 · `devuelto` no mata el documento.**
 Un documento ilegible no es un rechazo: vuelve a `en_cola` en la misma transacción, con su motivo. Tras dos devoluciones de la misma versión, los revisores reciben el aviso y deciden si se reescanea.
 
-**A-15 · Doble firma solo en categorías especiales.** *(cerrada)*
-Al cerrar la revisión, el servidor calcula y guarda `requiere_visto_bueno`: cierto si la versión tiene alguna anotación de una categoría con `rgpd_especial = true` (art. 9-10 RGPD). `nivel_riesgo` no interviene.
-Si es cierto, el documento pasa a `pendiente_visto_bueno` y lo libera con `POST /documents/{id}/sign-off` **un revisor distinto del que cerró la revisión**, que rellena `visto_bueno_por` y `visto_bueno_en`. No re-anota: firma o devuelve a `en_revision` con motivo.
+**A-15 · Doble firma solo en categorías especiales.** *(en pausa)*
+En pausa por decisión de @Rubén (18/11): exige identificar los datos del art. 9-10 y montar una segunda firma, y ahora mismo complica más de lo que aporta. Mientras siga en pausa, `requiere_visto_bueno` se queda siempre en `false` y ningún documento entra en `pendiente_visto_bueno`.
+
+Si se retoma: al cerrar la revisión, el servidor calcula y guarda `requiere_visto_bueno` (cierto si hay alguna anotación de una categoría con `rgpd_especial = true`; `nivel_riesgo` no interviene). El documento pasa a `pendiente_visto_bueno` y lo libera con `POST /documents/{id}/sign-off` **un revisor distinto del que cerró**, que rellena `visto_bueno_por` y `visto_bueno_en`. No re-anota: firma o devuelve a `en_revision` con motivo.
 
 **A-16 · Exportar es una acción explícita.**
 `POST /documents/{id}/export` genera el PDF definitivo, calcula su hash y pasa el documento a `exportado`. `POST /transform/build` es solo vista previa y no cierra el expediente.
@@ -188,17 +181,31 @@ Se guardan `hash_export` y `exportado_en`; si el documento se reabre, el hash an
 **A-19 · Aprobar congela.**
 Tras `aprobado` no se crean versiones nuevas salvo reapertura explícita de un revisor, que rellena `cerrado_en`. Queda en `auditoria` quién reabrió y por qué.
 
-**A-20 · 48 h laborables con aviso a las 24 h.** *(cerrada)*
-Al crear la revisión se calcula `fecha_limite` sumando `revision_plazo_horas` (48) horas laborables. Al cruzar las 24 sin decisión se rellena `aviso_24h_enviado_en` y se notifica al revisor asignado y, si sigue en cola, a los revisores. Laborable = L-V 09:00-18:00 menos los festivos de `configuracion_sistema`.
-
 **A-21 · El expediente no caduca.**
 No hay plazo sobre el documento. El TTL (24 h) es solo de los ficheros temporales del OCR; el original cifrado tampoco caduca mientras el expediente exista.
 
-**A-22 · Los plazos no cambian el estado solos.**
-Un documento vencido sigue `en_revision`; el vencimiento genera aviso, no una transición silenciosa.
+**A-22 · Los plazos no cambian el estado solos.** *(sin efecto)*
+Sin A-20 no hay vencimiento ni aviso. Se conserva por si vuelve un plazo, pero hoy no se implementa nada.
 
 **A-23 · Cierre optimista.**
 `PATCH /reviews/{id}` exige `If-Match` con el `updated_at` de la revisión. Si otro la cerró primero, `409` y se recarga. La toma de la cola (A-05) no usa `If-Match`: la resuelve el `WHERE estado = 'en_cola'`.
+
+**A-24 · Doble transcripción y comparación.** *(propuesta, idea de @Rubén)*
+Cada documento se transcribe dos veces; se muestran al revisor una de las dos lecturas y **se marcan como aviso las diferencias** con la otra, para que solo se revisen los puntos donde no coinciden. Sustituye a la idea anterior de «dos lecturas» del mismo OCR (I5).
+
+Coste: duplica el OCR (~1.375 pág/h en vez de ~2.750 con la RTX 3050) y exige guardar las dos lecturas o un diff por bloque. Antes de aceptarla hay que decidir qué se guarda de la segunda lectura y cómo se marca la diferencia en la pantalla de revisión.
+
+---
+
+## Reglas retiradas (18/11/2026)
+
+Se conservan los números para no reutilizarlos; no se renumeran las demás.
+
+| ID | Qué era | Por qué se retira |
+|---|---|---|
+| U-07 | Validez de 72 h de la invitación | Con SSO no hay invitación. @Rubén la elimina |
+| A-07 | Nadie revisa lo suyo | @Rubén la elimina. Consecuencia dicha: un revisor puede cerrar un documento que subió él |
+| A-20 | 48 h laborables con aviso a las 24 h | @Rubén la elimina: el piloto no lleva plazos |
 
 ---
 

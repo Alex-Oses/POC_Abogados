@@ -20,9 +20,9 @@ Tres piezas estaban decididas por separado y no encajan entre sí:
 
 1. **SSO del ICAT como única entrada.** No hay invitación, ni alta manual, ni contraseñas de usuario, ni proveedor de correo. El proveedor valida y devuelve `sub`; el backend busca o crea la ficha y abre sesión.
 2. **Un único login local: el admin de desarrollo.** Sembrado por migración o variable de entorno, con contraseña fuerte, **no se despliega en producción**. Sirve para pruebas y para arrancar el sistema sin depender del ICAT.
-3. **Tres roles**: `transcriptor`, `revisor`, `admin`. **El supervisor desaparece** y sus funciones pasan al revisor: asignar y reasignar (A-06), liberar o devolver el visto bueno (A-15), reabrir un aprobado (A-19), recibir avisos de plazo (A-20) y consultar la auditoría.
+3. **Tres roles**: `transcriptor`, `revisor`, `admin`. **El supervisor desaparece** y sus funciones pasan al revisor: asignar y reasignar (A-06), liberar o devolver el visto bueno (A-15, en pausa), reabrir un aprobado (A-19) y consultar la auditoría.
 4. **Varios roles por usuario** en `usuarios_roles (usuario_id, rol)`: el permiso es la **unión** de los roles. `usuarios.rol` desaparece.
-5. **La doble firma sigue siendo doble**: el visto bueno lo libera un revisor **distinto** de quien cerró la revisión y de quien subió el documento (A-15 + A-07). Si no, con tres roles la firma sería un clic del mismo revisor.
+5. **La doble firma queda en pausa** (18/11): A-07 (nadie revisa lo suyo) se retira y A-15 (otro revisor firma) se para. Consecuencia asumida: hoy un revisor puede revisar y cerrar un documento que subió él.
 6. **La primera entrada crea la ficha sin roles.** Un usuario sin roles no ve documentos; un admin le asigna los suyos. No hay alta previa ni invitación que esperar.
 
 ## Lo que cambia en la base de datos
@@ -47,7 +47,7 @@ Sobre lo aceptado en 0011. **Todo lo estructural cabe en `V13`**, que todavía n
 |---|---|
 | **Contrato** | Bloque de roles (tres, varios por usuario), columna de roles de 4 rutas (`assign`, `sign-off`, `audit`), payloads de `/admin/users` (`rol` → `roles`) y los textos que dicen «supervisor». Las siete rutas de contraseña e invitación quedan como camino del admin de desarrollo, no del usuario real |
 | **Reglas U** | U-01 (rol único), U-02 (releer de `usuarios`), U-03 y U-09; U-19 gana «cambio de roles» |
-| **Reglas A** | A-06, A-07, A-08, A-14, A-15, A-19 y A-20: de supervisor a revisor, con la firma de otro revisor |
+| **Reglas A** | A-06 pasa a cola libre; A-08, A-14, A-15 y A-19 pasan de supervisor a revisor. A-07 y A-20 se retiran (18/11) |
 | [[0005-reglas-usuarios-y-aprobacion]] | Reglas 1, 2, 4 y 6 |
 | [[0009-identidad]] | La opción 3 pasa de «admin de emergencia» a «admin de desarrollo»; `tokens_usuario` sale del todo |
 | [[Enfoque tecnico]] | §5 y §11: SSO, tres roles, varios roles y su efecto en el modelo |

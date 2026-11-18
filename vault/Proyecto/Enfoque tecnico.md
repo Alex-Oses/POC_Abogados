@@ -64,9 +64,9 @@ Los payloads y códigos de cada ruta viven en el contrato; aquí solo va lo que 
 | Comprobación | Los roles se releen en cada petición: el token no arrastra rol |
 | Sin permiso | Sin sesión `401`; con sesión pero sin permiso `403`, o `404` si además el recurso no es suyo |
 
-Los tres roles son **transcriptor, revisor y admin**. **El supervisor desaparece** y sus funciones pasan al revisor: asignar y reasignar (A-06), liberar o devolver el visto bueno (A-15), reabrir un aprobado (A-19), recibir los avisos de plazo (A-20) y consultar la auditoría.
+Los tres roles son **transcriptor, revisor y admin**. **El supervisor desaparece** y sus funciones pasan al revisor: asignar y reasignar (A-06), liberar o devolver el visto bueno (A-15, en pausa), reabrir un aprobado (A-19) y consultar la auditoría.
 
-Para que la doble firma siga siendo doble, **el visto bueno lo libera un revisor distinto de quien cerró la revisión**, y nadie revisa un documento que subió (A-07).
+La doble firma queda **en pausa** (18/11): A-07 (nadie revisa lo suyo) se retira y A-15 (otro revisor firma) se para, así que hoy un revisor puede cerrar un documento que subió él. Si se retoman, el visto bueno vuelve a exigir un revisor distinto de quien cerró.
 
 Consecuencia para el modelo de @Marina: entra `usuarios_roles` (N:M), entra `usuarios.sso_subject` y `tokens_usuario` deja de usarse en producción (no hay invitaciones ni reset). `sesiones_usuario` y `usuarios.estado` se quedan.
 

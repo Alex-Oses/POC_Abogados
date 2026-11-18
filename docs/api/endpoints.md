@@ -399,7 +399,7 @@ La toma es un único `UPDATE ... WHERE estado = 'en_cola'`: no usa `If-Match` y 
 
 ### `PATCH /reviews/{id}/assign`
 
-Cualquier revisor. Asigna una revisión en cola o reasigna una en proceso.
+Cualquier revisor. Asigna una revisión en cola o reasigna una en proceso. **Excepción, no norma**: A-06 propone que el revisor elija libremente de la cola; si se confirma, la ruta desaparece.
 
 ```json
 { "asignado_a": "uuid", "comentario": "Expediente delicado" }
@@ -448,6 +448,8 @@ Errores: `409` si el documento no está `rechazado`, `422` si no hay texto que a
 ### `POST /documents/{id}/sign-off`
 
 Cualquier revisor, **salvo quien cerró la revisión**. Libera un documento en `pendiente_visto_bueno`. No crea versión: `final_aprobado` ya se creó al aprobar el revisor.
+
+**En pausa con A-15** (18/11): mientras la doble firma esté parada, `requiere_visto_bueno` es siempre `false` y esta ruta no se usa. Se conserva en el contrato para no reescribirlo si se retoma.
 
 ```json
 { "comentario": "Firmado" }

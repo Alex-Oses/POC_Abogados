@@ -19,7 +19,7 @@ Quién puede entrar, qué puede hacer y cómo se le retira el acceso. No describ
 
 **Regla U-01 — varios roles por usuario (propuesto, [[0012-identidad-y-roles]]).** Los roles viven en `usuarios_roles (usuario_id, rol)` (N:M) y el permiso es la **unión**. `usuarios.rol` desaparece. Hay tres roles: `transcriptor`, `revisor` y `admin`; **el supervisor se elimina** y sus funciones pasan al revisor.
 
-*Riesgo asumido:* un rol único obligaba a cuentas duplicadas cuando la misma persona sube, revisa y administra. Con roles múltiples, A-07 (nadie revisa lo suyo) y A-15 (otro revisor firma) son las que mantienen la separación de funciones.
+*Riesgo asumido:* un rol único obligaba a cuentas duplicadas cuando la misma persona sube, revisa y administra. Con roles múltiples, la separación de funciones ya no la da el rol: la darían A-07 (nadie revisa lo suyo) y A-15 (otro revisor firma), ambas retiradas o en pausa, así que hoy un revisor puede revisar y cerrar un documento que subió él.
 
 **Regla U-02 — el permiso se comprueba en el servidor, siempre.** Los roles se releen de `usuarios_roles` en cada petición; el token no arrastra los roles con los que se emitió.
 
@@ -33,14 +33,14 @@ Quién puede entrar, qué puede hacer y cómo se le retira el acceso. No describ
 | Revisar anotaciones | — | sí | — |
 | Cerrar revisión | — | sí | — |
 | Asignar y reasignar | — | sí | — |
-| Visto bueno final | — | otro revisor, no quien cerró | — |
+| Visto bueno final | — | en pausa (A-15) | — |
 | Exportar aprobado | sus documentos | sí | — |
 | Reglas y categorías | — | — | sí |
 | Usuarios y roles | — | — | sí |
 | Auditoría | — | lectura | lectura |
 | Configuración del sistema | — | — | sí |
 
-**Regla U-03 — propiedad del recurso.** El transcriptor solo ve y opera sobre documentos con `creado_por = usuario_id`. El revisor ve todos; el admin no ve contenido de documentos, solo metadatos.
+**Regla U-03 — propiedad del recurso (solo transcriptor puro).** Quien tiene **únicamente** el rol de transcriptor solo ve y opera sobre documentos con `creado_por = usuario_id`. Si además es revisor, ve y revisa todos, aunque haya subido alguno. El admin no ve contenido de documentos, solo metadatos.
 
 ## 4. Ciclo de vida de la cuenta
 
@@ -52,7 +52,7 @@ invitado → activo → bloqueado → activo
 | Estado | Quién lo provoca | Efecto |
 | --- | --- | --- |
 | `invitado` | Solo camino local de desarrollo | Tiene token de invitación; no puede iniciar sesión hasta fijar contraseña. Con SSO no se usa |
-| `activo` | Acepta la invitación (o reset de contraseña) | Acceso completo |
+| `activo` | Primer acceso con SSO (o aceptación de invitación en el camino local) | Acceso completo |
 | `bloqueado` | Admin, o 10 intentos fallidos | Login denegado; sesiones revocadas |
 | `baja` | Admin | Login denegado; datos conservados según plazo legal |
 
@@ -62,9 +62,9 @@ invitado → activo → bloqueado → activo
 
 **Regla U-06 — el primer admin se siembra.** El admin de desarrollo se crea por migración o variable de entorno, nunca por endpoint público. Sin esta regla, el sistema no arranca. No se despliega en producción.
 
-**Regla U-07 — sin invitación con SSO.** Con SSO no hay token de invitación: U-07 queda sin efecto. Si el piloto vuelve a cuentas locales, se recupera la validez de 72 h (`configuracion_sistema.invitacion_ttl_horas`).
-
 **Regla U-08 — la baja no borra.** Se marca `estado = baja` y `eliminado_en`. Las anotaciones, revisiones y auditoría siguen apuntando al usuario; un `DELETE` real rompería la trazabilidad.
+
+U-07 (validez de 72 h de la invitación) se retira el 18/11: con SSO no hay invitación. El número no se reutiliza.
 
 **Regla U-09 — cambio de roles con efecto inmediato.** Al cambiar los roles de un usuario se revocan todas sus sesiones abiertas. Si no, sigue operando con los roles anteriores hasta que caduque el token.
 
