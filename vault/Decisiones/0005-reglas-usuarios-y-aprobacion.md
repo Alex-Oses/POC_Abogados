@@ -27,6 +27,6 @@ Se cierran estas reglas, que son las que cambian el contrato y el modelo:
 ## Consecuencias
 
 - El contrato pasa de 5 a 40 rutas; `/user/register` desaparece. Con SSO, las rutas de invitación y contraseña quedan como camino del admin de desarrollo ([[0012-identidad-y-roles]]).
-- Hacen falta columnas que hoy no están en `docs/architecture/` (`roles`, `estado`, `sso_subject`, `motivo_baja`, `revisiones.asignado_a` ya está en `V15`, `documentos.requiere_visto_bueno`/`hash_export`) y, solo si se elige sesión propia, la tabla `sesiones_usuario`. **No se toca el modelo en este PR**: el encaje queda pendiente y se decidirá aparte.
+- Hacen falta columnas que hoy no están en `docs/architecture/` (`roles`, `estado`, `sso_subject`, `motivo_baja`, `revisiones.asignado_a` ya está en `V15`, `documentos.requiere_visto_bueno`/`hash_export`) y la tabla `sesiones_usuario` (sesión propia, decidida el 18/11). **No se toca el modelo en este PR**: el encaje queda pendiente y se decidirá aparte.
 - Depende de [[0004-anonimizacion-antes-o-despues-de-revision]]: el flujo asume que se conserva el original y se anonimiza antes de la revisión.
 - Queda abierto el plazo legal de conservación tras la baja; mientras no exista, no se purga nada.
