@@ -27,7 +27,7 @@ Es el bloqueante B2 de [[Coherencia]] y bloquea a B1: de la respuesta depende qu
 
 ## Consecuencias
 
-- `sesiones_usuario` solo es necesaria si la sesión es de la aplicación. Con SSO se puede delegar en la caducidad del token del ICAT y entonces **no hace falta ninguna tabla**; se pierden el tope de 3 dispositivos y el logout remoto ([[0012-identidad-y-roles]]).
+- `sesiones_usuario` **hace falta**: la sesión es de la aplicación, con tope de 3 dispositivos y logout remoto ([[0012-identidad-y-roles]], opción B elegida por @Rubén el 18/11). Delegarla en el token del ICAT ahorraría la tabla pero perdería U-16 a U-20.
 - `tokens_usuario` **no se usa en producción**: no hay invitación ni reset por correo. La contraseña del admin de desarrollo se siembra por variable de entorno, no por enlace.
 - `usuarios.password_hash` pasa a ser opcional y solo lo tiene el admin de desarrollo.
 - El SSO exige registro de aplicación en el ICAT (redirect URI, secreto, grupos) y mapear los roles desde el directorio o desde `usuarios.roles`.
