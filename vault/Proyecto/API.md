@@ -2,7 +2,7 @@
 
 Contrato completo: [docs/api/endpoints.md](../../docs/api/endpoints.md). Esta nota es el índice; los payloads, códigos y efectos viven allí. Reglas de negocio: [docs/reglas/usuarios.md](../../docs/reglas/usuarios.md) y [docs/reglas/aprobacion.md](../../docs/reglas/aprobacion.md).
 
-Estado: propuesta (16/11/2026), 38 rutas. Sustituye al borrador de 5 rutas del 06/11/2026.
+Estado: propuesta (16/11/2026), 40 rutas. Sustituye al borrador de 5 rutas del 06/11/2026.
 
 ## Convenciones
 
@@ -19,7 +19,7 @@ Estado: propuesta (16/11/2026), 38 rutas. Sustituye al borrador de 5 rutas del 0
 | Autenticación | 6 | SSO, login/logout, `me` y cambio de contraseña del admin de desarrollo |
 | Usuarios | 3 | Listado, `PATCH` de roles/estado, revocar sesiones |
 | OCR | 3 | Subir, texto plano y PDF de vista previa |
-| Documentos y versiones | 6 | Listado, detalle, baja lógica, versiones y bloques de layout |
+| Documentos y versiones | 8 | Listado, detalle, páginas, original, baja lógica, versiones y bloques de layout |
 | Anonimización | 3 | Lanzar el proceso, listar anotaciones, decidir cada una |
 | Revisión | 5 | Cola, abrir, tomar, asignar y cerrar |
 | Cierre | 3 | Reapertura, visto bueno (en pausa con A-15) y exportación con hash |

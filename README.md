@@ -15,7 +15,7 @@ Prueba de concepto para el **Il·lustre Col·legi de l'Advocacia de Tarragona (I
 | Propuesta funcional y de diseño | Hecha (06/11/2026) | [vault/Proyecto/Propuesta ICAT](vault/Proyecto/Propuesta%20ICAT.md) |
 | Pruebas de rendimiento del OCR (PaddleOCR-VL 1.6) | Hechas, con comparativa de equipos | [vault/Proyecto/Rendimiento OCR](vault/Proyecto/Rendimiento%20OCR.md) · [bench](investigacion/paddleocr/bench.py) |
 | Contrato de la API (v1) | Borrador | [vault/Proyecto/API](vault/Proyecto/API.md) |
-| Modelo de datos (PostgreSQL) | Primer borrador | [docs/architecture](docs/architecture/README.md) |
+| Modelo de datos (PostgreSQL) | Cerrado (V1–V15) | [docs/architecture](docs/architecture/README.md) |
 | Anonimización local (Presidio) | Investigada y medida | [documentación y rendimiento](docs/presidio.md) |
 | Maqueta navegable del flujo completo | Hecha | [maqueta/index.html](maqueta/index.html) · [documentación](docs/maqueta.md) |
 | Código de la aplicación | Sin empezar | — |
@@ -42,7 +42,7 @@ Detalle, semáforo de calidad y configuración: [vault/Proyecto/Rendimiento OCR]
 2. **OCR local** con [PaddleOCR-VL 1.6](vault/Proyecto/Rendimiento%20OCR.md) sobre Ollama: ~1 % de errores de carácter y 100 % de DNI e importes exactos en escaneos normales; ~2.750 páginas/hora con una RTX 3050 de 4 GB. Ningún documento sale del servidor.
 3. **Revisión**: imagen a la izquierda, texto editable a la derecha, con las dudas marcadas (dos lecturas distintas, DNI/NIE con letra incorrecta, IBAN inválido).
 4. **Anonimización** según la práctica del CENDOJ y el RGPD: censurar, borrar, etiquetar, seudónimo o iniciales, por categoría de dato.
-5. **Exportación** a PDF buscable o Word, eliminando de verdad el texto original (capa de texto, imagen y metadatos).
+5. **Exportación** a PDF buscable, eliminando de verdad el texto original (capa de texto, imagen y metadatos).
 
 ## Arquitectura prevista
 
@@ -57,13 +57,16 @@ PostgreSQL 14+  (documentos, versiones, anotaciones, revisiones, auditoría con 
 Almacenamiento cifrado en reposo para los originales
 ```
 
-Endpoints v1 (borrador): `POST /transform/document`, `/transform/plain-text`, `/transform/build`, `/user/register`, `/user/login`. Detalle en [vault/Proyecto/API](vault/Proyecto/API.md).
+Contrato v1 (40 rutas): `GET /auth/sso/login`, `/auth/sso/callback`, `POST /user/login`, `POST /transform/document` y el resto en [docs/api/endpoints.md](docs/api/endpoints.md) · índice en [vault/Proyecto/API](vault/Proyecto/API.md).
 
 ## Estructura del repositorio
 
 ```
-docs/architecture/   Modelo de datos: migraciones Flyway V1–V12, vistas, triggers, RGPD, diagrama
-docs/                Documentación (maqueta y Presidio, en .md; los PDF se generan en local con docs/pdf.py) y modelo de datos
+docs/architecture/   Modelo de datos: migraciones Flyway V1–V15, vistas, triggers, RGPD, diagrama
+docs/api/            Contrato REST completo (rutas, payloads y códigos)
+docs/reglas/         Reglas de negocio: usuarios y flujo de aprobación
+docs/export/         Generación del PDF final
+docs/                Documentación (maqueta y Presidio, en .md; los PDF se generan en local con docs/pdf.py)
 maqueta/             Prototipo navegable del flujo completo (abrir index.html) y su prueba
 investigacion/       Pruebas reproducibles (p. ej. Presidio en castellano)
 vault/               Bóveda de Obsidian: conocimiento, tablero, decisiones y bitácora del equipo (personas e IAs)

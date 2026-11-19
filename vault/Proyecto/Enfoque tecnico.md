@@ -7,7 +7,7 @@
 
 ## 1. Alcance
 
-El backend es el servicio que **expone las 38 rutas del contrato, guarda el estado y decide quién puede hacer qué**. No hace OCR, ni anonimización, ni compone el PDF: pide esas transformaciones, espera el resultado y lo persiste con sus permisos y su rastro.
+El backend es el servicio que **expone las 40 rutas del contrato, guarda el estado y decide quién puede hacer qué**. No hace OCR, ni anonimización, ni compone el PDF: pide esas transformaciones, espera el resultado y lo persiste con sus permisos y su rastro.
 
 Esa frontera no es burocracia. Si el backend hiciera el OCR, una subida tendría la API bloqueada dos minutos por documento y cualquier fallo de la GPU tumbaría también la consulta de un expediente ya aprobado.
 
@@ -39,7 +39,7 @@ Puntos a cerrar con @Yaser antes de escribir código (no los decido yo):
 
 ## 4. El contrato
 
-38 rutas REST y JSON bajo `/api/v1`, en kebab-case, sin barra final ni extensiones. `application/json` (subidas `multipart/form-data`), `Authorization: Bearer <token>`.
+40 rutas REST y JSON bajo `/api/v1`, en kebab-case, sin barra final ni extensiones. `application/json` (subidas `multipart/form-data`), `Authorization: Bearer <token>`.
 
 | Convención | Valor                                                                                     |
 | ---------- | ----------------------------------------------------------------------------------------- |

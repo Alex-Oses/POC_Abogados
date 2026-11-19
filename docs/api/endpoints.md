@@ -63,11 +63,13 @@ Los roles se releen de la base de datos en cada petición: un token no arrastra 
 | `GET` | `/api/v1/admin/users` | A | `usuarios` |
 | `PATCH` | `/api/v1/admin/users/{id}` | A | `usuarios`, `sesiones_usuario` |
 | `DELETE` | `/api/v1/admin/users/{id}/sessions` | A | `sesiones_usuario` |
-| `POST` | `/api/v1/transform/document` | T | `documentos`, `versiones_documento`, `bloques_layout` |
+| `POST` | `/api/v1/transform/document` | T | `documentos`, `versiones_documento`, `bloques_layout`, `paginas_documento` |
 | `POST` | `/api/v1/transform/plain-text` | T, R | `versiones_documento` |
 | `POST` | `/api/v1/transform/build` | T, R | `versiones_documento` |
 | `GET` | `/api/v1/documents` | T, R | `documentos` |
 | `GET` | `/api/v1/documents/{id}` | T, R | `documentos`, `versiones_documento` |
+| `GET` | `/api/v1/documents/{id}/pages` | T, R | `paginas_documento` |
+| `GET` | `/api/v1/documents/{id}/original` | T (dueño), R | `documentos` |
 | `DELETE` | `/api/v1/documents/{id}` | T (dueño), A | `documentos` |
 | `GET` | `/api/v1/documents/{id}/versions` | R | `versiones_documento` |
 | `GET` | `/api/v1/documents/{id}/versions/{numero_version}` | R | `versiones_documento` |
@@ -255,6 +257,34 @@ Lista documentos. El transcriptor ve solo los suyos; el revisor ve todos. Excluy
 }
 ```
 
+### `GET /documents/{id}/pages`
+
+Semáforo por página: una entrada por fila de `paginas_documento`. Es lo que pinta la bandeja y el aviso de calidad antes de revisar.
+
+```json
+{
+  "items": [
+    {
+      "numero": 1,
+      "contraste": 62,
+      "estado": "aviso",
+      "avisos": [{ "tipo": "contraste_bajo", "mensaje": "Escaneo muy claro", "bbox": { "x": 120, "y": 340, "ancho": 800, "alto": 220 } }],
+      "leida_ocr": true
+    }
+  ]
+}
+```
+
+`estado`: `ok | aviso | error`. `404` si el documento no existe. El detalle de los avisos está en `docs/reglas/aprobacion.md` §8.
+
+### `GET /documents/{id}/original`
+
+Descarga el original **descifrado**, para comparar con la transcripción. Es la pantalla central de la revisión.
+
+`200` → binario con el `mime_type` guardado y `Content-Disposition: inline`. Cada acceso se registra en `auditoria` (quién, cuándo, qué documento).
+
+Errores: `404` si el documento o el fichero no existen, `410` si el original ya se purgó.
+
 ### `DELETE /documents/{id}`
 
 `204`. Borrado lógico: pasa `estado` a `eliminado` y rellena `eliminado_en`. No borra las versiones, las anotaciones ni la auditoría.
@@ -318,9 +348,9 @@ Errores: `404` si el documento o la regla no existen, `409` si ya hay un proceso
 
 ### `GET /documents/{id}/annotations?version=&categoria=&pendientes=true`
 
-`200` → `{ "items": [ { "id", "bloque_id", "categoria", "inicio_offset", "fin_offset", "texto_original", "accion_aplicada", "confianza_deteccion", "decision_revisor" } ] }`.
+`200` → `{ "items": [ { "id", "categoria", "inicio_offset", "fin_offset", "texto_original", "pagina_numero", "accion_aplicada", "confianza_deteccion", "decision_revisor" } ] }`.
 
-Los offsets son índices de carácter dentro de `bloques_layout.contenido`. `version` filtra por `version_id`, `categoria` por `categoria_id` y `pendientes=true` por `decision_revisor IS NULL` (A-09).
+Los offsets son índices de carácter dentro de `versiones_documento.contenido_texto`: la anotación no apunta a un bloque de layout. `pagina_numero` y `bbox` los rellena la detección, no el layout. `version` filtra por `version_id`, `categoria` por `categoria_id` y `pendientes=true` por `decision_revisor IS NULL` (A-09).
 
 ### `PATCH /annotations/{id}`
 
@@ -566,6 +596,7 @@ cualquier estado ──DELETE /documents/{id}──→ eliminado
 | Cambio de rol, bloqueo o baja | `usuarios`, `sesiones_usuario` |
 | Revocar sesiones | `sesiones_usuario` |
 | Subida + OCR | `documentos`, `versiones_documento` (2), `bloques_layout`, `paginas_documento` |
+| Leer páginas u original | solo `auditoria` (el original, siempre) |
 | Anonimizar | `versiones_documento` (1), `anotaciones_entidad` (N) |
 | Revisar anotación | `anotaciones_entidad` |
 | Abrir revisión | `revisiones` (`en_cola`), `documentos` |
