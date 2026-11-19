@@ -5,6 +5,7 @@
 - Aceptadas por @Rubén (19/11): 0002 (PostgreSQL + Flyway), 0005 (reglas de usuarios y aprobación), 0006 (Presidio local) y 0007 (PDF final).
 - Confirmación de @Rubén (19/11): stack Python + FastAPI (0008) e identidad SSO con admin local solo de desarrollo (0009). Ambas siguen **Propuesta**: faltan @Marina, @Kevin y @Alex.
 - Revisión de coherencia de `docs/api/endpoints.md`, `vault/Proyecto/API.md`, `vault/Proyecto/Enfoque tecnico.md`, `docs/reglas/usuarios.md` y `docs/reglas/aprobacion.md` contra las reglas U/A, el modelo de @Marina y `V14`/`V15`.
+- Confirmado por @Rubén (19/11): la BD actual (`V1`-`V15`) es la definitiva y no se planean `V13` ni `V16`. `Coherencia.md` refleja esa decisión: B1, B3, B5 y B8 se cierran en el contrato o quedan fuera, nunca con migraciones.
 - Contrato: `If-Match` usa `actualizado_en` (columna real de `revisiones`, A-23), no `updated_at`; el cierre de revisión es el único que lo exige.
 - Contrato: `DELETE /documents/{id}` pasa el documento a `eliminado` y rellena `eliminado_en`; `GET /documents` excluye los eliminados. Se añade `eliminado` a la máquina de estados.
 - Contrato: la subida escribe `paginas_documento` (V14) además de `documentos`, versiones y `bloques_layout`.
