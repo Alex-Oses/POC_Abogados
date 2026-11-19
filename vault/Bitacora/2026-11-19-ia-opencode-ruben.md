@@ -3,6 +3,7 @@
 ## Hecho
 
 - Aceptadas por @Rubén (19/11): 0002 (PostgreSQL + Flyway), 0005 (reglas de usuarios y aprobación), 0006 (Presidio local) y 0007 (PDF final).
+- Confirmación de @Rubén (19/11): stack Python + FastAPI (0008) e identidad SSO con admin local solo de desarrollo (0009). Ambas siguen **Propuesta**: faltan @Marina, @Kevin y @Alex.
 - Revisión de coherencia de `docs/api/endpoints.md`, `vault/Proyecto/API.md`, `vault/Proyecto/Enfoque tecnico.md`, `docs/reglas/usuarios.md` y `docs/reglas/aprobacion.md` contra las reglas U/A, el modelo de @Marina y `V14`/`V15`.
 - Contrato: `If-Match` usa `actualizado_en` (columna real de `revisiones`, A-23), no `updated_at`; el cierre de revisión es el único que lo exige.
 - Contrato: `DELETE /documents/{id}` pasa el documento a `eliminado` y rellena `eliminado_en`; `GET /documents` excluye los eliminados. Se añade `eliminado` a la máquina de estados.
