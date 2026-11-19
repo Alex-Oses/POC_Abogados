@@ -101,7 +101,7 @@ Al cambiar contraseña, cambiar los roles, bloquear o dar de baja, superar el l�
 Se escribe `revocado_en`, nunca `DELETE`: la sesión forma parte de la auditoría.
 
 **U-21 · La credencial del admin de desarrollo no vive en el repo.**
-Se siembra por variable de entorno, no se versiona y **no se despliega en producción**. El admin local funciona igual que antes (login, cambio y reset de contraseña); lo que desaparece es el reglamento sobre cómo se gestiona su contraseña.
+Se siembra por variable de entorno, no se versiona y **no se despliega en producción**. El admin local funciona igual que antes (login y cambio de contraseña); lo que desaparece es el reglamento sobre cómo se gestiona su contraseña.
 
 ---
 
@@ -170,7 +170,7 @@ No hay plazo sobre el documento. El TTL (24 h) es solo de los ficheros temporale
 Sin A-20 no hay vencimiento ni aviso. Se conserva por si vuelve un plazo, pero hoy no se implementa nada.
 
 **A-23 · Cierre optimista.**
-`PATCH /reviews/{id}` exige `If-Match` con el `updated_at` de la revisión. Si otro la cerró primero, `409` y se recarga. La toma de la cola (A-05) no usa `If-Match`: la resuelve el `WHERE estado = 'en_cola'`.
+`PATCH /reviews/{id}` exige `If-Match` con el `actualizado_en` de la revisión. Si otro la cerró primero, `409` y se recarga. La toma de la cola (A-05) no usa `If-Match`: la resuelve el `WHERE estado = 'en_cola'`.
 
 **A-24 · Doble transcripción y comparación.** *(propuesta, idea de @Rubén)*
 Cada documento se transcribe dos veces; se muestran al revisor una de las dos lecturas y **se marcan como aviso las diferencias** con la otra, para que solo se revisen los puntos donde no coinciden. Sustituye a la idea anterior de «dos lecturas» del mismo OCR (I5).

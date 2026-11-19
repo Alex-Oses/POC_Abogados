@@ -7,7 +7,7 @@
 
 ## 1. Alcance
 
-El backend es el servicio que **expone las 40 rutas del contrato, guarda el estado y decide quién puede hacer qué**. No hace OCR, ni anonimización, ni compone el PDF: pide esas transformaciones, espera el resultado y lo persiste con sus permisos y su rastro.
+El backend es el servicio que **expone las 38 rutas del contrato, guarda el estado y decide quién puede hacer qué**. No hace OCR, ni anonimización, ni compone el PDF: pide esas transformaciones, espera el resultado y lo persiste con sus permisos y su rastro.
 
 Esa frontera no es burocracia. Si el backend hiciera el OCR, una subida tendría la API bloqueada dos minutos por documento y cualquier fallo de la GPU tumbaría también la consulta de un expediente ya aprobado.
 
@@ -39,7 +39,7 @@ Puntos a cerrar con @Yaser antes de escribir código (no los decido yo):
 
 ## 4. El contrato
 
-40 rutas REST y JSON bajo `/api/v1`, en kebab-case, sin barra final ni extensiones. `application/json` (subidas `multipart/form-data`), `Authorization: Bearer <token>`.
+38 rutas REST y JSON bajo `/api/v1`, en kebab-case, sin barra final ni extensiones. `application/json` (subidas `multipart/form-data`), `Authorization: Bearer <token>`.
 
 | Convención | Valor                                                                                     |
 | ---------- | ----------------------------------------------------------------------------------------- |
@@ -58,7 +58,7 @@ Los payloads y códigos de cada ruta viven en el contrato; aquí solo va lo que 
 | Qué | Cómo |
 |---|---|
 | Primer acceso | Se crea la ficha con `sub`, nombre y email, **sin roles**; hasta que un admin le asigne uno, solo ve un aviso |
-| Único login local | **Una cuenta de admin, solo para desarrollo y pruebas**, sembrada por migración y no desplegada en producción |
+| Único login local | **Una cuenta de admin, solo para desarrollo y pruebas**, sembrada por variable de entorno (U-21): no se versiona ni se despliega en producción |
 | Sesión | Token opaco revocable (no JWT), **3 a la vez**, 1 h con renovación, 12 h máximo; se revoca al cambiar roles, bloquear o dar de baja |
 | Roles | `usuarios.roles TEXT[]`: **un usuario puede tener varios**; el permiso es la unión. Sin tabla de roles |
 | Comprobación | Los roles se releen en cada petición: el token no arrastra rol |
@@ -70,9 +70,9 @@ La doble firma queda **en pausa** (18/11): A-07 (nadie revisa lo suyo) se retira
 
 Consecuencia para el modelo de @Marina: `usuarios.rol` sale y entra **una columna `roles`**, no una tabla; entra `usuarios.sso_subject` y `tokens_usuario` no se crea (no hay invitaciones ni reset, U-10 a U-15 retiradas). `usuarios.estado` se queda. **La única tabla nueva es `sesiones_usuario`** (opción B, 18/11): la sesión es de la aplicación ([[0012-identidad-y-roles]]).
 
-El contrato de autenticación ya tiene el camino de producción: `GET /auth/sso/login` y `GET /auth/sso/callback`, marcadas como propuesta. Las rutas de contraseña e invitación quedan agrupadas como bloque del admin local de desarrollo. El callback no se implementa hasta que 0009 se acepte y el ICAT registre la aplicación OIDC.
+El contrato de autenticación ya tiene el camino de producción: `GET /auth/sso/login` y `GET /auth/sso/callback`, marcadas como propuesta. Las rutas de contraseña quedan como bloque del admin local de desarrollo; la invitación y el reset se retiraron (U-10 a U-15). El callback no se implementa hasta que 0009 se acepte y el ICAT registre la aplicación OIDC.
 
-He dejado el contrato de autenticación como está a propósito: sus siete rutas de contraseña e invitación pasan a ser el camino del admin local de desarrollo, y el callback SSO es una ruta nueva. Esa parte no se escribe hasta que 0009 se acepte y el ICAT registre la aplicación OIDC.
+He dejado el contrato de autenticación como está a propósito: sus rutas de contraseña pasan a ser el camino del admin local de desarrollo, y el callback SSO es una ruta nueva. Esa parte no se escribe hasta que 0009 se acepte y el ICAT registre la aplicación OIDC.
 
 ## 6. Transacciones y concurrencia
 
@@ -81,7 +81,7 @@ Es donde el backend justifica su existencia:
 | Regla | Cómo |
 |---|---|
 | Una petición, una transacción | O se guarda el cambio y su fila de auditoría, o no se guarda ninguno |
-| Cierres sin pisarse | Aprobar, dar el visto bueno y exportar exigen `If-Match` con la versión que se leyó. Si otro la cambió, `409` y se recarga |
+| Cierres sin pisarse | Cerrar la revisión exige `If-Match` con el `actualizado_en` leído (A-23). Si otro la cambió, `409` y se recarga. La toma de la cola no usa `If-Match`: es un `UPDATE ... WHERE estado = 'en_cola'` (A-05) |
 | Export idempotente | Dos exportaciones del mismo texto dan el mismo SHA-256 y no duplican versión |
 | Sin dudas, sin export | Una anotación sin decisión devuelve error, nunca un PDF |
 | Nada se borra | Anulación y reapertura son estados; el original cifrado se conserva ([[0004-anonimizacion-antes-o-despues-de-revision]], Aceptada) |
@@ -96,7 +96,7 @@ Si el OCR pasa a ser por página (I5, abierto), el backend necesita estado de la
 
 ## 8. Auditoría
 
-Cada acción se registra en `auditoria` (V8) con su anterior **encadenada por hash**, particionada por mes: quién, qué, cuándo, sobre qué documento y desde dónde. Incluye el uso del admin de emergencia. La escritura va en la misma transacción que la acción: si no se puede auditar, no se hace.
+Cada acción se registra en `auditoria` (V8) con su anterior **encadenada por hash**, particionada por mes: quién, qué, cuándo, sobre qué documento y desde dónde. Incluye el uso del admin de desarrollo. La escritura va en la misma transacción que la acción: si no se puede auditar, no se hace.
 
 Los logs de aplicación no sustituyen a esta tabla: se rotan y se pierden; no sirven como prueba.
 
@@ -131,7 +131,7 @@ Cada promesa del backend tiene su prueba; si no la tiene, no es una promesa:
 |---|---|---|
 | [[0008-stack-backend]] | @Marina, @Kevin, @Alex | El primer endpoint |
 | [[0009-identidad]]: SSO sin gestión de cuentas, admin local solo en desarrollo | @Kevin, @Marina, @Alex + registro OIDC del ICAT (1-2 semanas de terceros) | El login real y la primera ruta con permisos |
-| Modelo de datos ([[0010-modelo-de-datos]]): `usuarios.roles` (columna, sin tabla) y sin `tokens_usuario` | @Marina | La migración `V13` |
+| Modelo de datos ([[0012-identidad-y-roles]]): `usuarios.roles` (columna, sin tabla) y sin `tokens_usuario` | @Marina | La migración `V13` |
 | Sesión propia en `sesiones_usuario` ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | `V13`: la única tabla nueva |
 | Dueño del hash del PDF (B8) | @Rubén | El export idempotente |
 | OCR síncrono o por página (I5) | sin dueño | La forma de las rutas de OCR |

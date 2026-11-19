@@ -18,7 +18,7 @@
 |---|---|---|
 | `usuarios` | `roles TEXT[]` con `CHECK` de tres valores e índice GIN (sin tabla N:M); `estado` sustituye a `activo`; `nombre` y `apellidos` separados; `password_hash` (nulo si SSO), `password_cambiado_en`, `intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `motivo_baja` y `sso_subject` (UNIQUE) si hay SSO | U-01, U-04, U-08, contrato §1-2, 0009, 0012 |
 | `tokens_usuario` (nueva) | **no se crea**: U-10 a U-15 retiradas (18/11) y la contraseña del admin de desarrollo viene de variable de entorno (U-21) | — |
-| `sesiones_usuario` (nueva) | `usuario_id`, `token_hash`, `creado_en`, `revocado_en`, `ip`, `user_agent`; tope de 3 con desalojo de la más antigua. **La única tabla nueva** (opción B, 18/11) | U-16 a U-20, contrato §1, 0012 |
+| `sesiones_usuario` (nueva) | `usuario_id`, `token_hash`, `creado_en`, `expira_en`, `revocado_en`, `ip`, `user_agent`; tope de 3 con desalojo de la más antigua. **La única tabla nueva** (opción B, 18/11) | U-16 a U-20, contrato §1, 0012 |
 | `idx_usuarios_rol_activo` | se cae con `rol`/`activo`; entran `(estado)` y GIN `(roles)` | B1, 0012 |
 
 Con SSO, `password_hash` queda **solo** para el admin de desarrollo y la invitación por email desaparece; `tokens_usuario` no se crea. Eso importa porque **no hay proveedor de correo elegido** (B2): sin invitaciones ni reset no hace falta SMTP.
@@ -54,7 +54,7 @@ Lo aplicado queda en `origen_geometria` para que el render sea reproducible.
 |---|---|---|---|
 | `usuarios` | estado, contraseña, SSO, intentos y último acceso | B1 | 0009 |
 | `tokens_usuario` | **no se crea**: U-10 a U-15 retiradas (18/11); la contraseña del admin de desarrollo viene de variable de entorno | — | — |
-| `sesiones_usuario` | tabla nueva: `usuario_id`, `token_hash`, `creado_en`, `revocado_en`, `ip`, `user_agent` | B1 | 0009, 0012 |
+| `sesiones_usuario` | tabla nueva: `usuario_id`, `token_hash`, `creado_en`, `expira_en`, `revocado_en`, `ip`, `user_agent` | B1 | 0009, 0012 |
 | `documentos` | `num_paginas` | B5 | — |
 | `documentos` | CHECK de `estado`: falta `pendiente_visto_bueno`; decidir si hace falta un estado de reapertura | A-15, A-19, B7 | 0005 |
 | `documentos` | `visto_bueno_por`, `visto_bueno_en`, `cerrado_en` | A-15, A-19 | 0005 |

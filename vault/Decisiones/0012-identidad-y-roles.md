@@ -37,7 +37,7 @@ Sobre lo aceptado en 0011. **Todo lo estructural cabe en `V13`**, que todavía n
 | `V13` · identidad | Entra `usuarios.sso_subject TEXT UNIQUE` y `usuarios.password_hash TEXT` (nuevo y nulo: solo lo usa el admin de desarrollo) | 2 líneas |
 | `V13` · cuenta | Entra `usuarios.estado` (`activo`/`bloqueado`/`baja`) y sale `activo` (U-04); entran `motivo_baja` y `eliminado_en` (U-08) | 3 líneas |
 | `V13` · índices | `idx_usuarios_rol_activo (rol, activo)` se cae con las columnas viejas; entra `(estado)` + GIN `(roles)` | 2 líneas |
-| `V13` · sesiones | Entra `sesiones_usuario` (decisión de @Rubén, 18/11): `usuario_id`, `token_hash`, `creado_en`, `revocado_en`, `ip`, `user_agent` | 1 tabla |
+| `V13` · sesiones | Entra `sesiones_usuario` (decisión de @Rubén, 18/11): `usuario_id`, `token_hash`, `creado_en`, `expira_en`, `revocado_en`, `ip`, `user_agent` | 1 tabla |
 | `V15__flujo_revision_y_export.sql` | **Ningún cambio estructural.** `visto_bueno_por` ya es un FK a `usuarios` y no comprueba rol. Solo dos comentarios dicen «supervisor» → «revisor» | 2 líneas de texto |
 | `triggers.sql` (validación de revisor) | `(SELECT rol FROM usuarios ...)` pasa a `(SELECT 'revisor' = ANY(roles) FROM usuarios WHERE id = NEW.asignado_a)` | 2 líneas; lo firma @Marina |
 | `views.sql` (`v_metricas_revisor`) | `u.rol = 'revisor' AND u.activo` pasa a `'revisor' = ANY(u.roles) AND u.estado = 'activo'` | 2 líneas; lo firma @Marina |
@@ -104,6 +104,7 @@ CREATE TABLE sesiones_usuario (
     usuario_id  UUID NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,
     token_hash  TEXT NOT NULL UNIQUE,
     creado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expira_en   TIMESTAMPTZ NOT NULL,
     revocado_en TIMESTAMPTZ,
     ip          INET,
     user_agent  TEXT

@@ -37,6 +37,7 @@ Resto:
 
 ## Hecho
 
+- [x] Revisión de coherencia de API, backend, usuarios y aprobación contra las reglas y el modelo: `actualizado_en`, estado `eliminado`, `paginas_documento`, A-09/A-11 y `sesiones_usuario.expira_en` · `docs/api/endpoints.md`, `docs/reglas/`, [[Enfoque tecnico]], [[0012-identidad-y-roles]] · @ia-opencode-ruben
 - [x] Decidida la sesión (18/11, @Rubén): **opción B**, sesión propia en `sesiones_usuario`. U-16 a U-20 siguen vigentes · [[0012-identidad-y-roles]] · @Rubén
 - [x] Bajar al modelo de @Marina en migraciones: `V14` y `V15` escritas y [[0011-ajustes-al-modelo-de-marina]] **aceptada** (17/11, @Marina) · PR #28 pendiente de merge · `V13` espera a [[0009-identidad]] y `V16` al hash (B8) · [[0010-modelo-de-datos]] · @ia-opencode-maga369
 - [x] Enfoque técnico del backend (propuesta) · [[Enfoque tecnico]] · @ia-opencode-ruben

@@ -22,6 +22,8 @@ en_revision
 aprobado ──export──→ exportado
 ```
 
+**A-15 en pausa (18/11):** las transiciones `en_revision → pendiente_visto_bueno` y `pendiente_visto_bueno → aprobado` no ocurren; el documento pasa de `en_revision` a `aprobado` directamente.
+
 | Desde | Hasta | Quién | Regla |
 | --- | --- | --- | --- |
 | `pendiente` | `ocr_procesando` | sistema | A-01 |
@@ -126,7 +128,7 @@ Cómo se compone el PDF (estructura guardada, reconstrucción sin píxeles del o
 
 ## 9. Concurrencia
 
-**Regla A-23 — cierre optimista.** `PATCH /reviews/{id}` exige `If-Match` con el `updated_at` de la revisión. Si otro revisor la cerró primero, `409` y se recarga. Sin esto, dos cierres simultáneos crean dos versiones `final_aprobado`.
+**Regla A-23 — cierre optimista.** `PATCH /reviews/{id}` exige `If-Match` con el `actualizado_en` de la revisión. Si otro revisor la cerró primero, `409` y se recarga. Sin esto, dos cierres simultáneos crean dos versiones `final_aprobado`.
 
 La toma de la cola (A-05) no depende de `If-Match`: la resuelve el `WHERE estado = 'en_cola'` de la propia sentencia.
 
@@ -136,22 +138,25 @@ La toma de la cola (A-05) no depende de `If-Match`: la resuelve el `WHERE estado
 
 Coste: duplica el OCR (~1.375 pág/h en vez de ~2.750 con la RTX 3050) y exige guardar la segunda lectura o un diff por bloque. Antes de aceptarla hay que decidir qué se guarda de la segunda lectura y cómo se pinta la diferencia en la revisión.
 
-## 10. Lo que falta en el esquema
+## 10. Encaje en el esquema
 
-| Necesidad | Columna o tabla | Regla |
+Las columnas que necesitan estas reglas ya están en `V14`/`V15`, salvo el hash del PDF. Las que quedaron sin uso se conservan: quitarlas es otra migración.
+
+| Necesidad | Columna o tabla | Estado |
 | --- | --- | --- |
-| Revisor asignado | `revisiones.asignado_a` (FK `usuarios`, nulo en `en_cola`) | A-05 |
-| Cuándo se tomó | `revisiones.asignado_en` | A-05 |
-| Plazo | `revisiones.fecha_limite` | A-20 (retirada: columna ya creada en `V15`, sin uso) |
-| Aviso de 24 h ya enviado | `revisiones.aviso_24h_enviado_en` | A-20 (retirada: columna ya creada en `V15`, sin uso) |
-| Doble firma aplicable | `documentos.requiere_visto_bueno` (booleano persistido) | A-15 (en pausa: siempre `false`) |
-| Firmante del visto bueno | `documentos.visto_bueno_por`, `documentos.visto_bueno_en` | A-15 |
-| Estado nuevo | `documentos.estado` gana `pendiente_visto_bueno` | A-15 |
-| Cierre del expediente | `documentos.cerrado_en` | A-19 |
-| Hash del PDF exportado | `documentos.hash_export` | A-18 |
-| Fecha de exportación | `documentos.exportado_en` | A-18 |
-
-`revisiones.estado` gana `en_cola` (A-04, A-05).
+| Revisor asignado | `revisiones.asignado_a` (FK `usuarios`, nulo en `en_cola`) | en `V15` |
+| Cuándo se tomó | `revisiones.asignado_en` | en `V15` |
+| Cierre optimista | `revisiones.actualizado_en` | en `V15`; es el `If-Match` de A-23 |
+| Estado de cola | `revisiones.estado` admite `en_cola` | en `V15` |
+| Una revisión abierta por documento | índice único parcial sobre `documento_id` | en `V15` (A-04) |
+| Plazo | `revisiones.fecha_limite` | en `V15`, sin uso (A-20 retirada) |
+| Aviso de 24 h ya enviado | `revisiones.aviso_24h_enviado_en` | en `V15`, sin uso (A-20 retirada) |
+| Doble firma aplicable | `documentos.requiere_visto_bueno` | en `V15`; siempre `false` (A-15 en pausa) |
+| Firmante del visto bueno | `documentos.visto_bueno_por`, `documentos.visto_bueno_en` | en `V15`, sin uso (A-15 en pausa) |
+| Estado nuevo | `documentos.estado` admite `pendiente_visto_bueno` | en `V15` |
+| Cierre del expediente | `documentos.cerrado_en` | en `V15` |
+| Fecha de exportación | `documentos.exportado_en` | en `V15` |
+| Hash del PDF exportado | `documentos.hash_export` o `versiones_documento.hash_export` | **falta**: B8 sin cerrar; será `V16` |
 
 ## 11. Endpoints
 
@@ -168,6 +173,6 @@ POST   /documents/{id}/sign-off  en pausa con A-15
 POST   /documents/{id}/export       aprobado → exportado, con hash
 ```
 
-**Decisiones cerradas:** A-05 (cola), A-09 (no aprobar con pendientes). **En pausa:** A-15 (doble firma). **Retiradas (18/11):** A-07 (nadie revisa lo suyo) y A-20 (plazos). Las columnas que estas reglas necesitan y que todavía no están en `docs/architecture/` se listan en la sección 10; bajarlas al modelo está pendiente de decisión.
+**Decisiones cerradas:** A-05 (cola), A-09 (no aprobar con pendientes). **En pausa:** A-15 (doble firma). **Retiradas (18/11):** A-07 (nadie revisa lo suyo) y A-20 (plazos). Las columnas de la sección 10 ya están en `V14`/`V15` salvo el hash del PDF, que espera a B8.
 
 **Único pendiente de negocio:** plazo legal de conservación tras la baja (U-08). No bloquea la construcción: mientras no haya plazo, `eliminado_en` se guarda y no se purga nada.
