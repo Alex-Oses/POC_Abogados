@@ -16,10 +16,10 @@
 
 | Tabla | Qué se crea o cambia | Lo pide |
 |---|---|---|
-| `usuarios` | `roles TEXT[]` con `CHECK` de tres valores e índice GIN (sin tabla N:M); `estado` sustituye a `activo`; `nombre` y `apellidos` separados; `password_hash` (nulo si SSO), `password_cambiado_en`, `intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `motivo_baja` y `sso_subject` (UNIQUE) si hay SSO | U-01, U-04, U-08, contrato §1-2, 0009, 0012 |
+| `usuarios` | Tabla `usuarios_roles (usuario_id, rol)` con `CHECK` de tres valores y FK a `usuarios` (decisión de @Marina, 18/11); `estado` sustituye a `activo`; `nombre` y `apellidos` separados; `password_hash` (nulo si SSO), `intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `motivo_baja` y `sso_subject` (UNIQUE) si hay SSO | U-01, U-04, U-08, contrato §1-2, 0009, 0012 |
 | `tokens_usuario` (nueva) | **no se crea**: U-10 a U-15 retiradas (18/11) y la contraseña del admin de desarrollo viene de variable de entorno (U-21) | — |
-| `sesiones_usuario` (nueva) | `usuario_id`, `token_hash`, `creado_en`, `expira_en`, `revocado_en`, `ip`, `user_agent`; tope de 3 con desalojo de la más antigua. **La única tabla nueva** (opción B, 18/11) | U-16 a U-20, contrato §1, 0012 |
-| `idx_usuarios_rol_activo` | se cae con `rol`/`activo`; entran `(estado)` y GIN `(roles)` | B1, 0012 |
+| `sesiones_usuario` (nueva) | `usuario_id`, `token_hash`, `creado_en`, `expira_en`, `revocado_en`, `ip`, `user_agent`; tope de 3 con desalojo de la más antigua. Una de las **dos tablas nuevas** con `usuarios_roles` (opción B, 18/11) | U-16 a U-20, contrato §1, 0012 |
+| `idx_usuarios_rol_activo` | se cae con `rol`/`activo`; entran `(estado)` e `idx_usuarios_roles_rol` | B1, 0012 |
 
 Con SSO, `password_hash` queda **solo** para el admin de desarrollo y la invitación por email desaparece; `tokens_usuario` no se crea. Eso importa porque **no hay proveedor de correo elegido** (B2): sin invitaciones ni reset no hace falta SMTP.
 
@@ -43,8 +43,8 @@ Lo aplicado queda en `origen_geometria` para que el render sea reproducible.
 
 1. **Medir el corpus real**: qué proporción de los documentos del Colegio llega como PDF con texto. Sin ese dato no se sabe si la rama 2 se paga.
 2. ~~Crear `bloques_layout`~~: hecho en `V14`; los offsets se cuentan sobre `contenido_texto`.
-3. **Decidir si el OCR es asíncrono por página** (I5) y si la demo necesita «dos lecturas»: cuesta el doble de OCR (~1.375 pág/h en vez de 2.750).
-4. **Semáforo por página** (B5): sin el contraste guardado no se puede pintar; necesita la tabla de páginas.
+3. **Decidir si el OCR es asíncrono por página** (I5). Las «dos lecturas» ya están decididas (A-24) y cuestan el doble de OCR (~1.375 pág/h en vez de 2.750).
+4. ~~Semáforo por página (B5)~~: `paginas_documento` ya tiene lector (`GET /documents/{id}/pages`).
 
 **Lo que no cambia:** 0007, el JSON de estructura y el render. Cuando llegue el `bbox`, se rellena el mismo JSON y no se toca el código de dibujo.
 

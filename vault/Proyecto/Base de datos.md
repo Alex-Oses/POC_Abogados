@@ -1,6 +1,6 @@
 # Base de datos (primer borrador)
 
-Detalle completo en [docs/architecture](../../docs/architecture/README.md): diccionario de datos, consideraciones RGPD, migraciones Flyway, vistas, triggers y particionado. Diagrama: `docs/architecture/diagrama-bbdd-borrador.png`.
+Detalle completo en [docs/architecture](../../docs/architecture/README.md): diccionario de datos, consideraciones RGPD, migraciones Flyway, vistas, triggers y particionado. Diagrama: [[Modelo de datos]].
 
 ## Resumen
 
@@ -21,4 +21,4 @@ PostgreSQL 14+ con `uuid-ossp`, `pgcrypto` y `pg_partman`.
 ## Pendiente
 
 - El modelo objetivo de @Marina, con su diagrama y la comparación con la decisión 0010: [[Modelo de datos]].
-- `er-diagram.md` citado en el README de arquitectura pero no incluido; el diagrama de esa nota puede ser su punto de partida.
+- El diagrama vigente es uno solo, [[Modelo de datos]]; el README de arquitectura ya no cita un `er-diagram.md` inexistente.

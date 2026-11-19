@@ -17,11 +17,11 @@ Quién puede entrar, qué puede hacer y cómo se le retira el acceso. No describ
 | `revisor` | Abogado que valida la anonimización | Todos los documentos en revisión, asignación, visto bueno y auditoría |
 | `admin` | Sistemas | Usuarios y roles, reglas, categorías y configuración |
 
-**Regla U-01 — varios roles por usuario (propuesto, [[0012-identidad-y-roles]]).** Los roles viven en una **columna `usuarios.roles`** (`TEXT[]`, sin tabla N:M) y el permiso es la **unión**. `usuarios.rol` desaparece. Hay tres roles: `transcriptor`, `revisor` y `admin`; **el supervisor se elimina** y sus funciones pasan al revisor.
+**Regla U-01 — varios roles por usuario (propuesto, [[0012-identidad-y-roles]]).** Los roles viven en la tabla **`usuarios_roles (usuario_id, rol)`** (N:M) y el permiso es la **unión**. `usuarios.rol` desaparece. Hay tres roles: `transcriptor`, `revisor` y `admin`; **el supervisor se elimina** y sus funciones pasan al revisor.
 
 *Riesgo asumido:* un rol único obligaba a cuentas duplicadas cuando la misma persona sube, revisa y administra. Con roles múltiples, la separación de funciones ya no la da el rol: la darían A-07 (nadie revisa lo suyo) y A-15 (otro revisor firma), ambas retiradas o en pausa, así que hoy un revisor puede revisar y cerrar un documento que subió él.
 
-**Regla U-02 — el permiso se comprueba en el servidor, siempre.** Los roles se releen de la base de datos en cada petición; el token no arrastra los roles con los que se emitió.
+**Regla U-02 — el permiso se comprueba en el servidor, siempre.** Los roles se releen de `usuarios_roles` en cada petición; el token no arrastra los roles con los que se emitió.
 
 ## 3. Matriz de capacidades
 
@@ -91,7 +91,7 @@ Con SSO ([[0009-identidad]]), esta sección ya solo mira al **admin de desarroll
 | --- | --- | --- |
 | Estado real de la cuenta | `usuarios.estado` (sustituye a `activo`) | U-04 |
 | Identidad del proveedor | `usuarios.sso_subject` (único) | U-05 |
-| Roles, varios por usuario | `usuarios.roles TEXT[]` con `CHECK (roles <@ ARRAY['transcriptor','revisor','admin'])` e índice GIN (columna, no tabla) | U-01 |
+| Roles, varios por usuario | Tabla `usuarios_roles (usuario_id, rol)` con `PRIMARY KEY (usuario_id, rol)`, FK a `usuarios` y `CHECK (rol IN ('transcriptor','revisor','admin'))` (0012, decisión de @Marina) | U-01 |
 | Motivo de la baja | `usuarios.motivo_baja` | U-08 |
 | Fecha del último cambio de contraseña | **no se crea `password_cambiado_en`**: el admin de desarrollo cambia la variable de entorno (U-21) | — |
 | Tokens de un solo uso | **no se crea `tokens_usuario`**: U-10 a U-15 retiradas (18/11); la credencial del admin de desarrollo viene de entorno (U-21) | — |
