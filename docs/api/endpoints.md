@@ -439,7 +439,7 @@ Errores:
 
 ### `POST /documents/{id}/reopen`
 
-Devuelve un documento rechazado al circuito. Crea una versión `anonimizado_ia` nueva con la regla vigente, una revisión nueva en `en_cola` con `numero_intento + 1` y deja el documento en `en_revision`.
+Devuelve al circuito un documento **rechazado o aprobado**. Crea una versión `anonimizado_ia` nueva con la regla vigente, una revisión nueva en `en_cola` con `numero_intento + 1` y deja el documento en `en_revision`.
 
 ```json
 { "comentario": "Se corrige el escaneo de la página 3" }
@@ -447,7 +447,7 @@ Devuelve un documento rechazado al circuito. Crea una versión `anonimizado_ia` 
 
 `201` → `{ "version_id": "uuid", "numero_version": 5, "revision_id": "uuid", "numero_intento": 2 }`.
 
-Errores: `409` si el documento no está `rechazado`, `422` si no hay texto que anonimizar.
+Errores: `409` si el documento no está `rechazado` ni `aprobado`, `422` si no hay texto que anonimizar o falta `comentario` al reabrir un aprobado (A-19).
 
 ### `POST /documents/{id}/sign-off`
 
@@ -465,7 +465,7 @@ Errores: `409` si el documento no está en `pendiente_visto_bueno`.
 
 ### `POST /documents/{id}/export`
 
-Cierra el expediente. Genera el PDF definitivo desde la versión aprobada (ya anonimizada), guarda `hash_export` y `exportado_en`, y pasa el documento a `exportado`.
+Cierra el expediente. Genera el PDF definitivo desde la versión aprobada (ya anonimizada), guarda el hash en la versión (`metadatos_proceso->>'hash_export'`) y `exportado_en` en el documento, y lo pasa a `exportado`.
 
 `200` → binario, `Content-Type: application/pdf`, `Content-Disposition: attachment; filename="documento.pdf"` y cabecera `X-Document-Hash` con el SHA-256.
 
@@ -575,6 +575,7 @@ en_revision
   └─ pendiente_visto_bueno ──POST /documents/{id}/sign-off──→ aprobado
 
 aprobado ──POST /documents/{id}/export──→ exportado
+aprobado ──POST /documents/{id}/reopen──→ en_revision   (con comentario, A-19)
 
 cualquier estado ──DELETE /documents/{id}──→ eliminado
 ```
@@ -583,7 +584,7 @@ cualquier estado ──DELETE /documents/{id}──→ eliminado
 - `pendiente_visto_bueno` solo existe si la versión tiene alguna anotación de una categoría con `rgpd_especial = true`. **En pausa con A-15**: mientras dure, `requiere_visto_bueno` es siempre `false` y este estado no se usa.
 - `eliminado` lo marca `DELETE /documents/{id}`, junto con `eliminado_en`; no se sale de él.
 - `exportado` lo marca únicamente `POST /documents/{id}/export`. `POST /transform/build` es vista previa y no cambia estados.
-- `aprobado` está congelado: no admite versiones nuevas salvo reapertura explícita de un revisor.
+- `aprobado` está congelado: no admite versiones nuevas salvo `POST /documents/{id}/reopen` con `<comentario>` (A-19).
 - Ningún endpoint permite saltarse un estado; el `409` lo impide.
 
 ## 10. Qué endpoint escribe qué
@@ -604,7 +605,7 @@ cualquier estado ──DELETE /documents/{id}──→ eliminado
 | Cerrar revisión | `revisiones`, `versiones_documento`, `documentos` |
 | Reabrir rechazado | `documentos`, `versiones_documento`, `revisiones` |
 | Visto bueno | `documentos` (`visto_bueno_por`, `visto_bueno_en`) |
-| Exportar | `documentos` (`hash_export`, `exportado_en`, `cerrado_en`) |
+| Exportar | `documentos` (`exportado_en`, `cerrado_en`), `versiones_documento` (`metadatos_proceso->>'hash_export'`) |
 | Reglas / categorías | `reglas_anonimizacion`, `regla_categorias`, `categorias_sensibles` |
 | Configuración | `configuracion_sistema` |
 | Todo lo anterior | `auditoria` (una fila por cambio) |

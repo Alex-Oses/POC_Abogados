@@ -54,7 +54,7 @@ Lo aplicado queda en `origen_geometria` para que el render sea reproducible.
 |---|---|---|---|
 | `usuarios` | sin `roles[]`, `estado`, `sso_subject` ni `password_hash`: el login tiene que caber en `rol`/`activo` o quedar fuera del piloto | B1 | 0009 |
 | `sesiones_usuario` | no existe: sin sesión propia hay que decidir cómo se guarda el token y si hay más de una sesión | B1, U-16 a U-20 | 0009, 0012 |
-| `documentos` | `hash_export` no existe: el hash vive en `versiones_documento.metadatos_proceso->>'hash_export'` | B8 | 0007 |
+| `documentos` | `hash_export` no existe: el hash vive en `versiones_documento.metadatos_proceso->>'hash_export'` (B8 cerrado 19/11) | B8 | 0007 |
 | `anotaciones_entidad` | sin `bloque_id`: el contrato ya cuenta los offsets sobre `contenido_texto` y usa el `bbox` de la detección | B3 | — |
 | `seudonimos` | no existe: la maqueta no puede prometer «taula de pseudònims xifrada i separada» | I2 | — |
 | `reglas_anonimizacion` | `accion_por_defecto` sigue en `tachado`; las reglas no deben prometer otro defecto | I1 | 0005 |

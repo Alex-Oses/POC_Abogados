@@ -53,7 +53,7 @@
 | A-21 | El expediente no caduca | cerrada |
 | A-22 | Los plazos no cambian el estado solos | sin efecto |
 | A-23 | Cierre optimista | cerrada |
-| A-24 | Doble transcripción y comparación | propuesta |
+| A-24 | Doble transcripción y comparación | cerrada |
 
 ---
 
@@ -138,7 +138,7 @@ Puede cambiar `accion_aplicada`, `texto_sustitucion` y la decisión. Cambiar el 
 `revisado_por` y `revisado_en` son obligatorios y no se editan a mano. Solo se modifica una anotación mientras la revisión está `en_proceso`; cerrada, el `PATCH` da `409`.
 
 **A-12 · El rechazo no es el final.**
-`rechazado_con_cambios` crea la versión `revisado_humano` y deja el documento en `rechazado`. `POST /documents/{id}/reopen` genera una versión `anonimizado_ia` nueva, una revisión en `en_cola` con `numero_intento + 1` y devuelve el documento a `en_revision`.
+`rechazado_con_cambios` crea la versión `revisado_humano` y deja el documento en `rechazado`. `POST /documents/{id}/reopen` genera una versión `anonimizado_ia` nueva, una revisión en `en_cola` con `numero_intento + 1` y devuelve el documento a `en_revision`. También acepta un `aprobado`, con `comentario` (A-19).
 
 **A-13 · Motivo obligatorio al rechazar.**
 `comentario_general` no puede ir vacío en `rechazado_con_cambios` ni en `devuelto`.
@@ -158,10 +158,10 @@ Si se retoma: al cerrar la revisión, el servidor calcula y guarda `requiere_vis
 `409` en cualquier otro estado, incluido `pendiente_visto_bueno`.
 
 **A-18 · Lo exportado es inmutable.**
-Se guardan `hash_export` y `exportado_en`; si el documento se reabre, el hash anterior se conserva. Sobrescribir el PDF de un expediente cerrado es lo que una auditoría no perdona.
+El hash SHA-256 va en la versión exportada (`versiones_documento.metadatos_proceso->>'hash_export'`) y la fecha en `documentos.exportado_en`. Si el documento se reabre, la versión anterior conserva su hash y el PDF nuevo nace en otra versión. Sobrescribir el PDF de un expediente cerrado es lo que una auditoría no perdona.
 
 **A-19 · Aprobar congela.**
-Tras `aprobado` no se crean versiones nuevas salvo reapertura explícita de un revisor, que rellena `cerrado_en`. Queda en `auditoria` quién reabrió y por qué.
+Tras `aprobado` no se crean versiones nuevas salvo reapertura explícita de un revisor, que exige `comentario` y devuelve el documento a `en_revision` con una revisión nueva. `cerrado_en` lo escribe el export. Queda en `auditoria` quién reabrió y por qué.
 
 **A-21 · El expediente no caduca.**
 No hay plazo sobre el documento. El TTL (24 h) es solo de los ficheros temporales del OCR; el original cifrado tampoco caduca mientras el expediente exista.
@@ -172,10 +172,12 @@ Sin A-20 no hay vencimiento ni aviso. Se conserva por si vuelve un plazo, pero h
 **A-23 · Cierre optimista.**
 `PATCH /reviews/{id}` exige `If-Match` con el `actualizado_en` de la revisión. Si otro la cerró primero, `409` y se recarga. La toma de la cola (A-05) no usa `If-Match`: la resuelve el `WHERE estado = 'en_cola'`.
 
-**A-24 · Doble transcripción y comparación.** *(propuesta, idea de @Rubén)*
-Cada documento se transcribe dos veces; se muestran al revisor una de las dos lecturas y **se marcan como aviso las diferencias** con la otra, para que solo se revisen los puntos donde no coinciden. Sustituye a la idea anterior de «dos lecturas» del mismo OCR (I5).
+**A-24 · Doble transcripción y comparación.** *(decidida, 19/11)*
+Cada documento se transcribe dos veces; se muestran al revisor una de las dos lecturas y **se marcan como aviso las diferencias** con la otra, para que solo se revisen los puntos donde no coinciden.
 
-Coste: duplica el OCR (~1.375 pág/h en vez de ~2.750 con la RTX 3050) y exige guardar las dos lecturas o un diff por bloque. Antes de aceptarla hay que decidir qué se guarda de la segunda lectura y cómo se marca la diferencia en la pantalla de revisión.
+No hace falta esquema nuevo: la segunda lectura y su diff van en `versiones_documento.metadatos_proceso` (`segunda_lectura`, `diferencias`) y los avisos se pintan desde `paginas_documento.avisos` con `tipo = "doble_lectura"`.
+
+Coste: duplica el OCR (~1.375 pág/h en vez de ~2.750 con la RTX 3050).
 
 ---
 

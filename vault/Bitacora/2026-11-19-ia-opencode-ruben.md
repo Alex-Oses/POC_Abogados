@@ -3,6 +3,12 @@
 ## Hecho
 
 - Aceptadas por @Rubén (19/11): 0002 (PostgreSQL + Flyway), 0005 (reglas de usuarios y aprobación), 0006 (Presidio local) y 0007 (PDF final).
+- B8 cerrado: el hash del PDF es de la **versión** (`versiones_documento.metadatos_proceso->>'hash_export'`) y `documentos` solo guarda `exportado_en`; A-18 y el contrato, corregidos. No hay `V16`.
+- B5 cerrado en el contrato: `GET /documents/{id}/pages` y `GET /documents/{id}/original` (auditado). B3 cerrado: los offsets de anotación se cuentan sobre `versiones_documento.contenido_texto` y ya no se devuelve `bloque_id`.
+- A-19: `/reopen` acepta también `aprobado`, con `comentario`; `cerrado_en` sigue siendo cosa del export.
+- A-17 (solo lo aprobado se exporta) y A-24 (doble transcripción) quedan **decididas**. A-24 no necesita esquema: segunda lectura y diff en `metadatos_proceso`, avisos en `paginas_documento.avisos`.
+- `/assign` y `/sign-off` se quedan en el contrato, en pausa.
+- Higiene: README alineado con el contrato (sin `/user/register` ni Word, `V1`-`V15`, árbol con `docs/api`, `docs/reglas` y `docs/export`); `docs/architecture/README.md` apunta al PNG y dice 16 triggers; `docs/pendientes.md` deja de proponer migraciones.
 - Confirmación de @Rubén (19/11): stack Python + FastAPI (0008) e identidad SSO con admin local solo de desarrollo (0009). Ambas siguen **Propuesta**: faltan @Marina, @Kevin y @Alex.
 - Revisión de coherencia de `docs/api/endpoints.md`, `vault/Proyecto/API.md`, `vault/Proyecto/Enfoque tecnico.md`, `docs/reglas/usuarios.md` y `docs/reglas/aprobacion.md` contra las reglas U/A, el modelo de @Marina y `V14`/`V15`.
 - Confirmado por @Rubén (19/11): la BD actual (`V1`-`V15`) es la definitiva y no se planean `V13` ni `V16`. `Coherencia.md` refleja esa decisión: B1, B3, B5 y B8 se cierran en el contrato o quedan fuera, nunca con migraciones.
