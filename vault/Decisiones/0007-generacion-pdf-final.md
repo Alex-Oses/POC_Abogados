@@ -1,6 +1,6 @@
 # 0007 — Generación del PDF final
 
-- **Estado**: Propuesta
+- **Estado**: Aceptada (2026-11-19, @Rubén)
 - **Fecha**: 2026-11-16
 - **Autor**: @ia-opencode-ruben
 

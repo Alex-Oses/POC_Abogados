@@ -1,6 +1,6 @@
 # 0006 · Presidio para detectar datos personales en local
 
-- **Estado**: Propuesta
+- **Estado**: Aceptada (2026-11-19, @Rubén)
 - **Fecha**: 2026-11-16
 - **Autor**: @ia-claude-alex (para @Alex)
 

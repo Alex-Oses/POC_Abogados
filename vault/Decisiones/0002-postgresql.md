@@ -1,6 +1,6 @@
 # 0002 · PostgreSQL con migraciones Flyway
 
-- **Estado**: Propuesta
+- **Estado**: Aceptada (2026-11-19, @Rubén)
 - **Fecha**: 2026-11-16
 - **Autor**: equipo POC
 
