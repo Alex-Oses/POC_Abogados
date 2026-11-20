@@ -52,7 +52,7 @@ tr.click{cursor:pointer}tr.click:hover td{background:#FAF9F7}
 .tile .pg{height:30px;margin:0 auto 6px;width:24px;background:repeating-linear-gradient(#ddd 0 2px,#fff 2px 5px);border:1px solid #ccc}
 .tile.run{border-color:var(--p)}
 /* revisión */
-.rev{display:grid;grid-template-columns:120px 1fr 1fr;gap:14px;height:calc(100vh - 210px);min-height:520px}
+.rev{display:grid;grid-template-columns:120px 1fr 1fr;gap:14px;height:calc(100vh - 210px);min-height:520px;grid-template-rows:minmax(0,1fr)}
 .thumbs{overflow:auto;padding:8px}
 .thumb{width:100%;border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px;margin-bottom:8px;display:flex;align-items:center;gap:8px;font-size:12px}
 .thumb.on{border:2px solid var(--p);background:var(--p-bg)}
@@ -114,7 +114,7 @@ details ul{list-style:none;padding:0;margin:8px 0 0}
 .login .logo b{font-size:44px}
 .audit{font:12px/1.7 ui-monospace,Consolas,monospace;color:var(--m);padding:12px 18px}
 /* guía de la demo */
-.guide{position:fixed;right:18px;bottom:18px;z-index:25;font-size:13px}
+.guide{margin:12px 28px 0;text-align:right;font-size:13px}
 .guide ol{background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.12);padding:12px 14px 12px 32px;margin:0 0 8px;width:260px}
 .guide li{padding:2px 0}.guide li a{color:var(--t);text-decoration:none}.guide li.on a{color:var(--p);font-weight:500}
 .guide>button{float:right}
@@ -417,7 +417,7 @@ V.anonimitzar = () => {
     <button class="btn" data-anp="-1" ${S.anonPage===1?"disabled":""}>‹</button><button class="btn" data-anp="1" ${S.anonPage===SENTP.length?"disabled":""}>›</button><span class="sp"></span>
     <button class="btn" id="orig">${S.original?t("vista_an"):t("vista")}</button><button class="btn pri" id="expan">⤓ ${t("exp_an")}</button></div>
   <div class="anon">
-    <div class="card doc" id="doc">${SENTP[S.anonPage-1].map(([k,...xs])=>`<${k==="h"?"h4":"p"}>${xs.map(x=>Array.isArray(x)?entHTML(ENTS.find(e=>e.v===x[0]&&e.c===x[1]&&!e._r&&(e._r=1))):esc(x)).join("")}</${k==="h"?"h4":"p"}>`).join("")}</div>
+    <div class="card doc" id="doc">${SENTP[S.anonPage-1].map(([k,...xs])=>`<${k==="h"?"h4":"p"}>${xs.map(x=>Array.isArray(x)?entHTML(ENTS.find(e=>e.p===S.anonPage&&e.v===x[0]&&e.c===x[1]&&!e._r&&(e._r=1))):esc(x)).join("")}</${k==="h"?"h4":"p"}>`).join("")}</div>
     <aside class="card side"><h3>${t("an_panel")}</h3><div class="doc-s">${ENTS.length} ${t("detect")} · ${onN} ${t("anonim")}</div>
       <h5>${t("com")}</h5><div class="modes">${["censurar","esborrar","tatxar","etiqueta","pseudonim","inicials"].map(m=>`<button data-m="${m}" class="${S.mode===m?"on":""}">${t("m_"+m)}</button>`).join("")}</div>
       ${S.mode==="tatxar"?`<div class="banner w" style="margin-top:8px">${t("tatxar_av")}</div>`:""}
@@ -449,7 +449,7 @@ V.informes = () => shell("informes", `<h1>${t("inf_t")}</h1><p class="sub">${t("
 
 // ---------- guía para presentar ----------
 const STEPS = [["login","Login"],["safata","Safata → Nou document"],["processant","OCR + semàfor"],["revisio","Revisió i avisos"],["jg","Justícia gratuïta"],["anonimitzar","Anonimització"],["exportat","Exportació"],["arxiu","Arxiu"]];
-let guideOpen = true;
+let guideOpen = false;
 const guide = r => `<div class="guide">${guideOpen?`<ol>${STEPS.map(([k,l])=>`<li class="${k===r?"on":""}"><a href="#${k}">${l}</a></li>`).join("")}</ol>`:""}<button class="btn" id="g">${guideOpen?"✕":"☰ "+t("guia")}</button></div>`;
 
 // ---------- router ----------
