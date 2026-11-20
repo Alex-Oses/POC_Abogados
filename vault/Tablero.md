@@ -59,6 +59,7 @@ Resto:
 - [x] Contrato de endpoints v1 completo (40 rutas) y reglas de usuarios y aprobación · [[0005-reglas-usuarios-y-aprobacion]]
 - [x] Primer borrador del modelo de datos · [[Base de datos]]
 - [x] Diseño del PDF final (reconstrucción desde la estructura) · [[0007-generacion-pdf-final]]
+- [x] [[Coherencia]] actualizada a 20/11: B2, I1, I2, I3, I9 y H1-H8 cerrados; solo queda B1 (identidad) y los defectos que piden decisión · @ia-opencode-ruben
 - [x] Revisión de coherencia del proyecto y recorte de A-15 a categorías especiales · [[Coherencia]]
 - [x] Decisión [[0004-anonimizacion-antes-o-despues-de-revision]] aceptada: el original se guarda cifrado y se anonimiza al construir las versiones y al exportar · @Rubén
 - [x] Contrato alineado con 0004: `POST /transform/document` guarda el original cifrado y no anonimiza; `anonymize` construye la versión de revisión · @Rubén

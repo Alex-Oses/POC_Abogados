@@ -1,14 +1,15 @@
 # Coherencia del proyecto — revisión del 16/11/2026
 
 - **Estado**: abierta. La BD (`V1`-`V15`) es **definitiva** desde el 19/11: no hay plan de migrarla, así que cada bloqueante se cierra en el contrato o queda fuera del alcance.
+- **Actualizado**: 20/11/2026. Los defectos comprobables viven en el [[Registro de errores]]; aquí quedan las contradicciones de producto.
 - **Autor**: @ia-opencode-ruben
-- **Alcance**: contrato v1 (`docs/api/endpoints.md`), reglas U/A (`docs/reglas/`), migraciones V1-V12, vistas y triggers, decisiones 0001-0007, `maqueta/index.html`, `README.md` y el plan de la [[Propuesta ICAT]].
+- **Alcance**: contrato v1 (`docs/api/endpoints.md`), reglas U/A (`docs/reglas/`), migraciones `V1`-`V15`, vistas y triggers, decisiones 0001-0012, `maqueta/index.html`, `README.md` y el plan de la [[Propuesta ICAT]].
 - **Qué es**: la lista de contradicciones entre lo que promete el producto, lo que pide la maqueta y lo que aguantan el contrato y el modelo.
-- **Qué no es**: no sustituye al [[Tablero]]. Cada bloqueante se cierra con una decisión o una tarea, no editando esta nota.
+- **Qué no es**: no sustituye al [[Tablero]] ni al [[Registro de errores]]. Cada bloqueante se cierra con una decisión o una tarea, no editando esta nota.
 
 ## Veredicto
 
-El contrato va por delante del modelo en cuatro tablas y una veintena de columnas, la maqueta enseña tres productos a la vez y el plan de la propuesta deja la anonimización fuera del piloto. Nada es irresoluble: son ocho decisiones, no once semanas de código.
+La revisión del 16/11 encontró cuatro bloqueantes y nueve importantes. Hoy queda **un bloqueante** (B1, la identidad) y cinco importantes abiertos (I4-I8). Lo demás se cerró con decisiones (0004, 0005, 0007, 0009), con `V14`/`V15` o con el contrato. Lo que sobrevive no pide migraciones.
 
 ## Resuelto
 
@@ -20,6 +21,10 @@ El contrato va por delante del modelo en cuatro tablas y una veintena de columna
 | 19/11 | **README alineado con el contrato**: fuera `/user/register`, fuera la exportación a Word, árbol con `docs/api/`, `docs/reglas/` y `docs/export/`, migraciones `V1`-`V15` | `README.md` (H1, H2) |
 | 19/11 | **Arquitectura sin referencias muertas**: `er-diagram.md` (no existe) → `diagrama-bbdd-borrador.png`; «7 triggers» → 16 | `docs/architecture/README.md` (H4) |
 | 19/11 | **El semáforo por página y el original ya tienen ruta**: `GET /documents/{id}/pages` y `GET /documents/{id}/original` | `docs/api/endpoints.md` (B5) |
+| 20/11 | **I1 cerrado por `V15`**: el `CHECK` de `accion_aplicada` pasa a 8 valores (`censurar`, `etiqueta`, `iniciales`, `pseudonimizado`, `eliminado`, `mantenido`, `tachado`, `pendiente_revision`) y `accion_por_defecto` pasa a `censurar` | `V15:110-118,151-154` |
+| 20/11 | **H6 y H8 cerrados por `V15`**: motores OCR en local, `preservar_formato_pdf = false`, fuera `tiempo_max_revision_minutos`, `version_esquema_bd = 15` y `NUSS` deja de ser `rgpd_especial` | `V15:136-161` |
+| 20/11 | **El contrato deja de pedir columnas que no existen** (E-31, E-32, E-35, E-37): sin `es_actual`, con `confianza_promedio`, estados de página de `V14` y export idempotente | `docs/api/endpoints.md` (PR #41) |
+| 20/11 | **I2 y H5 cerrados**: la maqueta ya no promete «zones de la imatge esborrades» y `usuarios.md` ya no apunta a `V13` | `maqueta/index.html`, `docs/reglas/usuarios.md` (PR #41) |
 
 ## Bloqueantes
 
@@ -40,11 +45,11 @@ No se puede implementar el contrato tal cual. Ordenados por lo que cuesta descub
 
 | # | Qué no cuadra | Evidencia | Cómo se cierra |
 |---|---|---|---|
-| I1 | **Formas de anonimizar: 6 en la propuesta y la maqueta, 5 en el modelo** (`tachado`, `pseudonimizado`, `eliminado`, `mantenido`, `pendiente_revision`). Faltan censurar, etiqueta e iniciales. Y el defecto del sistema es `tachado`, que la propuesta reserva a uso interno | [[Propuesta ICAT]] §Anonimización, `V6`, `V12` | Ampliar el CHECK de `accion_aplicada` y cambiar `accion_por_defecto` a censurar |
-| I2 | La maqueta prometía «taula de pseudònims xifrada i separada»; @Alex ya la cambió el 18/11 por «sense taula que guardar». Queda «zones de la imatge esborrades»: el PDF final se reconstruye sin ningún píxel del escaneo (0007), así que no hay imagen que borrar | `maqueta/index.html` pantalla `#exportat`, [[0007-generacion-pdf-final]] | **Parcialmente resuelto (19/11)**: solo queda el texto de la imagen; pregunta a @Alex en el [[Tablero]] |
-| I3 | **El orden del flujo está invertido**: la maqueta revisa y valida antes de anonimizar; el contrato anonimiza y luego revisa. La decisión 0004 sigue abierta y su contexto está desactualizado | `maqueta` vs `docs/api/endpoints.md` §6, [[0004-anonimizacion-antes-o-despues-de-revision]] | Cerrar 0004 y reescribir su contexto |
+| I1 | ~~**Formas de anonimizar: 6 en la propuesta y la maqueta, 5 en el modelo**; faltaban censurar, etiqueta e iniciales y el defecto era `tachado`~~ **Resuelto (20/11)**: `V15` deja 8 acciones en el `CHECK` y `accion_por_defecto = censurar` | `V15:110-118,151-154` | — |
+| I2 | ~~La maqueta prometía «taula de pseudònims xifrada i separada» y luego «zones de la imatge esborrades»~~ **Resuelto (20/11, PR #41)**: la maqueta dice que el PDF se reconstruye desde el texto, sin el escaneo ni su capa de texto. Queda E-38 (seudónimos coherentes, sin mapa) en el [[Registro de errores]] | `maqueta/index.html` `#exportat`, [[0007-generacion-pdf-final]] | — |
+| I3 | ~~**El orden del flujo está invertido**: la maqueta revisa y valida antes de anonimizar; el contrato anonimiza y luego revisa~~ **Resuelto**: 0004 es **Aceptada** desde el 17/11 y el contrato ya anonimiza antes de revisar | `maqueta` vs `docs/api/endpoints.md` §6, [[0004-anonimizacion-antes-o-despues-de-revision]] | — |
 | I4 | **El recorrido de la maqueta es imposible con los roles actuales**: una sola persona sube, revisa, anonimiza y exporta. Con roles múltiples ([[0012-identidad-y-roles]]) una cuenta puede hacer el recorrido entero, porque A-07 (nadie revisa lo suyo) está retirada y A-15 (otro revisor firma) en pausa | `docs/reglas/usuarios.md` §3, [[0005-reglas-usuarios-y-aprobacion]] | Ninguna: la demo puede ser de una sola persona. Si se retoman A-07 o A-15, vuelven a hacer falta dos |
-| I5 | **OCR síncrono vs 23 páginas**: un request de ~30 s, riesgo de timeout. La maqueta muestra progreso asíncrono y «dos lecturas» que PaddleOCR-VL no produce: exigiría dos pasadas de OCR por página (~1.375 pág/h en vez de 2.750) | `docs/api/endpoints.md` §3, [[Rendimiento OCR]], `maqueta` pantalla `#revisio` | Decidir OCR asíncrono por página y si las dos lecturas se financian |
+| I5 | **OCR síncrono vs 23 páginas**: un request de ~30 s, riesgo de timeout. La maqueta muestra progreso asíncrono. La doble lectura ya está decidida (A-24, 20/11): dos pasadas por página, diff en `metadatos_proceso` y avisos en `paginas_documento`, a ~1.375 pág/h en vez de 2.750 | `docs/api/endpoints.md` §3, [[Rendimiento OCR]], `maqueta` pantalla `#revisio` | **Parcialmente resuelto**: queda decidir el OCR asíncrono por página |
 | I6 | **La pantalla de justicia gratuita no tiene contrato ni modelo**: checklist, datos extraídos, requerimiento y envío a UNITRAM. Y UNITRAM es una integración de proveedor desconocido | `maqueta` pantalla `#jg`, [[Propuesta ICAT]] §Preguntas | Fase 2 con contrato propio; no prometerla en el piloto |
 | I7 | **Búsqueda de texto completo en Arxiu** sin endpoint ni índice: `GET /documents` solo filtra `estado` | `docs/api/endpoints.md` §3, `maqueta` `#arxiu` | Añadir `?q=` con `tsvector` cuando exista la tabla de páginas |
 | I8 | El botón «Exportar PDF» de la revisión está activo antes de aprobar, justo lo que A-17 prohíbe | `maqueta/index.html` pantalla `#revisio` | Quitarlo o deshabilitarlo en la maqueta |
@@ -56,12 +61,12 @@ No se puede implementar el contrato tal cual. Ordenados por lo que cuesta descub
 |---|---|---|
 | H1 | ~~El README sigue listando `/user/register`, que ya no existe, y promete exportación a Word~~ **Resuelto (19/11)** | `README.md` §Endpoints, §Qué hace |
 | H2 | ~~El README no menciona `docs/api/`, `docs/reglas/` ni `docs/export/` en el árbol del repo~~ **Resuelto (19/11)** | `README.md` §Estructura |
-| H3 | RGPD: usa `estado = 'eliminado'`, que no está en el CHECK de `documentos`; borra `anotaciones_entidad` en cascada (choca con la trazabilidad de A-18); cita `usuarios.activo` | `docs/architecture/rgpd-considerations.md` |
+| H3 | RGPD: ~~usa `estado = 'eliminado'`, que no está en el CHECK~~ **el CHECK ya lo admite desde `V15`**. Siguen vivos el borrado en cascada de `anotaciones_entidad` (choca con A-18) y `usuarios.activo`; la acción por defecto y la retención son E-44 | `docs/architecture/rgpd-considerations.md` |
 | H4 | ~~El README de arquitectura cita `er-diagram.md` (no existe) y «7 triggers» (hay 15)~~ **Resuelto (19/11)**: apunta al PNG y dice 16 | `docs/architecture/README.md` |
-| H5 | ~~`usuarios.md` dice que `sesiones_usuario.creado_en` «ya existe»; la tabla no existe~~ **Resuelto (19/11)**: `usuarios.md` §7 ya apunta a `V13`, que es la que no se escribirá | `docs/reglas/usuarios.md` §7 |
-| H6 | V12 siembra motores OCR en cloud (contradice 0001), `preservar_formato_pdf = true` (contradice 0007), `tiempo_max_revision_minutos = 60` (contradice el plazo de 48 h) y `version_esquema_bd = 1` con 12 migraciones | `V12__seed_configuracion_inicial.sql` |
+| H5 | ~~`usuarios.md` dice que `sesiones_usuario.creado_en` «ya existe»; la tabla no existe~~ **Resuelto (20/11, PR #41)**: `usuarios.md` §7 ya no apunta a `V13`, sino a editar una migración existente | `docs/reglas/usuarios.md` §7 |
+| H6 | ~~V12 siembra motores OCR en cloud, `preservar_formato_pdf = true`, `tiempo_max_revision_minutos = 60` y `version_esquema_bd = 1`~~ **Resuelto (20/11)**: `V15` corrige los cuatro (paddleocr-vl en local, `false`, clave borrada, versión 15) | `V15:141-161` |
 | H7 | ~~`vault/Inicio.md` escribe `Investigacion/` y la carpeta es `investigacion/`: en Linux rompe~~ **Ya estaba bien** (minúscula) | `vault/Inicio.md` |
-| H8 | `categorias_sensibles` marca `NUSS` como `rgpd_especial`: es un identificador, no un dato del art. 9, y ahora dispara doble firma | `V11__seed_categorias_sensibles.sql` |
+| H8 | ~~`categorias_sensibles` marca `NUSS` como `rgpd_especial`~~ **Resuelto (20/11)**: `V15` lo pone en `false` | `V15:136-139` |
 | H9 | **No había stack de backend escrito**: ni lenguaje, ni framework, ni driver, ni dónde se despliega. Solo `reportlab` en el diseño del PDF. Resuelto como propuesta en [[0008-stack-backend]] | `README.md`, `docs/architecture/README.md` |
 
 ## La maqueta contra el plan
@@ -88,10 +93,8 @@ Detalle menor pero elocuente: en la maqueta el «escaneo» es HTML, no una image
 ## Cómo se cierra
 
 0. **Stack** (H9): decidir Python + FastAPI o C# en [[0008-stack-backend]] antes de escribir el primer endpoint. Es barato hoy y caro después.
-1. **Nombres de ruta** (I9): antes de Figma y antes del frontend. Sin código, seis ficheros.
-2. **Identidad** (B1, B2): es la decisión que desbloquea el resto del alta de usuarios. Con [[0012-identidad-y-roles]]: SSO, tres roles y roles múltiples.
-3. **Modelo** (B1, B3, B5, B8): `V14` y `V15` ya están escritas y la BD es definitiva. Lo que queda no es esquema: B3 y B5 son cambios de contrato, B8 se resuelve con `metadatos_proceso`, y B1 necesita decidir si el login cabe en `rol`/`activo`.
-4. **Export** (B6, B8): un solo dueño del hash y quitar `expira_en` del expediente.
-5. **Flujo** (B7, I1, I3): cerrar 0004 y decidir qué pasa al devolver un visto bueno.
-6. **Maqueta** (I2, I4, I8): tres textos y un botón; y decidir si la demo va con una o dos personas.
-7. **Higiene** (H1-H8): media hora, y evita que el README contradiga al contrato en la entrega del viernes.
+1. **Identidad** (B1): es lo único que sigue abierto. @Rubén ya votó 0009 (SSO + admin local); faltan @Kevin, @Marina y @Alex en 0008 y @Kevin y @Alex en 0012. Mientras no se cierre, el alta de usuarios se queda fuera del piloto; no habrá `V13`.
+2. **Defectos que piden decisión**: E-33 (`regla_categorias` frente a `reglas_anonimizacion.configuracion`), E-38 (mapa de seudónimos), E-39 (licencia de PyMuPDF), E-44 (retención y acción por defecto en el documento RGPD). Los demás están en el [[Registro de errores]].
+3. **Maqueta** (I4, I8): el botón «Exportar PDF» de la revisión sigue activo antes de aprobar, y hay que decidir si la demo va con una o dos personas.
+
+Lo cerrado no se reabre: B3, B5, B6, B7, B8, I1, I2, I3, I9 y H1-H8 se resolvieron entre el 17 y el 20/11 y su fila lo dice.
