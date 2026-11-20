@@ -93,6 +93,7 @@ tr.click{cursor:pointer}tr.click:hover td{background:#FAF9F7}
 .ent.m-tatxar{text-decoration:line-through 2px;background:#f2f2f2}
 .ent.m-tag{background:#4A4A4A;color:#fff;font:600 11px Roboto;padding:1px 5px;letter-spacing:.3px}
 .ent.orig{background:var(--w-bg)}
+.ent.hlt{box-shadow:0 0 0 3px var(--p);border-radius:3px;position:relative;z-index:1}
 .side{padding:16px}
 .side h3{font-size:15px;font-weight:500;margin:0}
 .side h5{font-size:12px;color:var(--m);font-weight:500;margin:16px 0 8px}
@@ -138,7 +139,7 @@ ca:{safata:"Safata",jg:"Justícia gratuïta",arxiu:"Arxiu",informes:"Informes",r
  lg_w:"groc ondulat: les dues lectures no coincideixen",lg_bad:"vermell: DNI o IBAN amb control incorrecte",qual:"Qualitat de la imatge",
  dues:"Les dues lectures no coincideixen",l1:"Lectura 1",l2:"Lectura 2",comprova:"Comproveu-ho a la imatge.",usar:"Usar",mantenir:"Mantenir",
  dni_bad:"DNI amb format incorrecte",dni_sug:"Probablement l'OCR ha llegit «S» com «5».",corregir:"Corregir a",iban_bad:"IBAN invàlid (dígit de control)",iban_sug:"Comproveu el darrer dígit a la imatge.",editar:"Editar a mà",
- resol:"Resol els avisos abans de validar",il_t:"Pàgina il·legible",il_s:"Contrast 46 (mínim 80). El model inventaria text: no es transcriu.",marcar_esc:"Marcar per tornar a escanejar",
+ resol:"Resol els avisos abans de validar",il_t:"Pàgina il·legible",il_s:"Contrast 46 (mínim 80). El model inventaria text: no es transcriu.",marcar_esc:"Marcar per tornar a escanejar",esc_t:"Tornar a escanejar la pàgina",esc_s:"Pugueu el PDF o la imatge de la pàgina",pujar_pag:"Pujar pàgina",esc_ok:"Pàgina reescanejada",
  doc_ok:"Totes les pàgines revisades",comprovar:"Comprovar documentació",
  jg_t:"Comprovació de documentació",jg_s:"Cita UNITRAM 06/11/2026 10:30 · Seu de Tarragona · Unitat familiar: 3 membres",aportada:"Documentació aportada (detectada automàticament)",
  complet:"Complet",incomplet:"Incomplet",falta:"Falta",dades:"Dades extretes per revisar",
@@ -170,7 +171,7 @@ es:{safata:"Bandeja",jg:"Justicia gratuita",arxiu:"Archivo",informes:"Informes",
  lg_w:"ámbar ondulado: las dos lecturas no coinciden",lg_bad:"rojo: DNI o IBAN con control incorrecto",qual:"Calidad de la imagen",
  dues:"Las dos lecturas no coinciden",l1:"Lectura 1",l2:"Lectura 2",comprova:"Compruébalo en la imagen.",usar:"Usar",mantenir:"Mantener",
  dni_bad:"DNI con formato incorrecto",dni_sug:"Probablemente el OCR ha leído «S» como «5».",corregir:"Corregir a",iban_bad:"IBAN inválido (dígito de control)",iban_sug:"Comprueba el último dígito en la imagen.",editar:"Editar a mano",
- resol:"Resuelve los avisos antes de validar",il_t:"Página ilegible",il_s:"Contraste 46 (mínimo 80). El modelo inventaría texto: no se transcribe.",marcar_esc:"Marcar para volver a escanear",
+ resol:"Resuelve los avisos antes de validar",il_t:"Página ilegible",il_s:"Contraste 46 (mínimo 80). El modelo inventaría texto: no se transcribe.",marcar_esc:"Marcar para volver a escanear",esc_t:"Volver a escanear la página",esc_s:"Sube el PDF o la imagen de la página",pujar_pag:"Subir página",esc_ok:"Página reescaneada",
  doc_ok:"Todas las páginas revisadas",comprovar:"Comprobar documentación",
  jg_t:"Comprobación de documentación",jg_s:"Cita UNITRAM 06/11/2026 10:30 · Sede de Tarragona · Unidad familiar: 3 miembros",aportada:"Documentación aportada (detectada automáticamente)",
  complet:"Completo",incomplet:"Incompleto",falta:"Falta",dades:"Datos extraídos para revisar",
@@ -199,7 +200,7 @@ const $ = s => document.querySelector(s);
 const S = {
   uploaded:false, procDone:false, sent:false, exported:false, cur:7,
   pages:{}, fixes:{}, audit:[],
-  mode:"censurar", cats:{nom:1,dni:1,adreca:1,contacte:1,iban:1,matricula:0,menor:1,salut:1,magistrat:1,juridica:0},
+  mode:"censurar", anonPage:1, detOpen:false, cats:{nom:1,dni:1,adreca:1,contacte:1,iban:1,matricula:0,menor:1,salut:1,magistrat:1,juridica:0},
   off:new Set(), on:new Set(), original:false
 };
 const REV = [7,12], BAD = 22, N = 23;
@@ -377,7 +378,22 @@ const SENT = [
   ["p","TERCERO.- ",["Raúl Gómez Cañizares","nom"]," reiteró su petición mediante escrito de 3 de marzo de 2020."],
   ["p","FALLO: Que debo ESTIMAR y ESTIMO la demanda, condenando a ",["Construcciones Levante, S.L.","juridica"]," al pago de las costas."]
 ];
-const ENTS = []; SENT.forEach(b=>b.slice(1).forEach(x=>{ if(Array.isArray(x)) ENTS.push({v:x[0],c:x[1],id:ENTS.length}); }));
+const SENT2 = [
+  ["p","CUARTO.- La demandante, D.ª ",["Lucía Martínez Peña","nom"],", con DNI ",["43123456Z","dni"]," y domicilio en ",["calle Sant Antoni, n.º 8, 43003 Tarragona","adreca"],", interpuso reclamación previa el 12 de mayo de 2019."],
+  ["p","La parte demandada sostiene que el pago se hizo en la cuenta ",["ES91 2100 0418 4502 0005 1332","iban"],"."],
+  ["p","QUINTO.- Practicada la prueba, queda acreditado que el vehículo matrícula ",["4821 KLM","matricula"]," fue trasladado al depósito municipal."]
+];
+const SENT3 = [
+  ["p","SEXTO.- Consta en autos el informe de la empresa ",["Construcciones Levante, S.L.","juridica"],", firmado por D. ",["Raúl Gómez Cañizares","nom"],"."],
+  ["p","SÉPTIMO.- Para aclarar los hechos se contactó con la actora en el teléfono ",["612 345 678","contacte"]," y por correo ",["raul.gomez@ejemplo.com","contacte"],"."]
+];
+const SENT4 = [
+  ["p","OCTAVO.- La cuantía del procedimiento asciende a 606.336,74 € y no se aprecian dudas sobre la legitimación de D. ",["Raúl Gómez Cañizares","nom"],"."],
+  ["p","NOVENO.- Notifíquese esta resolución a las partes, con la advertencia de que cabe recurso de apelación."],
+  ["p","Así lo pronuncia, manda y firma D. ",["Fernando Ruiz Calvo","magistrat"],", Magistrado-Juez."]
+];
+const SENTP = [SENT, SENT2, SENT3, SENT4];
+const ENTS = []; SENTP.forEach((pg,pi)=>pg.forEach(b=>b.slice(1).forEach(x=>{ if(Array.isArray(x)) ENTS.push({v:x[0],c:x[1],id:ENTS.length,p:pi+1}); })));
 const CATS = ["nom","dni","adreca","contacte","iban","matricula","menor","salut","magistrat","juridica"];
 const TAG = {nom:"PERSONA",dni:"DNI",adreca:"ADREÇA",contacte:"CONTACTE",iban:"IBAN",matricula:"MATRÍCULA",menor:"MENOR",salut:"DADA DE SALUT",magistrat:"MAGISTRAT",juridica:"EMPRESA"};
 const isOn = e => S.on.has(e.id) || (S.cats[e.c] && !S.off.has(e.id));
@@ -389,23 +405,24 @@ function label(e){
   return `[${TAG[e.c]}${people?" "+(n+1):""}]`;
 }
 function entHTML(e){
-  if(S.original) return `<button class="ent orig" data-e="${e.id}">${esc(e.v)}</button>`;
-  if(!isOn(e)) return `<button class="ent off" data-e="${e.id}">${esc(e.v)}</button>`;
+  if(S.original) return `<button class="ent orig" data-e="${e.id}" data-c="${e.c}">${esc(e.v)}</button>`;
+  if(!isOn(e)) return `<button class="ent off" data-e="${e.id}" data-c="${e.c}">${esc(e.v)}</button>`;
   const m = S.mode, tagged = ["etiqueta","pseudonim","inicials"].includes(m);
-  return `<button class="ent ${tagged?"m-tag":"m-"+m}" data-e="${e.id}" aria-label="${t("c_"+e.c)}">${esc(tagged?label(e):e.v)}</button>`;
+  return `<button class="ent ${tagged?"m-tag":"m-"+m}" data-e="${e.id}" data-c="${e.c}" aria-label="${t("c_"+e.c)}">${esc(tagged?label(e):e.v)}</button>`;
 }
 V.anonimitzar = () => {
   const count = c => ENTS.filter(e=>e.c===c).length, onN = ENTS.filter(isOn).length;
   return shell("arxiu", `
-  <div class="card row" style="padding:10px 14px;margin-bottom:12px"><a href="#safata" class="btn">‹ ${t("safata")}</a><b>${t("an_t")} · Sentència 70/2020</b><span>(${t("pag")} 1 ${t("de")} 4)</span><span class="sp"></span>
+  <div class="card row" style="padding:10px 14px;margin-bottom:12px"><a href="#safata" class="btn">‹ ${t("safata")}</a><b>${t("an_t")} · Sentència 70/2020</b><span>(${t("pag")} ${S.anonPage} ${t("de")} ${SENTP.length})</span>
+    <button class="btn" data-anp="-1" ${S.anonPage===1?"disabled":""}>‹</button><button class="btn" data-anp="1" ${S.anonPage===SENTP.length?"disabled":""}>›</button><span class="sp"></span>
     <button class="btn" id="orig">${S.original?t("vista_an"):t("vista")}</button><button class="btn pri" id="expan">⤓ ${t("exp_an")}</button></div>
   <div class="anon">
-    <div class="card doc" id="doc">${SENT.map(([k,...xs])=>`<${k==="h"?"h4":"p"}>${xs.map(x=>Array.isArray(x)?entHTML(ENTS.find(e=>e.v===x[0]&&e.c===x[1]&&!e._r&&(e._r=1))):esc(x)).join("")}</${k==="h"?"h4":"p"}>`).join("")}</div>
+    <div class="card doc" id="doc">${SENTP[S.anonPage-1].map(([k,...xs])=>`<${k==="h"?"h4":"p"}>${xs.map(x=>Array.isArray(x)?entHTML(ENTS.find(e=>e.v===x[0]&&e.c===x[1]&&!e._r&&(e._r=1))):esc(x)).join("")}</${k==="h"?"h4":"p"}>`).join("")}</div>
     <aside class="card side"><h3>${t("an_panel")}</h3><div class="doc-s">${ENTS.length} ${t("detect")} · ${onN} ${t("anonim")}</div>
       <h5>${t("com")}</h5><div class="modes">${["censurar","esborrar","tatxar","etiqueta","pseudonim","inicials"].map(m=>`<button data-m="${m}" class="${S.mode===m?"on":""}">${t("m_"+m)}</button>`).join("")}</div>
       ${S.mode==="tatxar"?`<div class="banner w" style="margin-top:8px">${t("tatxar_av")}</div>`:""}
-      <h5>${t("que")}</h5>${CATS.map(c=>`<label class="cat"><input type="checkbox" data-c="${c}" ${S.cats[c]?"checked":""} ${c==="menor"||c==="salut"?"disabled":""}>${t("c_"+c)}<em>${count(c)}</em></label>`).join("")}
-      <details><summary>${t("veure")} (${onN})</summary><ul>${ENTS.filter(isOn).map(e=>`<li><span>■ ${esc(e.v.length>24?e.v.slice(0,24)+"…":e.v)}</span><span class="doc-s">${TAG[e.c]}</span></li>`).join("")}</ul></details>
+      <h5>${t("que")}</h5>${CATS.map(c=>`<label class="cat" data-hc="${c}"><input type="checkbox" data-c="${c}" ${S.cats[c]?"checked":""} ${c==="menor"||c==="salut"?"disabled":""}>${t("c_"+c)}<em>${count(c)}</em></label>`).join("")}
+      <details ${S.detOpen?"open":""}><summary>${t("veure")} (${onN})</summary><ul>${ENTS.filter(isOn).map(e=>`<li data-he="${e.id}"><span>■ ${esc(e.v.length>24?e.v.slice(0,24)+"…":e.v)}</span><span class="doc-s">${TAG[e.c]}</span></li>`).join("")}</ul></details>
     </aside>
   </div>`);
 };
@@ -461,11 +478,17 @@ document.addEventListener("click", ev => {
   if(el.dataset.go){ location.hash = el.dataset.go; return; }
   if(el.id==="g"){ guideOpen=!guideOpen; return render(); }
   if(el.id==="nou"||el.id==="drop") return upload();
+  if(el.dataset.anp){ S.anonPage=Math.min(SENTP.length,Math.max(1,S.anonPage+Number(el.dataset.anp))); return render(); }
   if(el.dataset.p){ S.cur=+el.dataset.p; return render(); }
   if(el.dataset.w) return showPop(el);
   if(el.dataset.fix){ S.fixes[el.dataset.fix]=el.dataset.v; log(`Corregit «${W[el.dataset.fix].read}» → «${el.dataset.v}» (pàg. ${S.cur})`); closePop(); return render(); }
   if(el.id==="val"){ S.pages[S.cur]="v"; log(`Validada pàg. ${S.cur} JG-2026-1184`); nextAttention(); toast("✓ "+t("validat")); return render(); }
-  if(el.id==="esc"){ S.pages[S.cur]="esc"; log(`Pàg. ${S.cur} marcada per tornar a escanejar`); nextAttention(); return render(); }
+  if(el.id==="esc"){ modal(`<h2>${t("esc_t")}</h2><p>${t("esc_s")} (${t("pag")} ${S.cur}).</p>
+    <input type="file" id="refile" accept=".pdf,image/*" style="width:100%">
+    <div class="row" style="margin-top:16px"><span class="sp"></span><button class="btn" id="mc">${t("cancel")}</button>
+    <button class="btn" id="esc2">${t("marcar_esc")}</button><button class="btn pri" id="reu" disabled>${t("pujar_pag")}</button></div>`); return; }
+  if(el.id==="esc2"){ closeModal(); S.pages[S.cur]="esc"; log(`Pàg. ${S.cur} marcada per tornar a escanejar`); nextAttention(); return render(); }
+  if(el.id==="reu"){ closeModal(); S.pages[S.cur]="w"; log(`Pàg. ${S.cur} reescanejada (fitxer pujat)`); toast("✓ "+t("esc_ok")); return render(); }
   if(el.id==="retr"){ toast("↻ "+t("retranscriure")+"…"); return; }
   if(el.id==="exp"){ toast("⤓ JG-2026-1184.pdf"); return; }
   if(el.id==="dem"){ modal(`<h2>${t("msg_t")}</h2><textarea style="width:100%;height:190px;font:14px/1.5 Roboto;border:1px solid var(--line);border-radius:6px;padding:10px">${esc(t("msg"))}</textarea><div class="row" style="margin-top:14px"><span class="sp"></span><button class="btn" id="mc">${t("cancel")}</button><button class="btn pri" id="ms">${t("enviar")}</button></div>`); return; }
@@ -484,10 +507,28 @@ document.addEventListener("click", ev => {
 });
 document.addEventListener("change", ev => {
   if(ev.target.id==="cf") $("#ex").disabled = !ev.target.checked;
+  if(ev.target.id==="refile") $("#reu").disabled = !ev.target.files.length;
   if(ev.target.dataset.c){ S.cats[ev.target.dataset.c] = ev.target.checked?1:0; S.on.clear(); S.off.clear(); render(); }
 });
 document.addEventListener("input", ev => { if(ev.target.id==="q"){ const q=ev.target.value.toLowerCase(); $("#rows").innerHTML = rows(DOCS().filter(d=>(d.id+d.t+d.s).toLowerCase().includes(q))); } });
 document.addEventListener("mouseover", ev => { const b=ev.target.closest(".ent"); if(b && !S.original) entTip(b); });
+// En anonimitzar, al passar per una categoria o per una dada de la llista, es remarca al text.
+function markAnon(el){
+  document.querySelectorAll(".ent.hlt").forEach(x=>x.classList.remove("hlt"));
+  const sel = el?.dataset.hc ? `.ent[data-c="${el.dataset.hc}"]` : el?.dataset.he ? `.ent[data-e="${el.dataset.he}"]` : null;
+  if(!sel) return;
+  // Si la dada és d'una altra pàgina, s'obre aquella pàgina per poder-la remarcar.
+  if(el.dataset.he && !document.querySelector(sel)){
+    const p = ENTS[+el.dataset.he]?.p;
+    if(p && p !== S.anonPage){ S.anonPage = p; render(); }
+  }
+  const hits = document.querySelectorAll(sel);
+  hits.forEach(x=>x.classList.add("hlt"));
+  if(el.dataset.he) hits[0]?.scrollIntoView({block:"nearest",behavior:"smooth"});
+}
+document.addEventListener("toggle", ev => { if(ev.target.tagName==="DETAILS") S.detOpen = ev.target.open; }, true);
+document.addEventListener("mouseover", ev => markAnon(ev.target.closest("[data-hc],[data-he]")));
+document.addEventListener("focusin", ev => { if(ev.target.dataset?.c) markAnon(ev.target.closest(".cat")); });
 // Revisión: al señalar un aviso en el texto, se marca la misma palabra en la imagen escaneada.
 function markScan(k){ document.querySelectorAll(".hl.on").forEach(x=>x.classList.remove("on")); const s=k&&$(`[data-wi="${k}"]`); if(s){ s.classList.add("on"); s.scrollIntoView({block:"nearest",behavior:"smooth"}); } }
 document.addEventListener("mouseover", ev => { const h=ev.target.closest("[data-hk]"); markScan(h?.dataset.hk); });
