@@ -13,6 +13,8 @@
 
 - Revisar los 34 defectos que siguen abiertos en el [[Registro de errores]] y decidir cuáles entran antes del 27/11.
 - [[Coherencia]] actualizada el 20/11: de once contradicciones queda una (B1); I1, H6 y H8 se cerraron con `V15`, e I2, I3 y H5 con el contrato y 0004.
+- [[0008-stack-backend]] **Aceptada** (20/11, @Rubén): Python 3.12 + FastAPI + Uvicorn, `psycopg` 3, Pydantic v2 y SQL explícito. El equipo dio el visto bueno fuera del repo; la conformidad se anota aquí, no en la nota original.
+- El equipo son cinco personas, @Yaser incluido (ETL): queda escrito en [[Equipo]] para que no dependa de lo que cada uno recuerde.
 
 ## Bloqueos / preguntas
 

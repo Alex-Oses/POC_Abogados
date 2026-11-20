@@ -29,7 +29,7 @@ Puntos a cerrar con @Yaser antes de escribir código (no los decido yo):
 
 ## 3. Stack
 
-**Python 3.12 + FastAPI + SQL explícito** ([[0008-stack-backend]], Propuesta).
+**Python 3.12 + FastAPI + SQL explícito** ([[0008-stack-backend]], **Aceptada** el 20/11).
 
 | Por qué | Qué se descartó |
 |---|---|
@@ -129,7 +129,7 @@ Cada promesa del backend tiene su prueba; si no la tiene, no es una promesa:
 
 | Abierto | Quién | Qué bloquea |
 |---|---|---|
-| [[0008-stack-backend]] | @Marina, @Kevin, @Alex | El primer endpoint |
+| ~~[[0008-stack-backend]]~~ **Aceptada (20/11): Python 3.12 + FastAPI** | — | — |
 | [[0009-identidad]]: SSO sin gestión de cuentas, admin local solo en desarrollo | @Kevin, @Marina, @Alex + registro OIDC del ICAT (1-2 semanas de terceros) | El login real y la primera ruta con permisos |
 | Modelo de datos ([[0010-modelo-de-datos]]): `usuarios_roles` (tabla N:M, decisión de @Marina) y sin `tokens_usuario` | @Marina | La migración `V13` |
 | Sesión propia en `sesiones_usuario` ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | `V13`: la otra tabla nueva |

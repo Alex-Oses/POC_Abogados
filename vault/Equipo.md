@@ -10,6 +10,8 @@
 | DevOps | @Kevin |
 | Testing | Todos, en rueda |
 
+Cinco personas: @Rubén (backend), @Alex (frontend y OCR), @Marina (base de datos), @Kevin (DevOps) y @Yaser (ETL). Las decisiones se votan en `Decisiones/`, pero el equipo no revisa el repo: cuando la conformidad llega por Teams, la recoge @Rubén en la nota y en el [[Tablero]].
+
 ## Herramientas
 
 - Tareas: Trello
