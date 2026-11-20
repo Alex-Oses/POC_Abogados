@@ -15,7 +15,7 @@ Prueba de concepto para el **Il·lustre Col·legi de l'Advocacia de Tarragona (I
 | Propuesta funcional y de diseño | Hecha (06/11/2026) | [vault/Proyecto/Propuesta ICAT](vault/Proyecto/Propuesta%20ICAT.md) |
 | Pruebas de rendimiento del OCR (PaddleOCR-VL 1.6) | Hechas, con comparativa de equipos | [vault/Proyecto/Rendimiento OCR](vault/Proyecto/Rendimiento%20OCR.md) · [bench](investigacion/paddleocr/bench.py) |
 | Contrato de la API (v1) | Propuesta, 40 rutas | [docs/api](docs/api/endpoints.md) · [índice](vault/Proyecto/API.md) |
-| Reglas de negocio (U-01 a U-21, A-01 a A-24) | Cerradas y auditadas | [docs/reglas/reglas-de-negocio.md](docs/reglas/reglas-de-negocio.md) |
+| Reglas de negocio (U-01 a U-21, A-01 a A-24) | Propuestas y cerradas; el estado de cada una, en su fila | [docs/reglas/reglas-de-negocio.md](docs/reglas/reglas-de-negocio.md) |
 | Modelo de datos (PostgreSQL) | Cerrado (V1–V15) | [docs/architecture](docs/architecture/README.md) |
 | Anonimización local (Presidio) | Investigada y medida | [documentación y rendimiento](docs/presidio.md) |
 | Maqueta navegable del flujo completo | Hecha | [maqueta/index.html](maqueta/index.html) · [documentación](docs/maqueta.md) |

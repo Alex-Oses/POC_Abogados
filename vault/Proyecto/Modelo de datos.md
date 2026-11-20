@@ -242,19 +242,19 @@ erDiagram
 
 ## Lo que sigue pendiente y no está en el diagrama
 
-- **`hash_export`**: B8 sin decidir. Si se acepta la recomendación de [[0011-ajustes-al-modelo-de-marina]], va en `VERSIONES_DOCUMENTO` (`V16`), no en `DOCUMENTOS`.
-- **`pipeline_version`, `confianza_layout_promedio`, `regla_id`, `es_actual`, `REGLA_CATEGORIAS` y los timestamps de categorías**: están en el diagrama y los lee el contrato, pero **no existen en `V1`-`V15`**. Necesitan migración.
+- **`hash_export`**: cerrado (B8, 19/11). Vive en `VERSIONES_DOCUMENTO.metadatos_proceso->>'hash_export'`; `DOCUMENTOS` solo guarda `exportado_en` y `cerrado_en`. No hay migración nueva.
+- **`regla_id` y `REGLA_CATEGORIAS`**: los lee el contrato, pero **no existen en `V1`-`V15`**. Es E-33 del [[Registro de errores]]: decidir si basta `reglas_anonimizacion.configuracion` o hay que editar `V5`.
 - **`bbox_x/y/ancho/alto` y `pagina_numero` de `anotaciones_entidad`**: siguen en `V6` y `V15` no los quitó. Hay que decidir si se eliminan (con plan de datos) o se quedan como respaldo.
-- **`GET /documents/{id}/pages`**: sin endpoint, `PAGINAS_DOCUMENTO` no tiene lector.
+- **`GET /documents/{id}/pages`**: ya existe en el contrato (19/11), con `PAGINAS_DOCUMENTO` como lector.
 - **Tabla de seudónimos** (I2): `pseudonimizado` guarda `texto_sustitucion` en la anotación, así que la misma persona puede salir con dos seudónimos distintos en el mismo documento.
 - **NUSS en `rgpd_especial`** (H8): la lista de la columna solo cubre art. 9-10, pero el seed `V11` sigue metiendo NUSS. Con A-15 en pausa no dispara nada; si vuelve, lo hace mal.
-- **Seeds de `configuracion_sistema`**: los motores OCR en cloud, `preservar_formato_pdf = false` y el timeout de revisión de 60 min contradicen 0001 y 0007.
-- **`V13`**: no escrita. Espera a [[0009-identidad]] y a que se acepte [[0012-identidad-y-roles]].
+- **Seeds de `configuracion_sistema`**: los motores OCR en cloud y el timeout de revisión de 60 min contradicen 0001. `preservar_formato_pdf = false` **no** es un defecto: es lo que pide 0007 (reconstruir sin el formato original).
+- **Identidad y sesiones**: `V13` no existe ni se va a escribir. Lo que piden [[0009-identidad]] y [[0012-identidad-y-roles]] (`estado`, `sso_subject`, `usuarios_roles`, `sesiones_usuario`) se añade editando una migración existente, o queda fuera del piloto.
 
 ## Qué queda del debate con 0010
 
-[[0010-modelo-de-datos]] proponía bajar el modelo en tres migraciones (`V13` identidad, `V14` estructura, `V15` flujo). `V14` y `V15` están escritas; `V13` sigue pendiente. Su diagrama se retiró el 18/11 para dejar **un solo diagrama**, este, y no dos versiones que se contradicen.
+[[0010-modelo-de-datos]] proponía bajar el modelo en tres migraciones (`V13` identidad, `V14` estructura, `V15` flujo). `V14` y `V15` están escritas; `V13` se descartó al cerrar la BD el 19/11. Su diagrama se retiró el 18/11 para dejar **un solo diagrama**, este, y no dos versiones que se contradicen.
 
-Lo que 0010 acertó y se ha quedado: `bloques_layout` como base de los offsets, `paginas_documento` con semáforo por página, la cola de revisión con `asignado_a` y un solo dueño del hash del PDF. Lo que sigue abierto es B8 (ese dueño) y el endpoint de páginas.
+Lo que 0010 acertó y se ha quedado: `bloques_layout` como base de los offsets, `paginas_documento` con semáforo por página, la cola de revisión con `asignado_a` y un solo dueño del hash del PDF. Lo que sigue abierto es la coherencia de seudónimos y la retención; el endpoint de páginas y el dueño del hash ya están cerrados.
 
 **Estado (18/11)**: [[0011-ajustes-al-modelo-de-marina]] está **aceptada**; [[0012-identidad-y-roles]] está en **Propuesta** y este diagrama aplica su parte de identidad con los roles en tabla, como decidió @Marina.

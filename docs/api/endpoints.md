@@ -207,7 +207,7 @@ Errores: `400`, `413`, `415`. `422` si el OCR no produce texto.
 
 ### `POST /transform/plain-text`
 
-Texto de la versión vigente (`es_actual = true`), sin formato.
+Texto de la versión vigente (la de mayor `numero_version`), sin formato.
 
 ```json
 { "id": "uuid" }
@@ -251,8 +251,8 @@ Lista documentos. El transcriptor ve solo los suyos; el revisor ve todos. Excluy
     "id": "uuid",
     "numero_version": 2,
     "tipo_version": "ocr_texto",
-    "pipeline_version": "v1.6",
-    "confianza_layout_promedio": 0.973
+    "confianza_promedio": 0.973,
+    "metadatos_proceso": { "pipeline_version": "v1.6" }
   }
 }
 ```
@@ -267,7 +267,7 @@ Semáforo por página: una entrada por fila de `paginas_documento`. Es lo que pi
     {
       "numero": 1,
       "contraste": 62,
-      "estado": "aviso",
+      "estado": "revisar",
       "avisos": [{ "tipo": "contraste_bajo", "mensaje": "Escaneo muy claro", "bbox": { "x": 120, "y": 340, "ancho": 800, "alto": 220 } }],
       "leida_ocr": true
     }
@@ -275,7 +275,7 @@ Semáforo por página: una entrada por fila de `paginas_documento`. Es lo que pi
 }
 ```
 
-`estado`: `ok | aviso | error`. `404` si el documento no existe. El detalle de los avisos está en `docs/reglas/aprobacion.md` §8.
+`estado`: `ok | revisar | ilegible`. `404` si el documento no existe. El detalle de los avisos está en `docs/reglas/aprobacion.md` §8.
 
 ### `GET /documents/{id}/original`
 
@@ -295,7 +295,7 @@ Errores: `404` si el documento o el fichero no existen, `410` si el original ya 
 
 ### `GET /documents/{id}/versions`
 
-`200` → `{ "items": [ { "numero_version", "tipo_version", "motor_ocr", "pipeline_version", "creado_en" } ] }`.
+`200` → `{ "items": [ { "numero_version", "tipo_version", "motor_ocr", "confianza_promedio", "creado_en" } ] }`.
 
 ### `GET /documents/{id}/versions/{numero_version}`
 
@@ -425,7 +425,7 @@ Efectos según `estado`:
 
 | `estado` | Versión creada | `documentos.estado` |
 | --- | --- | --- |
-| `aprobado` | `final_aprobado` con `es_actual = true` | `aprobado`, o `pendiente_visto_bueno` si `requiere_visto_bueno` (en pausa con A-15) |
+| `aprobado` | `final_aprobado` con el `numero_version` siguiente | `aprobado`, o `pendiente_visto_bueno` si `requiere_visto_bueno` (en pausa con A-15) |
 | `rechazado_con_cambios` | `revisado_humano` | `rechazado` |
 | `devuelto` | ninguna | `en_revision`, la revisión vuelve a `en_cola` |
 
@@ -469,9 +469,9 @@ Cierra el expediente. Genera el PDF definitivo desde la versión aprobada (ya an
 
 `200` → binario, `Content-Type: application/pdf`, `Content-Disposition: attachment; filename="documento.pdf"` y cabecera `X-Document-Hash` con el SHA-256.
 
-Errores: `409` si el documento no está `aprobado`.
+Errores: `409` si el documento no está `aprobado` ni `exportado`.
 
-Un documento ya exportado devuelve el mismo PDF y el mismo hash: la operación es idempotente y no reescribe nada. Cómo se genera: [docs/export/pdf.md](../export/pdf.md).
+Un documento ya exportado (`exportado`, con `ruta_pdf` y hash guardados) devuelve el mismo PDF y el mismo hash: la operación es idempotente y no reescribe nada. Cómo se genera: [docs/export/pdf.md](../export/pdf.md).
 
 ---
 

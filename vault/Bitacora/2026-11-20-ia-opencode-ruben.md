@@ -4,14 +4,14 @@
 
 - `README.md` alineado con lo mergeado el 19/11 (PR #34) y con la maqueta del 20/11 (PR #35): contrato en «propuesta, 40 rutas», fila nueva de reglas de negocio y exportación descrita como PDF reconstruido sin píxeles del escaneo.
 - El árbol de carpetas deja de prometer un «diagrama» dentro de `docs/architecture/`: el ER vigente es [[Modelo de datos]].
-- Tercera pasada del [[Registro de errores]]: 20 hallazgos nuevos (E-31 a E-50) contra el contrato, el export, el RGPD y la maqueta; el [[Tablero]] pasa a 45 defectos abiertos. Sin tocar `docs/architecture/` ni migraciones.
-
+- Tercera pasada del [[Registro de errores]]: 20 hallazgos nuevos (E-31 a E-50) contra el contrato, el export, el RGPD y la maqueta; el [[Tablero]] pasa a 34 defectos abiertos. Sin tocar `docs/architecture/` ni migraciones.
+- Arreglados once de ellos (E-31, E-32, E-35, E-37, E-40, E-41, E-45, E-46, E-48, E-49 y E-50): contrato, `pdf.md`, README de arquitectura, maqueta, `usuarios.md`, `pendientes.md`, [[Modelo de datos]] y U-12. Quedan fuera E-33 (decisión de diseño), E-34, E-36, E-38, E-39 y E-44 (decisión y/o BD), E-42, E-43 y E-47 (viven en migraciones).
 - 0009 aceptada por @Rubén: SSO del ICAT sin gestión de cuentas y admin local solo de desarrollo; la opción de cuentas locales queda como alternativa si el ICAT no puede dar SSO en plazo. B2 resuelto en [[Coherencia]]; `docs/pendientes.md` y el contrato dejan de esperarla.
 - 0012: @Rubén confirma la tabla `usuarios_roles` de @Marina y no ve problema en el `JOIN`/`EXISTS` de la vista ni en el trigger; sigue **Propuesta** a falta de @Kevin y @Alex.
 
 ## Siguiente
 
-- Cambiar en la maqueta el texto «Zones de la imatge esborrades» (I2): el PDF final no lleva ninguna imagen del original.
+- Revisar los 34 defectos que siguen abiertos en el [[Registro de errores]] y decidir cuáles entran antes del 27/11.
 
 ## Bloqueos / preguntas
 

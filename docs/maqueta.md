@@ -117,7 +117,7 @@ Sirve para tres cosas:
 ![Documento exportado y registro de auditoría](img/maqueta/15-exportat.png)
 
 - **Ve**: antes de exportar, una confirmación **obligatoria** («He revisado el documento…»). Después, las garantías aplicadas y el registro de auditoría con cada acción de la sesión (subida, OCR, correcciones, validaciones, envío y exportación).
-- **Cubre**: borrado real (texto, imagen y metadatos), confirmación humana y registro de quién ha visto, corregido y exportado cada documento.
+- **Cubre**: PDF reconstruido desde el texto anonimizado (sin el escaneo, su capa de texto ni sus metadatos), confirmación humana y registro de quién ha visto, corregido y exportado cada documento.
 
 ![La misma pantalla en castellano](img/maqueta/16-exportat-es.png)
 
