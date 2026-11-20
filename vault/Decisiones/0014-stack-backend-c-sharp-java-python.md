@@ -17,27 +17,27 @@ Condición que hace barato reabrir: no hay ni una línea de backend escrita. Cam
 Los criterios que pone @Rubén, por orden de peso:
 
 1. **Librerías**: usarlas, pero pocas y con un dueño claro. Nada de un `node_modules` con 800 paquetes.
-2. **Legibilidad y experiencia**: el equipo tiene backend con Java y C#; Python le gusta menos.
+2. **Legibilidad y experiencia**: el equipo tiene backend con Java, C# y Python.
 3. **Separar responsabilidades**: que la estructura se pueda enseñar y defender.
 4. **Despliegue y compatibilidad**: todo en Docker, con PostgreSQL y con el frontend (sin decidir).
-5. **Tipado y seguridad**: que el lenguaje evite errores, no que los documente.
+5. **Tipado y seguridad**: que el lenguaje evite errores o ayude documentandolos.
 6. **Velocidad**: lo menos importante; el cuello es la GPU y el usuario es un Colegio.
 
 ## Comparativa
 
-| Criterio | Python + FastAPI | C# + ASP.NET Core | Java + Spring Boot |
-|---|---|---|---|
-| **Librerías directas** | 4 (`fastapi`, `uvicorn`, `pydantic`, `psycopg`) + ~10 transitivas | **2** (`Npgsql`, `Dapper`): routing, JSON, validación, OpenAPI y auth vienen en el framework | 1 BOM + ~5 *starters* → **~40 jars** transitivos |
-| **Legibilidad** | Muy poca ceremonia; el tipado es opcional | Poca ceremonia con Minimal APIs; tipos explícitos en la firma | Correcta, pero el flujo vive en anotaciones y en el contenedor de Spring |
-| **Tu experiencia** | Menos | Alta | Alta |
-| **Separar responsabilidades** | `api/services/db`; se sostiene si el equipo se disciplina | Proyectos o carpetas; el compilador impide dependencias circulares mal hechas | Capas canónicas (controller/service/repository), pero con más piezas |
-| **Tipado** | `mypy` opcional; Pydantic valida en la frontera | **Nullable reference types** activadas, `record`, `required`, *pattern matching* exhaustivo | `record`, `sealed`, pero la nulabilidad no la comprueba el compilador sin herramientas extra (`@NullMarked`, NullAway) |
-| **Errores en producción** | Un `None` donde tocaba un objeto | El compilador no deja; el `null` es explícito | Igual que C# si el proyecto se configura bien |
-| **Docker** | Imagen `python:3.12-slim` + venv, ~150 MB; trivial | `aspnet:10` *chiseled*, ~110 MB; `dotnet publish` y listo | `eclipse-temurin:25-jre`, ~180-250 MB; *layered jar* |
-| **Compatibilidad** | PostgreSQL por `psycopg` | PostgreSQL por `Npgsql` (el mejor driver de los tres) | PostgreSQL por el driver de JDBC, perfectamente maduro |
-| **Velocidad** | Suficiente: 5 usuarios y el trabajo pesado está fuera | Alta | La más alta con hilos virtuales, irrelevante aquí |
-| **Madurez del ecosistema** | Alta | Alta | La más alta para backends de empresa |
-| **Si mañana el ETL comparte código** | Gratis | Contrato HTTP o cliente generado | Contrato HTTP o cliente generado |
+| Criterio                             | Python + FastAPI                                                  | C# + ASP.NET Core                                                                            | Java + Spring Boot                                                                                                     |
+| ------------------------------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Librerías directas**               | 4 (`fastapi`, `uvicorn`, `pydantic`, `psycopg`) + ~10 transitivas | **2** (`Npgsql`, `Dapper`): routing, JSON, validación, OpenAPI y auth vienen en el framework | 1 BOM + ~5 *starters* → **~40 jars** transitivos                                                                       |
+| **Legibilidad**                      | Muy poca ceremonia; el tipado es opcional                         | Poca ceremonia con Minimal APIs; tipos explícitos en la firma                                | Correcta, pero el flujo vive en anotaciones y en el contenedor de Spring                                               |
+| **Tu experiencia**                   | Media                                                             | Alta                                                                                         | Alta                                                                                                                   |
+| **Separar responsabilidades**        | `api/services/db`; se sostiene si el equipo se disciplina         | Proyectos o carpetas; el compilador impide dependencias circulares mal hechas                | Capas canónicas (controller/service/repository), pero con más piezas                                                   |
+| **Tipado**                           | `mypy` opcional; Pydantic valida en la frontera                   | **Nullable reference types** activadas, `record`, `required`, *pattern matching* exhaustivo  | `record`, `sealed`, pero la nulabilidad no la comprueba el compilador sin herramientas extra (`@NullMarked`, NullAway) |
+| **Errores en producción**            | Un `None` donde tocaba un objeto                                  | El compilador no deja; el `null` es explícito                                                | Igual que C# si el proyecto se configura bien                                                                          |
+| **Docker**                           | Imagen `python:3.12-slim` + venv, ~150 MB; trivial                | `aspnet:10` *chiseled*, ~110 MB; `dotnet publish` y listo                                    | `eclipse-temurin:25-jre`, ~180-250 MB; *layered jar*                                                                   |
+| **Compatibilidad**                   | PostgreSQL por `psycopg`                                          | PostgreSQL por `Npgsql` (el mejor driver de los tres)                                        | PostgreSQL por el driver de JDBC, perfectamente maduro                                                                 |
+| **Velocidad**                        | Suficiente: 5 usuarios y el trabajo pesado está fuera             | Alta                                                                                         | La más alta con hilos virtuales, irrelevante aquí                                                                      |
+| **Madurez del ecosistema**           | Alta                                                              | Alta                                                                                         | La más alta para backends de empresa                                                                                   |
+| **Si mañana el ETL comparte código** | Gratis                                                            | Contrato HTTP o cliente generado                                                             | Contrato HTTP o cliente generado                                                                                       |
 
 ### Python + FastAPI
 
@@ -56,13 +56,13 @@ Los criterios que pone @Rubén, por orden de peso:
 
 ## Lo que no cambia con ninguna opción
 
-| Pieza | Por qué |
-|---|---|
+| Pieza                   | Por qué                                                                            |
+| ----------------------- | ---------------------------------------------------------------------------------- |
 | PostgreSQL 14+ y Flyway | Sigue siendo el dueño del esquema; el backend solo lee y escribe SQL parametrizado |
-| El contrato de 40 rutas | Es HTTP y JSON; no depende del lenguaje |
-| Docker | Las tres tienen imagen oficial y multi-stage |
-| La frontera con el ETL | HTTP; el backend no importa Presidio ni PaddleOCR |
-| El frontend | Sin decidir. Con C# abre Blazor; con Java, Angular; con Python, lo que sea |
+| El contrato de 40 rutas | Es HTTP y JSON; no depende del lenguaje                                            |
+| Docker                  | Las tres tienen imagen oficial y multi-stage                                       |
+| La frontera con el ETL  | HTTP; el backend no importa Presidio ni PaddleOCR                                  |
+| El frontend             | Sin decidir. Con C# abre Blazor; con Java, Angular; con Python, lo que sea         |
 
 ## Los contenedores
 
