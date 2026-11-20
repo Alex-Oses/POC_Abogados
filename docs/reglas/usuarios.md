@@ -95,10 +95,10 @@ Con SSO ([[0009-identidad]]), esta sección ya solo mira al **admin de desarroll
 | Motivo de la baja | `usuarios.motivo_baja` | U-08 |
 | Fecha del último cambio de contraseña | **no se crea `password_cambiado_en`**: el admin de desarrollo cambia la variable de entorno (U-21) | — |
 | Tokens de un solo uso | **no se crea `tokens_usuario`**: U-10 a U-15 retiradas (18/11); la credencial del admin de desarrollo viene de entorno (U-21) | — |
-| Caducidad de la sesión | `sesiones_usuario.expira_en` (tabla de `V13`; U-16 y U-18 lo necesitan) | U-18 |
-| Orden de antigüedad de sesiones | `sesiones_usuario.creado_en` (tabla de `V13`) | U-17 |
+| Caducidad de la sesión | `sesiones_usuario.expira_en` (tabla nueva; U-16 y U-18 lo necesitan) | U-18 |
+| Orden de antigüedad de sesiones | `sesiones_usuario.creado_en` (la misma tabla) | U-17 |
 
-Ninguna de estas columnas está todavía en `docs/architecture/`: `V13` no se ha escrito. El SQL exacto está en [[0012-identidad-y-roles]], sección «Para @Marina: el SQL de `V13`».
+Ninguna de estas columnas está todavía en `docs/architecture/`: la BD (`V1`-`V15`) es definitiva y no habrá `V13`, así que se añaden editando la migración que corresponda. El SQL exacto está en [[0012-identidad-y-roles]], sección «Para @Marina: el SQL de `V13`», que habrá que aplicar sobre una migración existente.
 
 ## 8. Endpoints
 

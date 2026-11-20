@@ -190,7 +190,7 @@ Se conservan los números para no reutilizarlos; no se renumeran las demás.
 | U-07 | Validez de 72 h de la invitación | Con SSO no hay invitación. @Rubén la elimina |
 | U-10 | El servidor hashea, el cliente nunca | El admin de desarrollo deja de tener reglamento propio. Queda U-21 |
 | U-11 | Política de contraseña mínima | Ídem: una sola regla para el admin local |
-| U-12 | Recuperación con enlace de un solo uso | Ídem: la ruta sigue existiendo, sin regla que la gobierne |
+| U-12 | Recuperación con enlace de un solo uso | Ídem: la ruta también se retira con U-10 a U-15 |
 | U-13 | Cambio de contraseña revoca sesiones | Ídem |
 | U-14 | Bloqueo progresivo | Ídem |
 | U-15 | Login indistinguible | Ídem |

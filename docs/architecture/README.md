@@ -20,7 +20,11 @@ docs/architecture/ ├── README.md # Este archivo ├── data-dictionary.
   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
   CREATE EXTENSION IF NOT EXISTS pgcrypto;
   CREATE EXTENSION IF NOT EXISTS pg_partman;  -- solo para partitioning.sql
-Orden de Ejecución
+  ```
+
+### Orden de ejecución
+
+```bash
 # 1. Migraciones base (Flyway recomendado)
 flyway -url=jdbc:postgresql://host:5432/icat_anon \
        -locations=filesystem:docs/architecture/migrations \
@@ -32,3 +36,4 @@ psql -d icat_anon -f docs/architecture/triggers.sql
 
 # 3. Particionado auditoría (una sola vez en prod, requiere pg_partman)
 psql -d icat_anon -f docs/architecture/partitioning.sql
+```

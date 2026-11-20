@@ -9,7 +9,7 @@
 
 Generar el PDF definitivo de una versión aprobada a partir de dos cosas que ya existen: el texto anonimizado y la estructura de la maquetación. No hace OCR, no anonimiza y no decide nada: solo compone.
 
-Fuera de alcance: exportación a Word, PDF/A, firma electrónica y el modo imagen (ver decisión 0006).
+Fuera de alcance: exportación a Word, PDF/A, firma electrónica y el modo imagen (ver decisión 0007).
 
 ## 2. Decisión
 
@@ -185,7 +185,7 @@ Obligatorias, en `backend/tests/test_pdf_export.py`:
 |---|---|
 | Sellos y firmas desaparecen | Sustituto explícito `[SELLO]`/`[FIRMA]`; el revisor lo ve antes de aprobar |
 | Tablas mal reconocidas | Si el HTML no parsea, el bloque degrada a párrafo y la prueba 5 lo detecta |
-| Fidelidad visual distinta al escaneo | Aceptada en la decisión 0006; el modo imagen queda como posibilidad futura |
+| Fidelidad visual distinta al escaneo | Aceptada en la decisión 0007; el modo imagen queda como posibilidad futura |
 | Sin `bbox` del OCR, la retícula original no se puede replicar | Modo `secuencial`: flujo de una columna con orden y jerarquía; cuando llegue el layout, el mismo JSON gana `bbox` sin tocar el render |
 | Estructura desincronizada | Fallar antes de escribir el PDF; nunca generar uno a medias |
 | Párrafos largos que no caben en su caja | Reducir un escalón la fuente; si aún no cabe, recortar con `…` y registrar aviso en `metadatos_proceso` |

@@ -74,8 +74,7 @@ Los once puntos revisados, las cinco preguntas contestadas y el orden están en 
 
 | Decisión | Quién falta | Desbloquea |
 |---|---|---|
-| [0009](../vault/Decisiones/0009-identidad.md) identidad | **Aceptada (20/11)**; falta el registro OIDC del ICAT | el alta de usuarios |
-| [0008](../vault/Decisiones/0008-stack-backend.md) stack | @Marina, @Kevin, @Alex | el primer endpoint |
+| [0009](../vault/Decisiones/0009-identidad.md) identidad | **Aceptada (20/11)**; falta el registro OIDC del ICAT | el alta de usuarios (editando una migración existente; no hay `V13`) || [0008](../vault/Decisiones/0008-stack-backend.md) stack | @Marina, @Kevin, @Alex | el primer endpoint |
 | [0005](../vault/Decisiones/0005-reglas-usuarios-y-aprobacion.md) reglas de usuarios y aprobación | @Rubén | estados, cola de revisión, reglas (V15) |
 | [0007](../vault/Decisiones/0007-generacion-pdf-final.md) PDF final | @Rubén | `bloques_layout` y el export |
 | [0006](../vault/Decisiones/0006-presidio-anonimizacion-local.md) Presidio | @Alex | acciones de anonimización (I1) |
@@ -96,7 +95,7 @@ Este informe **se queda obsoleto en cuanto entra una migración**, y una lista v
 | Cuándo | Qué hay que revisar |
 |---|---|
 | Se acepta una decisión (0005, 0007, 0009) | Las filas de §3 con «depende de» esa decisión pasan a tener respuesta |
-| Entra una migración nueva (`V13`, `V14`, `V15`) | Borra sus filas de §3; si la tabla ya existe, deja de ser una propuesta |
+| Se edita una migración existente (no hay `V13` ni `V16`) | Borra sus filas de §3; si la tabla ya existe, deja de ser una propuesta |
 | Cambia `docs/api/endpoints.md` o `docs/reglas/` | La columna «lo pide» puede apuntar a una regla que ya no existe o a una nueva |
 | Cambia la numeración de las decisiones | Los enlaces de §1, §2 y §4 |
 
