@@ -41,7 +41,7 @@ Los criterios que pone @Rubén, por orden de peso:
 
 ### Python + FastAPI
 
-- **A favor**: es lo que ya está escrito en [[Estructura del backend]] y lo que menos ceremonia tiene; 4 dependencias; arrancar es `uvicorn`. Si el ETL necesitara compartir modelos, es el único que lo hace gratis.
+- **A favor**: es lo que ya está escrito en [[Estructura del backend (Python)]] y lo que menos ceremonia tiene; 4 dependencias; arrancar es `uvicorn`. Si el ETL necesitara compartir modelos, es el único que lo hace gratis.
 - **En contra**: el tipado es un extra que hay que mantener a mano (`mypy` + Pydantic), y un refactor de columna no rompe nada hasta que se ejecuta. @Rubén lo prefiere menos. Y el argumento de «un solo lenguaje» ya no existe.
 
 ### C# + .NET (LTS vigente)
@@ -76,12 +76,13 @@ Pregunta de @Rubén: ¿el ETL es un contenedor, o el OCR y Presidio van por su c
 
 **Propuesta de @ia-opencode-ruben: C# con ASP.NET Core Minimal APIs**, `Npgsql` + `Dapper` y SQL explícito. Motivo en una frase: es el que cumple los seis criterios con menos piezas que mantener, y el que mejor encaja con «pocas librerías, código legible y el compilador ayudando».
 
-Java es la alternativa seria si el criterio que manda es «lo que el ICAT ya conoce» o si @Kevin prefiere un despliegue JVM. Python solo se queda si se prefiere no rehacer [[Estructura del backend]] y aceptar el tipado opcional a cambio de cero trabajo.
+Java es la alternativa seria si el criterio que manda es «lo que el ICAT ya conoce» o si @Kevin prefiere un despliegue JVM. Python solo se queda si se prefiere no rehacer [[Estructura del backend (Python)]] y aceptar el tipado opcional a cambio de cero trabajo.
 
 **La decide @Rubén**; esta nota no la cierra sola.
 
 ## Consecuencias
 
-- **Si C# o Java**: [[Estructura del backend]] se rehace (hoy son imports de FastAPI). Se mantienen las carpetas y la frontera; cambian ficheros, extensiones y los dos o tres helpers. [[0013-consultas-sql-o-sqlalchemy-core]] cambia de nombre: en C# la elección es `Dapper` frente a EF Core, y en Java `JdbcClient` frente a JPA.
+- **Si C# o Java**: se usa tal cual [[Estructura del backend (CSharp)]] o [[Estructura del backend (Java)]], ya escritas. Se mantienen las carpetas y la frontera; cambian ficheros, extensiones y los dos o tres helpers. [[0013-consultas-sql-o-sqlalchemy-core]] cambia de nombre: en C# la elección es `Dapper` frente a EF Core, y en Java `JdbcClient` frente a JPA.
+- La decisión no la cierra el documento: [[Estructura del backend (Python)]], [[Estructura del backend (CSharp)]] y [[Estructura del backend (Java)]] son la misma propuesta en tres lenguajes, para comparar el código que habría que escribir.
 - **Si Python**: no se toca nada, y 0008 vuelve a estar vigente sin más.
 - El coste de decidir mal se paga en enero, no hoy: no hay código.
