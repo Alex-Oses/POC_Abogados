@@ -10,7 +10,7 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 - [ ] Decidir el caso a presentar (justicia gratuita, anonimización o ambos)
 
 Resto:
-- [ ] Revisar el [[Registro de errores]] y decidir qué se corrige antes del 27/11: 27 defectos abiertos, 4 de ellos en el SQL (E-01, E-03, E-16 y E-17)
+- [ ] Revisar el [[Registro de errores]] y decidir qué se corrige antes del 27/11: 45 defectos abiertos, 4 de ellos en el SQL (E-01, E-03, E-16 y E-17)
 - [ ] Decidir el stack del backend: Python + FastAPI o C# · [[0008-stack-backend]] · @Rubén @Kevin
 - [ ] Cerrar el bloqueante que queda de [[Coherencia]]: identidad (B1) · @Rubén @Marina
 - [ ] Aceptar el modelo de roles: tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`** (decisión de @Marina, 18/11) · [[0012-identidad-y-roles]] · @Kevin @Alex
@@ -39,6 +39,7 @@ Resto:
 - [x] Doble transcripción (A-24) decidida: dos lecturas, diff en `metadatos_proceso` y avisos en `paginas_documento.avisos` · @Rubén
 - [x] Revisión de coherencia de API, backend, usuarios y aprobación contra las reglas y el modelo: `actualizado_en`, estado `eliminado`, `paginas_documento`, A-09/A-11 y `sesiones_usuario.expira_en` · `docs/api/endpoints.md`, `docs/reglas/`, [[Enfoque tecnico]], [[0012-identidad-y-roles]] · @ia-opencode-ruben
 - [x] [[Registro de errores]] con 30 hallazgos (evidencia, impacto y estado) y los falsos positivos descartados; incluye la auditoría de la base de datos: 14 migraciones, vistas y triggers · @ia-opencode-maga369
+- [x] Tercera pasada del [[Registro de errores]]: 20 hallazgos nuevos contra el contrato, el export, el RGPD y la maqueta (E-31 a E-50) · @ia-opencode-ruben
 - [x] Diagrama ER en Mermaid, uno solo, en [[Modelo de datos]]; el README de arquitectura deja de citar `er-diagram.md` · @ia-opencode-maga369
 - [x] Un solo diagrama ER (18/11): retirados el «Diagrama propuesto» de [[0010-modelo-de-datos]] y `docs/architecture/diagrama-bbdd-borrador.png`; el vigente es [[Modelo de datos]], con 0011, `V14`/`V15` y los roles en `usuarios_roles` · @ia-opencode-maga369
 - [x] [`docs/reglas/reglas-de-negocio.md`](../docs/reglas/reglas-de-negocio.md) con las 36 reglas vigentes, las 9 retiradas y la tabla «Cambios pedidos», para editar a mano · @ia-opencode-maga369
