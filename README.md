@@ -14,7 +14,8 @@ Prueba de concepto para el **Il·lustre Col·legi de l'Advocacia de Tarragona (I
 |---|---|---|
 | Propuesta funcional y de diseño | Hecha (06/11/2026) | [vault/Proyecto/Propuesta ICAT](vault/Proyecto/Propuesta%20ICAT.md) |
 | Pruebas de rendimiento del OCR (PaddleOCR-VL 1.6) | Hechas, con comparativa de equipos | [vault/Proyecto/Rendimiento OCR](vault/Proyecto/Rendimiento%20OCR.md) · [bench](investigacion/paddleocr/bench.py) |
-| Contrato de la API (v1) | Borrador | [vault/Proyecto/API](vault/Proyecto/API.md) |
+| Contrato de la API (v1) | Propuesta, 40 rutas | [docs/api](docs/api/endpoints.md) · [índice](vault/Proyecto/API.md) |
+| Reglas de negocio (U-01 a U-21, A-01 a A-24) | Cerradas y auditadas | [docs/reglas/reglas-de-negocio.md](docs/reglas/reglas-de-negocio.md) |
 | Modelo de datos (PostgreSQL) | Cerrado (V1–V15) | [docs/architecture](docs/architecture/README.md) |
 | Anonimización local (Presidio) | Investigada y medida | [documentación y rendimiento](docs/presidio.md) |
 | Maqueta navegable del flujo completo | Hecha | [maqueta/index.html](maqueta/index.html) · [documentación](docs/maqueta.md) |
@@ -42,7 +43,7 @@ Detalle, semáforo de calidad y configuración: [vault/Proyecto/Rendimiento OCR]
 2. **OCR local** con [PaddleOCR-VL 1.6](vault/Proyecto/Rendimiento%20OCR.md) sobre Ollama: ~1 % de errores de carácter y 100 % de DNI e importes exactos en escaneos normales; ~2.750 páginas/hora con una RTX 3050 de 4 GB. Ningún documento sale del servidor.
 3. **Revisión**: imagen a la izquierda, texto editable a la derecha, con las dudas marcadas (dos lecturas distintas, DNI/NIE con letra incorrecta, IBAN inválido).
 4. **Anonimización** según la práctica del CENDOJ y el RGPD: censurar, borrar, etiquetar, seudónimo o iniciales, por categoría de dato.
-5. **Exportación** a PDF buscable, eliminando de verdad el texto original (capa de texto, imagen y metadatos).
+5. **Exportación** a PDF nuevo y buscable, reconstruido desde el texto: no lleva ningún píxel del escaneo ni los metadatos del original. Lo exportado es inmutable y queda con su hash en la versión.
 
 ## Arquitectura prevista
 
@@ -62,7 +63,7 @@ Contrato v1 (40 rutas): `GET /auth/sso/login`, `/auth/sso/callback`, `POST /user
 ## Estructura del repositorio
 
 ```
-docs/architecture/   Modelo de datos: migraciones Flyway V1–V15, vistas, triggers, RGPD, diagrama
+docs/architecture/   Modelo de datos: migraciones Flyway V1–V15, vistas, triggers y RGPD (ER vigente en vault/Proyecto/Modelo de datos.md)
 docs/api/            Contrato REST completo (rutas, payloads y códigos)
 docs/reglas/         Reglas de negocio: usuarios y flujo de aprobación
 docs/export/         Generación del PDF final
