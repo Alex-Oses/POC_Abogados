@@ -103,7 +103,7 @@ El camino de producción es el **SSO del ICAT**: no hay alta, invitación ni con
 
 ### `GET /auth/sso/login` *(propuesta)*
 
-Redirige al proveedor del ICAT con `state` y `nonce`. Depende de que [[0009-identidad]] se acepte y de que el ICAT registre la aplicación OIDC.
+Redirige al proveedor del ICAT con `state` y `nonce`. 0009 está aceptada; falta que el ICAT registre la aplicación OIDC.
 
 `302` → proveedor, con `redirect_uri` = `/api/v1/auth/sso/callback`.
 

@@ -1,6 +1,6 @@
 # 0009 · Identidad: SSO del ICAT y admin local de emergencia
 
-- **Estado**: Propuesta
+- **Estado**: Aceptada (2026-11-20, @Rubén)
 - **Fecha**: 2026-11-17
 - **Autor**: @ia-opencode-ruben (a petición de @Rubén)
 - **Se decide con**: @Rubén (backend), @Kevin (despliegue), @Marina (BD), @Alex (frontend)
@@ -23,7 +23,7 @@ Es el bloqueante B2 de [[Coherencia]] y bloquea a B1: de la respuesta depende qu
 
 ## Decisión
 
-**Propuesta: opción 3.** Es la que recomienda @Rubén y la que se somete al resto del equipo.
+**Aceptada: opción 3**, con la opción 2 (cuentas locales) como alternativa si el ICAT no puede dar SSO en plazo. Es la que recomienda @Rubén.
 
 ## Consecuencias
 
