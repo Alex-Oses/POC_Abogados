@@ -13,6 +13,7 @@ Resto:
 - [ ] Revisar el [[Registro de errores]] y decidir qué se corrige antes del 27/11: 34 defectos abiertos, 4 de ellos en el SQL (E-01, E-03, E-16 y E-17)
 - [ ] Cerrar el bloqueante que queda de [[Coherencia]]: identidad (B1) · @Rubén @Marina
 - [ ] Aceptar el modelo de roles: tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`** (decisión de @Marina, 18/11) · [[0012-identidad-y-roles]] · @Kevin @Alex
+- [ ] Decidir si las consultas van con SQL directo o con SQLAlchemy Core (`text()` para vistas e informes) · [[0013-consultas-sql-o-sqlalchemy-core]] · @Rubén
 - [ ] Completar el callback SSO del contrato con el registro OIDC del ICAT (ya hay dos rutas propuestas) · @Rubén @Kevin
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Alex
 

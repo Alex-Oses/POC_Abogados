@@ -29,7 +29,7 @@ Puntos a cerrar con @Yaser antes de escribir código (no los decido yo):
 
 ## 3. Stack
 
-**Python 3.12 + FastAPI + SQL explícito** ([[0008-stack-backend]], **Aceptada** el 20/11).
+**Python 3.12 + FastAPI + SQL explícito** ([[0008-stack-backend]], **Aceptada** el 20/11). El árbol de carpetas y los imports previstos están en [[Estructura del backend]]; cómo se escriben las consultas se decide en [[0013-consultas-sql-o-sqlalchemy-core]].
 
 | Por qué | Qué se descartó |
 |---|---|
