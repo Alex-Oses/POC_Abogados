@@ -42,6 +42,7 @@ Si se rechaza, todo va con `psycopg` + `.sql` y el riesgo se concentra en la com
 
 ## Consecuencias
 
+- Si [[0014-stack-backend-c-sharp-java-python]] acaba en C# o Java, esta decisión se reescribe con la pareja equivalente: `Dapper` frente a EF Core en C#, `JdbcClient` frente a JPA en Java. El criterio es el mismo: composición tipada para el 80 % y SQL explícito para el 20 %.
 - Nueva dependencia `sqlalchemy`, ya prevista en el árbol de [[Estructura del backend]].
 - `db/tables.py` declara a mano las tablas y vistas que se consultan con Core. **Si Flyway cambia una columna, hay que tocarlo**: ese coste es la razón de no meterlo todo por Core.
 - Flyway sigue siendo el dueño del esquema; no entra Alembic.

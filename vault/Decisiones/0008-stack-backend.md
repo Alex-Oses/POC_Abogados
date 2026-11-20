@@ -1,6 +1,6 @@
 # 0008 — Stack del backend
 
-- **Estado**: Aceptada (2026-11-20, @Rubén)
+- **Estado**: Sustituida por [[0014-stack-backend-c-sharp-java-python]] (20/11/2026, reabierta: el ETL sale del backend y el argumento de «un solo lenguaje» desaparece)
 - **Fecha**: 2026-11-16
 - **Autor**: @ia-opencode-ruben
 - **Se decide con**: @Rubén (backend), @Marina (BD), @Kevin (despliegue), @Alex (OCR), @Yaser (ETL)

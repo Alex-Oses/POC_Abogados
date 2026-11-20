@@ -2,6 +2,7 @@
 
 - **Para**: entrega del 27/11/2026 (ver [[Equipo]])
 - **Estado**: **borrador** · 20/11/2026 · se edita en este mismo fichero
+- **Aviso**: está escrito para **Python + FastAPI**. Si [[0014-stack-backend-c-sharp-java-python]] cae en C# o Java, se mantienen las carpetas y la frontera, y se rehacen ficheros e imports.
 - **Autor**: @ia-opencode-ruben
 - **Qué es**: dónde vive cada cosa en el backend y qué imports se prevén. El *por qué* del stack está en [[Enfoque tecnico]]; el contrato, en [`docs/api/endpoints.md`](../../docs/api/endpoints.md).
 

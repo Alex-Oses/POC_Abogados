@@ -74,7 +74,8 @@ Los once puntos revisados, las cinco preguntas contestadas y el orden están en 
 
 | Decisión | Quién falta | Desbloquea |
 |---|---|---|
-| [0009](../vault/Decisiones/0009-identidad.md) identidad | **Aceptada (20/11)**; falta el registro OIDC del ICAT | el alta de usuarios (editando una migración existente; no hay `V13`) || [0008](../vault/Decisiones/0008-stack-backend.md) stack | **Aceptada (20/11)**: Python 3.12 + FastAPI | — |
+| [0009](../vault/Decisiones/0009-identidad.md) identidad | **Aceptada (20/11)**; falta el registro OIDC del ICAT | el alta de usuarios (editando una migración existente; no hay `V13`) |
+| [0008](../vault/Decisiones/0008-stack-backend.md) stack | **Reabierta (20/11)**: la decide @Rubén | [0014](../vault/Decisiones/0014-stack-backend-c-sharp-java-python.md): C#, Java o Python |
 | [0005](../vault/Decisiones/0005-reglas-usuarios-y-aprobacion.md) reglas de usuarios y aprobación | @Rubén | estados, cola de revisión, reglas (V15) |
 | [0007](../vault/Decisiones/0007-generacion-pdf-final.md) PDF final | @Rubén | `bloques_layout` y el export |
 | [0006](../vault/Decisiones/0006-presidio-anonimizacion-local.md) Presidio | @Alex | acciones de anonimización (I1) |

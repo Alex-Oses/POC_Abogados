@@ -29,11 +29,11 @@ Puntos a cerrar con @Yaser antes de escribir código (no los decido yo):
 
 ## 3. Stack
 
-**Python 3.12 + FastAPI + SQL explícito** ([[0008-stack-backend]], **Aceptada** el 20/11). El árbol de carpetas y los imports previstos están en [[Estructura del backend]]; cómo se escriben las consultas se decide en [[0013-consultas-sql-o-sqlalchemy-core]].
+**Reabierto el 20/11**: [[0014-stack-backend-c-sharp-java-python]] compara C#, Java y Python. La razón principal de 0008 (un solo lenguaje con el OCR y Presidio) deja de valer porque el ETL queda fuera del backend (§2). Mientras 0014 no se cierre, aquí se describe la opción Python, que es la que está escrita en [[Estructura del backend]]; si el debate cae en C# o Java, esta sección y ese árbol se rehacen. Cómo se escriben las consultas se decide en [[0013-consultas-sql-o-sqlalchemy-core]].
 
-| Por qué | Qué se descartó |
+| Por qué (opción Python) | Qué se descartó |
 |---|---|
-| Las tres piezas caras ya son Python (OCR, Presidio, PDF): un runtime, un CI y sin contrato interno HTTP. El cuello de botella es la GPU, no el lenguaje | **C# + ASP.NET Core**: obliga a un sidecar Python para Presidio y el PDF, un segundo runtime y un contrato interno |
+| Las tres piezas caras ya son Python (OCR, Presidio, PDF): un runtime, un CI y sin contrato interno HTTP. El cuello de botella es la GPU, no el lenguaje | **C# + ASP.NET Core**: pedía un sidecar Python para Presidio y el PDF. Con el ETL fuera, ese coste desaparece y queda solo «otro runtime» |
 | SQL explícito: el modelo usa `JSONB`, particiones, índices parciales y consultas de informe | **ORM**: estorba más de lo que ahorra en ese modelo |
 | Un solo despliegue | **Microservicios**: un Colegio, un servidor y una persona en backend |
 
@@ -129,7 +129,7 @@ Cada promesa del backend tiene su prueba; si no la tiene, no es una promesa:
 
 | Abierto | Quién | Qué bloquea |
 |---|---|---|
-| ~~[[0008-stack-backend]]~~ **Aceptada (20/11): Python 3.12 + FastAPI** | — | — |
+| ~~[[0008-stack-backend]]~~ **Reabierta (20/11)**: [[0014-stack-backend-c-sharp-java-python]] compara C#, Java y Python | — | — |
 | [[0009-identidad]]: SSO sin gestión de cuentas, admin local solo en desarrollo | @Kevin, @Marina, @Alex + registro OIDC del ICAT (1-2 semanas de terceros) | El login real y la primera ruta con permisos |
 | Modelo de datos ([[0010-modelo-de-datos]]): `usuarios_roles` (tabla N:M, decisión de @Marina) y sin `tokens_usuario` | @Marina | La migración `V13` |
 | Sesión propia en `sesiones_usuario` ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | `V13`: la otra tabla nueva |
