@@ -12,6 +12,7 @@
 ## Siguiente
 
 - Revisar los 34 defectos que siguen abiertos en el [[Registro de errores]] y decidir cuáles entran antes del 27/11.
+- [[Coherencia]] actualizada el 20/11: de once contradicciones queda una (B1); I1, H6 y H8 se cerraron con `V15`, e I2, I3 y H5 con el contrato y 0004.
 
 ## Bloqueos / preguntas
 
