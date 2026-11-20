@@ -1,0 +1,37 @@
+# 2026-11-19 · @ia-opencode-ruben
+
+## Hecho
+
+- Aceptadas por @Rubén (19/11): 0002 (PostgreSQL + Flyway), 0005 (reglas de usuarios y aprobación), 0006 (Presidio local) y 0007 (PDF final).
+- B8 cerrado: el hash del PDF es de la **versión** (`versiones_documento.metadatos_proceso->>'hash_export'`) y `documentos` solo guarda `exportado_en`; A-18 y el contrato, corregidos. No hay `V16`.
+- B5 cerrado en el contrato: `GET /documents/{id}/pages` y `GET /documents/{id}/original` (auditado). B3 cerrado: los offsets de anotación se cuentan sobre `versiones_documento.contenido_texto` y ya no se devuelve `bloque_id`.
+- A-19: `/reopen` acepta también `aprobado`, con `comentario`; `cerrado_en` sigue siendo cosa del export.
+- A-17 (solo lo aprobado se exporta) y A-24 (doble transcripción) quedan **decididas**. A-24 no necesita esquema: segunda lectura y diff en `metadatos_proceso`, avisos en `paginas_documento.avisos`.
+- `/assign` y `/sign-off` se quedan en el contrato, en pausa.
+- Higiene: README alineado con el contrato (sin `/user/register` ni Word, `V1`-`V15`, árbol con `docs/api`, `docs/reglas` y `docs/export`); `docs/architecture/README.md` apunta al PNG y dice 16 triggers; `docs/pendientes.md` deja de proponer migraciones.
+- Merge de `main` (PR #31, #32 y #33) resuelto sin tocar la BD: se adopta `usuarios_roles` de @Marina en 0012 y `expira_en` en `sesiones_usuario`; el diagrama ER vigente es [[Modelo de datos]] y el PNG ya no existe.
+- I2: la promesa de la tabla de seudónimos ya estaba retirada por @Alex (18/11); queda solo el texto «zones de la imatge esborrades», preguntado a @Alex en el Tablero. La maqueta no se toca.
+- Confirmación de @Rubén (19/11): stack Python + FastAPI (0008) e identidad SSO con admin local solo de desarrollo (0009). Ambas siguen **Propuesta**: faltan @Marina, @Kevin y @Alex.
+- Revisión de coherencia de `docs/api/endpoints.md`, `vault/Proyecto/API.md`, `vault/Proyecto/Enfoque tecnico.md`, `docs/reglas/usuarios.md` y `docs/reglas/aprobacion.md` contra las reglas U/A, el modelo de @Marina y `V14`/`V15`.
+- Confirmado por @Rubén (19/11): la BD actual (`V1`-`V15`) es la definitiva y no se planean `V13` ni `V16`. `Coherencia.md` refleja esa decisión: B1, B3, B5 y B8 se cierran en el contrato o quedan fuera, nunca con migraciones.
+- Contrato: `If-Match` usa `actualizado_en` (columna real de `revisiones`, A-23), no `updated_at`; el cierre de revisión es el único que lo exige.
+- Contrato: `DELETE /documents/{id}` pasa el documento a `eliminado` y rellena `eliminado_en`; `GET /documents` excluye los eliminados. Se añade `eliminado` a la máquina de estados.
+- Contrato: la subida escribe `paginas_documento` (V14) además de `documentos`, versiones y `bloques_layout`.
+- Contrato: `pendientes=true` se define como `decision_revisor IS NULL` (A-09) y `PATCH /annotations/{id}` devuelve `409` si la revisión no está `en_proceso` (A-11).
+- Contrato y reglas: `pendiente_visto_bueno` queda marcado como en pausa con A-15.
+- [[aprobacion]] §10 deja de decir «lo que falta en el esquema»: las columnas de A-04/A-05/A-15/A-19/A-20/A-23 ya están en `V15`; solo el hash del PDF (B8) sigue pendiente.
+- [[usuarios]] §7: `password_cambiado_en` no se crea (0012) y se añade `sesiones_usuario.expira_en`, que U-16 y U-18 necesitan. El callback SSO ya está en el contrato como propuesta.
+- [[Enfoque tecnico]]: 38 rutas (no 40), admin de desarrollo sembrado por variable de entorno (U-21), `If-Match` solo en el cierre de revisión y sin invitación en el bloque de autenticación.
+- [[API]]: 38 rutas y bloques de autenticación/usuarios ajustados al SSO; el visto bueno se marca en pausa.
+- [[0012-identidad-y-roles]]: `sesiones_usuario` gana `expira_en` en el SQL de `V13`; sin ella no se puede implementar U-18 (1 h con renovación y 12 h máximo).
+- [[reglas-de-negocio]]: A-23 usa `actualizado_en` y U-21 ya no menciona el reset de contraseña, retirado con U-10 a U-15.
+
+## Siguiente
+
+- B8 (dueño del hash) y `GET /documents/{id}/pages` siguen abiertos: no se tocan porque son decisión y ruta nuevas, no incoherencias de lo ya escrito.
+- Que @Marina revise el `expira_en` añadido a `V13` y acepte 0012 antes de escribir la migración.
+
+## Bloqueos / preguntas
+
+- `docs/architecture/data-dictionary.md` sigue con `rol` y `activo`; no se toca hasta que @Marina acepte 0012 y escriba `V13`.
+- A-19 dice que la reapertura rellena `cerrado_en`, pero `V15` y el contrato lo escriben en el export. La reapertura de un aprobado sigue abierta en [[Coherencia]] B7; no se cambia la regla por la puerta de atrás.

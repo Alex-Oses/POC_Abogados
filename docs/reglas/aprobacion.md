@@ -19,8 +19,11 @@ en_revision
   ├─ aprobado                                          (riesgo normal)
   └─ pendiente_visto_bueno ──visto bueno──→ aprobado   (categoría especial)
 
+aprobado ──reopen──→ en_revision (con motivo, A-19)
 aprobado ──export──→ exportado
 ```
+
+**A-15 en pausa (18/11):** las transiciones `en_revision → pendiente_visto_bueno` y `pendiente_visto_bueno → aprobado` no ocurren; el documento pasa de `en_revision` a `aprobado` directamente.
 
 | Desde | Hasta | Quién | Regla |
 | --- | --- | --- | --- |
@@ -35,6 +38,7 @@ aprobado ──export──→ exportado
 | `pendiente_visto_bueno` | `en_revision` | otro revisor (con motivo) | A-15 |
 | `en_revision` | `rechazado` | revisor | A-13 |
 | `rechazado` | `en_revision` | revisor | A-12 |
+| `aprobado` | `en_revision` | revisor, con motivo | A-19 |
 | `aprobado` | `exportado` | revisor, transcriptor dueño | A-16 |
 
 **Regla A-01 — el estado lo escribe el servidor.** El cliente nunca envía `estado`; solo dispara acciones. Un `PATCH` con `estado` en el cuerpo se rechaza.
@@ -108,11 +112,11 @@ El visto bueno no es una segunda revisión: quien firma no re-anota, solo firma 
 
 **Regla A-16 — exportar es una acción explícita.** `POST /documents/{id}/export` genera el PDF definitivo, calcula su hash y pasa el documento a `exportado`. No se exporta al vuelo desde el visor: un PDF descargado sin dejar rastro no es un expediente. `POST /transform/build` sigue siendo la vista previa con formato, no el cierre del expediente.
 
-**Regla A-17 — solo se exporta lo aprobado.** `409` en cualquier otro estado, incluido `pendiente_visto_bueno`.
+**Regla A-17 — solo se exporta lo aprobado (decidido, 19/11).** `409` en cualquier otro estado, incluido `pendiente_visto_bueno`.
 
-**Regla A-18 — lo exportado es inmutable.** Se guarda `hash_export` y `exportado_en`; si el documento se reabre, el hash anterior se conserva. Sobrescribir el PDF de un expediente cerrado es exactamente lo que una auditoría no perdona.
+**Regla A-18 — lo exportado es inmutable.** El hash SHA-256 del PDF se guarda **en la versión exportada**: `versiones_documento.metadatos_proceso->>'hash_export'`; la fecha, en `documentos.exportado_en`. La versión es la que se convierte en PDF, así que es ella la dueña del hash y `documentos` solo guarda su estado. Si el documento se reabre, la versión anterior conserva su hash y el PDF nuevo nace en otra versión. Sobrescribir el PDF de un expediente cerrado es exactamente lo que una auditoría no perdona.
 
-**Regla A-19 — aprobar congela.** Tras `aprobado` no se crean versiones nuevas salvo reapertura explícita de un revisor, que rellena `cerrado_en` al reabrir. Queda en `auditoria` quién reabrió y por qué.
+**Regla A-19 — aprobar congela.** Tras `aprobado` no se crean versiones nuevas salvo reapertura explícita de un revisor, que **exige `comentario`**: crea una versión `anonimizado_ia` y una revisión nueva en `en_cola` con `numero_intento + 1`, y devuelve el documento a `en_revision`. Queda en `auditoria` quién reabrió y por qué. `cerrado_en` lo escribe el export, no la reapertura.
 
 Cómo se compone el PDF (estructura guardada, reconstrucción sin píxeles del original y determinismo del hash): [docs/export/pdf.md](../export/pdf.md).
 
@@ -126,32 +130,37 @@ Cómo se compone el PDF (estructura guardada, reconstrucción sin píxeles del o
 
 ## 9. Concurrencia
 
-**Regla A-23 — cierre optimista.** `PATCH /reviews/{id}` exige `If-Match` con el `updated_at` de la revisión. Si otro revisor la cerró primero, `409` y se recarga. Sin esto, dos cierres simultáneos crean dos versiones `final_aprobado`.
+**Regla A-23 — cierre optimista.** `PATCH /reviews/{id}` exige `If-Match` con el `actualizado_en` de la revisión. Si otro revisor la cerró primero, `409` y se recarga. Sin esto, dos cierres simultáneos crean dos versiones `final_aprobado`.
 
 La toma de la cola (A-05) no depende de `If-Match`: la resuelve el `WHERE estado = 'en_cola'` de la propia sentencia.
 
 ### Doble transcripción (A-24)
 
-**Regla A-24 — doble transcripción y comparación (propuesta, idea de @Rubén).** Cada documento se transcribe dos veces; se muestra una de las dos lecturas y se marcan como aviso las diferencias con la otra, para que solo se revise lo que no coincide. Sustituye a la idea anterior de «dos lecturas» del mismo OCR (I5).
+**Regla A-24 — doble transcripción y comparación (decidida, 19/11).** Cada documento se transcribe dos veces; se muestra una de las dos lecturas y se marcan como aviso las diferencias con la otra, para que solo se revise lo que no coincide.
 
-Coste: duplica el OCR (~1.375 pág/h en vez de ~2.750 con la RTX 3050) y exige guardar la segunda lectura o un diff por bloque. Antes de aceptarla hay que decidir qué se guarda de la segunda lectura y cómo se pinta la diferencia en la revisión.
+No hace falta esquema nuevo: la segunda lectura y su diff se guardan en `versiones_documento.metadatos_proceso` (`segunda_lectura`, `diferencias`) y los avisos por bloque se pintan desde `paginas_documento.avisos` con `tipo = "doble_lectura"`.
 
-## 10. Lo que falta en el esquema
+Coste: duplica el OCR (~1.375 pág/h en vez de ~2.750 con la RTX 3050).
 
-| Necesidad | Columna o tabla | Regla |
+## 10. Encaje en el esquema
+
+Las columnas que necesitan estas reglas ya están en `V14`/`V15`, salvo el hash del PDF. Las que quedaron sin uso se conservan: quitarlas es otra migración.
+
+| Necesidad | Columna o tabla | Estado |
 | --- | --- | --- |
-| Revisor asignado | `revisiones.asignado_a` (FK `usuarios`, nulo en `en_cola`) | A-05 |
-| Cuándo se tomó | `revisiones.asignado_en` | A-05 |
-| Plazo | `revisiones.fecha_limite` | A-20 (retirada: columna ya creada en `V15`, sin uso) |
-| Aviso de 24 h ya enviado | `revisiones.aviso_24h_enviado_en` | A-20 (retirada: columna ya creada en `V15`, sin uso) |
-| Doble firma aplicable | `documentos.requiere_visto_bueno` (booleano persistido) | A-15 (en pausa: siempre `false`) |
-| Firmante del visto bueno | `documentos.visto_bueno_por`, `documentos.visto_bueno_en` | A-15 |
-| Estado nuevo | `documentos.estado` gana `pendiente_visto_bueno` | A-15 |
-| Cierre del expediente | `documentos.cerrado_en` | A-19 |
-| Hash del PDF exportado | `documentos.hash_export` | A-18 |
-| Fecha de exportación | `documentos.exportado_en` | A-18 |
-
-`revisiones.estado` gana `en_cola` (A-04, A-05).
+| Revisor asignado | `revisiones.asignado_a` (FK `usuarios`, nulo en `en_cola`) | en `V15` |
+| Cuándo se tomó | `revisiones.asignado_en` | en `V15` |
+| Cierre optimista | `revisiones.actualizado_en` | en `V15`; es el `If-Match` de A-23 |
+| Estado de cola | `revisiones.estado` admite `en_cola` | en `V15` |
+| Una revisión abierta por documento | índice único parcial sobre `documento_id` | en `V15` (A-04) |
+| Plazo | `revisiones.fecha_limite` | en `V15`, sin uso (A-20 retirada) |
+| Aviso de 24 h ya enviado | `revisiones.aviso_24h_enviado_en` | en `V15`, sin uso (A-20 retirada) |
+| Doble firma aplicable | `documentos.requiere_visto_bueno` | en `V15`; siempre `false` (A-15 en pausa) |
+| Firmante del visto bueno | `documentos.visto_bueno_por`, `documentos.visto_bueno_en` | en `V15`, sin uso (A-15 en pausa) |
+| Estado nuevo | `documentos.estado` admite `pendiente_visto_bueno` | en `V15` |
+| Cierre del expediente | `documentos.cerrado_en` | en `V15` |
+| Fecha de exportación | `documentos.exportado_en` | en `V15` |
+| Hash del PDF exportado | `versiones_documento.metadatos_proceso->>'hash_export'` | ya existe (JSON); dueño único por versión (B8 cerrado 19/11) |
 
 ## 11. Endpoints
 
@@ -163,11 +172,11 @@ POST   /reviews/{id}/claim          tomar de la cola (atómico)
 PATCH  /reviews/{id}/assign         excepción: encargo concreto (A-06 propuesta)
 POST   /documents/{id}/reviews      abrir revisión (nace en_cola)
 PATCH  /reviews/{id}                cerrar revisión (If-Match)
-POST   /documents/{id}/reopen       rechazado → en_revision, nueva versión
+POST   /documents/{id}/reopen       rechazado o aprobado → en_revision, nueva versión
 POST   /documents/{id}/sign-off  en pausa con A-15
-POST   /documents/{id}/export       aprobado → exportado, con hash
+POST   /documents/{id}/export       aprobado → exportado, con hash en la versión
 ```
 
-**Decisiones cerradas:** A-05 (cola), A-09 (no aprobar con pendientes). **En pausa:** A-15 (doble firma). **Retiradas (18/11):** A-07 (nadie revisa lo suyo) y A-20 (plazos). Las columnas que estas reglas necesitan y que todavía no están en `docs/architecture/` se listan en la sección 10; bajarlas al modelo está pendiente de decisión.
+**Decisiones cerradas:** A-05 (cola), A-09 (no aprobar con pendientes), A-17 (solo lo aprobado se exporta), A-18 (hash en la versión) y A-24 (doble transcripción). **En pausa:** A-15 (doble firma). **Retiradas (18/11):** A-07 (nadie revisa lo suyo) y A-20 (plazos). Las columnas de la sección 10 ya están en `V14`/`V15`; no queda ninguna pendiente de esquema.
 
 **Único pendiente de negocio:** plazo legal de conservación tras la baja (U-08). No bloquea la construcción: mientras no haya plazo, `eliminado_en` se guarda y no se purga nada.

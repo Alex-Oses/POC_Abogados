@@ -11,20 +11,14 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 Resto:
 - [ ] Decidir el stack del backend: Python + FastAPI o C# · [[0008-stack-backend]] · @Rubén @Kevin
-- [ ] Cerrar los 8 bloqueantes de [[Coherencia]]: identidad, modelo, export y visto bueno · @Rubén @Marina
+- [ ] Cerrar los bloqueantes que quedan de [[Coherencia]]: identidad (B1, B2) · @Rubén @Marina
 - [ ] Decidir identidad: SSO del ICAT sin gestión de cuentas y admin local solo de desarrollo · [[0009-identidad]] · @Rubén @Kevin @Marina @Alex
 - [ ] Aceptar el modelo de roles: tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`** (decisión de @Marina, 18/11) · [[0012-identidad-y-roles]] · @Kevin @Alex
-- [ ] Revisar el SQL exacto de `V13` (columnas en `usuarios`, `usuarios_roles` y `sesiones_usuario` como tablas nuevas y los dos cambios de `triggers.sql`/`views.sql`) · §«Para @Marina» en [[0012-identidad-y-roles]] · @Marina
-- [ ] Escribir `V13` con `usuarios_roles`, `estado`, `sso_subject`, `sesiones_usuario` y sin `tokens_usuario` (espera 0009 y 0012) · @Marina
 - [ ] Aceptar 0009 y completar el callback SSO del contrato con el registro OIDC del ICAT (ya hay dos rutas propuestas) · @Rubén @Kevin
-- [ ] Decidir la doble transcripción (A-24): qué se guarda de la segunda lectura y cómo se marca el diff en la revisión · [[0005-reglas-usuarios-y-aprobacion]] · @Rubén @Alex
-- [ ] Confirmar si `/assign` y `/sign-off` salen del contrato (cola libre y A-15 en pausa) · @Rubén
-- [ ] Unificar el hash del PDF (B8): un solo dueño, por versión · [[Coherencia]] · @Rubén
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Alex
 
 - [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
 - [ ] Endpoint que reciba un PDF y devuelva texto por página con su color de semáforo · [[Rendimiento OCR]]
-- [ ] Endpoint `GET /documents/{id}/pages` con el semáforo por página · [[0011-ajustes-al-modelo-de-marina]]
 - [ ] Semáforo de calidad: contraste antes del OCR (< 80 → volver a escanear) y heurísticas de texto después
 - [ ] Validación de DNI/NIE (letra de control) e IBAN
 - [ ] Corrección catalana: «l·l» y apóstrofo tipográfico
@@ -36,13 +30,17 @@ Resto:
 
 ## Hecho
 
+- [x] B8 cerrado (19/11, @Rubén): el hash del PDF es **de la versión**, en `versiones_documento.metadatos_proceso->>'hash_export'`; `documentos` solo guarda `exportado_en`. Sin `V16` · [[Coherencia]]
+- [x] Contrato cerrado sin tocar la BD: `GET /documents/{id}/pages` y `GET /documents/{id}/original` (B5), offsets de anotaciones sobre `contenido_texto` (B3), `/reopen` acepta `aprobado` con motivo (A-19) y A-17/A-24 decididas · `docs/api/endpoints.md`, `docs/reglas/` · @ia-opencode-ruben
+- [x] `/assign` y `/sign-off` se quedan en el contrato, en pausa (decisión de @Rubén, 19/11)
+- [x] Doble transcripción (A-24) decidida: dos lecturas, diff en `metadatos_proceso` y avisos en `paginas_documento.avisos` · @Rubén
+- [x] Revisión de coherencia de API, backend, usuarios y aprobación contra las reglas y el modelo: `actualizado_en`, estado `eliminado`, `paginas_documento`, A-09/A-11 y `sesiones_usuario.expira_en` · `docs/api/endpoints.md`, `docs/reglas/`, [[Enfoque tecnico]], [[0012-identidad-y-roles]] · @ia-opencode-ruben
 - [x] Diagrama ER en Mermaid, uno solo, en [[Modelo de datos]]; el README de arquitectura deja de citar `er-diagram.md` · @ia-opencode-maga369
 - [x] Un solo diagrama ER (18/11): retirados el «Diagrama propuesto» de [[0010-modelo-de-datos]] y `docs/architecture/diagrama-bbdd-borrador.png`; el vigente es [[Modelo de datos]], con 0011, `V14`/`V15` y los roles en `usuarios_roles` · @ia-opencode-maga369
 - [x] [`docs/reglas/reglas-de-negocio.md`](../docs/reglas/reglas-de-negocio.md) con las 36 reglas vigentes, las 9 retiradas y la tabla «Cambios pedidos», para editar a mano · @ia-opencode-maga369
 - [x] Decididos los roles (18/11, @Marina): **tabla `usuarios_roles (usuario_id, rol)`**, no columna · [[0012-identidad-y-roles]] · @Marina
-
 - [x] Decidida la sesión (18/11, @Rubén): **opción B**, sesión propia en `sesiones_usuario`. U-16 a U-20 siguen vigentes · [[0012-identidad-y-roles]] · @Rubén
-- [x] Bajar al modelo de @Marina en migraciones: `V14` y `V15` escritas y [[0011-ajustes-al-modelo-de-marina]] **aceptada** (17/11, @Marina) · PR #28 y #29 mergeados · `V13` espera a [[0009-identidad]] y `V16` al hash (B8) · [[0010-modelo-de-datos]] · @ia-opencode-maga369
+- [x] Bajar al modelo de @Marina en migraciones: `V14` y `V15` escritas y [[0011-ajustes-al-modelo-de-marina]] **aceptada** (17/11, @Marina) · PR #28 y #29 mergeados · `V13` y `V16` no se escriben: la BD es definitiva · [[0010-modelo-de-datos]] · @ia-opencode-maga369
 - [x] Enfoque técnico del backend (propuesta) · [[Enfoque tecnico]] · @ia-opencode-ruben
 - [x] Maqueta navegable del flujo completo · [[Maqueta]] · @ia-claude-alex
 - [x] Ajuste de Presidio: modelos `sm/md/lg`, palabras a ignorar, patrones de dirección, matrícula, catastral y nombres en mayúsculas · [`docs/presidio.md`](../docs/presidio.md) · @ia-claude-alex
@@ -68,5 +66,6 @@ Resto:
 
 <!-- - @destinatario: pregunta · @autor -->
 - @Alex: ¿bajamos la protección de `main`? Hoy exige 1 aprobación en todo, y con dos personas con escritura cada PR mío espera a que lo mires: es el mayor freno del día a día. Propuesta en tres pasos, de menos a más: **(1)** `CODEOWNERS` con revisión obligatoria solo de `backend/`, `docs/api/`, `docs/reglas/` y `docs/architecture/migrations/`, y los PR que solo tocan `vault/`, `maqueta/` o `docs/export/` se auto-mergean con CI verde; **(2)** si GitHub no les encaja así, bajar a 0 aprobaciones y exigir solo `Require status checks` + `Require conversation resolution`; **(3)** mantener el bloqueo de push directo a `main` en cualquier caso. Lo que no propongo es quitar la protección: solo el paso por revisión en lo que no es código. · @ia-opencode-ruben
-- @Rubén: con `V14` y `V15` escritas quedan dos cosas fuera de la BD: **B8** (¿el hash del PDF es de la versión o del documento?) y el endpoint **`GET /documents/{id}/pages`**, sin el cual `paginas_documento` no tiene lector. Mi recomendación para B8 está en [[0011-ajustes-al-modelo-de-marina]]. · @ia-opencode-maga369
+- @Marina: [[0012-identidad-y-roles]] cambia tu modelo aceptado, pero **la BD es definitiva y `V13` no se escribe**. `usuarios` se queda con `rol` y `activo`, sin `usuarios_roles`, sin `sso_subject`, sin `password_hash` y sin `sesiones_usuario`. ¿El alta y la sesión se implementan sobre esas dos columnas, o el login queda fuera del piloto? · @ia-opencode-ruben
 - @Rubén: @Marina decidió el 18/11 que los roles van en **tabla `usuarios_roles` (N:M)**, no en la columna `roles TEXT[]` que proponía 0012. He corregido 0012 (decisión, SQL, trigger y vista) para que no se contradiga con [`docs/reglas/reglas-de-negocio.md`](../docs/reglas/reglas-de-negocio.md) ni con [[Modelo de datos]]. ¿Lo confirmas, o ves algún problema con el `JOIN`/`EXISTS` en `v_metricas_revisor` y en el trigger de revisor? · @ia-opencode-maga369
+- @Alex: la maqueta promete «zones de la imatge esborrades (no només tapades)», pero el PDF final se reconstruye sin ningún píxel del escaneo (0007): no hay imagen que borrar y tampoco se conservan sellos ni firmas manuscritas. ¿Cambiamos el texto por «el PDF no contiene ninguna imagen del original» o preferís mantener la promesa tal cual en la demo? (I2) · @ia-opencode-ruben

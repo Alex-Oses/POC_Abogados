@@ -1,21 +1,18 @@
 ---
 description: Registra tu decisión o voto sobre una entrada de vault/Decisiones
 ---
-Argumentos recibidos: `$ARGUMENTS`. El primer token es el número (`0002`) y el resto es tu decisión o voto. Si no hay resto, es un OK a la propuesta. La persona eres tú: `git config user.name`.
+Argumentos: `$ARGUMENTS`. El primer token es el número de decisión; el resto, tu decisión o voto (sin resto = OK). La persona eres tú: `git config user.name`.
 
-Registra la decisión con este procedimiento. No leas la bóveda entera ni resumas el proyecto: un `grep` del número basta.
-
-1. **Localiza el fichero**: `vault/Decisiones/NNNN-*.md`, con un glob. Si no existe, créalo desde `vault/Plantillas/Decision.md` con el slug que salga del texto, estado `Propuesta`, autor `@ia-opencode-<persona>` y el texto en § Decisión; termina ahí.
-2. **Acepta o vota** en la cabecera del fichero, sin tocar el resto:
-   - OK o texto que cierra la propuesta → `- **Estado**: Aceptada (AAAA-MM-DD, @Persona)`.
-   - Voto sin cerrarla (la decisión tiene `**Votos**` y faltan otros) → añade tu voto a `**Votos**` con el formato `@Persona (rol), AAAA-MM-DD: **texto**. Faltan @…`, quitándote de la lista de «Faltan». La decisión sigue `Propuesta`.
+1. **Localiza** `vault/Decisiones/NNNN-*.md`. Si no existe, créalo desde `vault/Plantillas/Decision.md` (estado `Propuesta`, autor `@ia-opencode-<persona>`, texto en § Decisión) y termina.
+2. **Cabecera**, sin tocar el resto:
+   - Cierra la propuesta → `- **Estado**: Aceptada (AAAA-MM-DD, @Persona)`.
+   - Voto con otros pendientes → añade `@Persona (rol), AAAA-MM-DD: **texto**. Faltan @…` a `**Votos**`; sigue `Propuesta`.
    - Rechazo → `Rechazada (AAAA-MM-DD, @Persona)`.
-3. **Tablero** (`vault/Tablero.md`), solo si se acepta: pasa a **Hecho** la línea de **Pendiente** que enlace a ese número, con el resultado en una frase; si no hay línea, no añadas nada. Un voto no toca el tablero.
-4. **Coherencia** (`vault/Proyecto/Coherencia.md`), solo si la decisión cierra un bloqueante: marca esa fila como `**Resuelto (AAAA-MM-DD)**`. Si no sabes cuál, no lo toques.
-5. **Contrato o reglas**, solo si la decisión cambia algo de `docs/`: aplica el cambio mínimo y regenera el `.docx` afectado con `python local/md2docx.py <md> local/<nombre>.docx <Título> <Subtítulo> <Ref>`. Si no cambia nada, no regeneres ninguno.
-6. **Bitácora**: una línea en `vault/Bitacora/AAAA-MM-DD-ia-opencode-<persona>.md` (créala desde `vault/Plantillas/Bitacora.md` si no existe). No reescribas la entrada entera.
-7. **Commit y push** a la rama actual, con el PR abierto si lo hay. Nunca a `main`.
+3. **Si se acepta**: pasa a **Hecho** la línea del **Tablero** que enlace a ese número; si cierra un bloqueante, márcalo `**Resuelto (AAAA-MM-DD)**` en `Coherencia.md`.
+4. **Si cambia algo de `docs/`**, aplica el cambio mínimo.
+5. **Bitácora**: una línea en `vault/Bitacora/AAAA-MM-DD-ia-opencode-<persona>.md`.
+6. **Commit y push** a la rama actual (nunca a `main`), con el PR abierto si lo hay.
 
-Límites: solo una persona pasa una decisión a Aceptada, y esa persona eres tú; no toques `docs/architecture/` ni las migraciones; revierte `vault/.obsidian/community-plugins.json` antes de commitear; no reformatees markdown ni añadas secciones que nadie pidió.
+Límites: solo una persona pasa una decisión a Aceptada, y eres tú; no toques `docs/architecture/` ni las migraciones; revierte `vault/.obsidian/community-plugins.json` antes de commitear; no reformatees markdown.
 
-Responde con 3–5 líneas: qué has registrado, qué ficheros has tocado y qué sigue pendiente para cerrarla.
+Responde en 3–5 líneas: qué registraste, qué ficheros tocaste y qué falta para cerrarla.

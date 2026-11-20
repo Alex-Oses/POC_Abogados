@@ -51,11 +51,16 @@ def decisiones():
         titulo = re.sub(r"\s*[—·]\s*", " · ", texto.splitlines()[0].lstrip("# ").strip())
         votos = campo(texto, "Votos")
         falta = ""
-        if "falta" in votos.lower():
-            pendientes = re.findall(r"@(\w+)", votos.split("Faltan", 1)[-1])
+        partes = re.split(r"(?i)faltan", votos, maxsplit=1)
+        if len(partes) == 2:
+            antes, despues = partes
+            pendientes = re.findall(r"@(\w+)", despues)
             if PERSONA not in pendientes:
-                continue  # ya votaste o no te toca
-            falta = "voto de " + ", ".join("@" + p for p in pendientes)
+                if not re.search(rf"@{re.escape(PERSONA)}\b", antes):
+                    continue  # no te toca
+                falta = "ya has votado; faltan " + ", ".join("@" + p for p in pendientes)
+            else:
+                falta = "voto de " + ", ".join("@" + p for p in pendientes)
         else:
             falta = "tu OK (sin votos registrados)"
         yield titulo, falta, f"[[{fichero.stem}]]"

@@ -93,17 +93,18 @@ Con SSO ([[0009-identidad]]), esta sección ya solo mira al **admin de desarroll
 | Identidad del proveedor | `usuarios.sso_subject` (único) | U-05 |
 | Roles, varios por usuario | Tabla `usuarios_roles (usuario_id, rol)` con `PRIMARY KEY (usuario_id, rol)`, FK a `usuarios` y `CHECK (rol IN ('transcriptor','revisor','admin'))` (0012, decisión de @Marina) | U-01 |
 | Motivo de la baja | `usuarios.motivo_baja` | U-08 |
-| Fecha del último cambio de contraseña | `usuarios.password_cambiado_en` (solo admin de desarrollo, sin regla propia) | — |
+| Fecha del último cambio de contraseña | **no se crea `password_cambiado_en`**: el admin de desarrollo cambia la variable de entorno (U-21) | — |
 | Tokens de un solo uso | **no se crea `tokens_usuario`**: U-10 a U-15 retiradas (18/11); la credencial del admin de desarrollo viene de entorno (U-21) | — |
+| Caducidad de la sesión | `sesiones_usuario.expira_en` (tabla de `V13`; U-16 y U-18 lo necesitan) | U-18 |
 | Orden de antigüedad de sesiones | `sesiones_usuario.creado_en` (tabla de `V13`) | U-17 |
 
-Nada de esta tabla está todavía en `docs/architecture/`: son columnas propuestas, pendientes de bajar al modelo en `V13`.
+Ninguna de estas columnas está todavía en `docs/architecture/`: `V13` no se ha escrito. El SQL exacto está en [[0012-identidad-y-roles]], sección «Para @Marina: el SQL de `V13`».
 
 ## 8. Endpoints
 
 Todos están ya en `docs/api/endpoints.md`, que es el dueño de los payloads.
 
-`POST /user/register` se elimina del contrato. Con SSO, las rutas de contraseña quedan como **camino del admin de desarrollo** y la invitación y el reset se retiran (U-10 a U-15); el usuario real entra por el callback SSO, que el contrato aún no tiene ([[0009-identidad]]).
+`POST /user/register` se elimina del contrato. Con SSO, las rutas de contraseña quedan como **camino del admin de desarrollo** y la invitación y el reset se retiran (U-10 a U-15); el usuario real entra por el callback SSO, que el contrato ya tiene como propuesta ([[0009-identidad]]).
 
 ```text
 GET    /auth/sso/login               propuesta: único camino de producción

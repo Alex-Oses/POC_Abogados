@@ -34,7 +34,7 @@ La contrapartida, aceptada: sellos, firmas manuscritas y textura del escaneo no 
 | SHA-256 | `versiones_documento.metadatos_proceso->>'hash_export'` |
 | Estado | `documentos.estado = 'exportado'` |
 
-El modelo de datos no cambia: `ruta_pdf` y `metadatos_proceso` ya existen. `hash_export` y `exportado_en` como columnas propias quedan pendientes de bajar al esquema, igual que el resto de reglas.
+El modelo de datos no cambia: `ruta_pdf` y `metadatos_proceso` ya existen y el hash va dentro de `metadatos_proceso->>'hash_export'`; la fecha de exportación es `documentos.exportado_en` (`V15`).
 
 ## 4. La estructura
 

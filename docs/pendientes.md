@@ -4,7 +4,7 @@
 - **Autor:** @ia-opencode-ruben
 - **Para qué:** el contrato y las reglas ya describen autenticación, bloques de layout, cola de revisión y export; el esquema real (`docs/architecture/migrations/`) todavía no. Esto es lo que hay que **decidir o migrar** antes de escribir backend: identidad, geometría del PDF y todo lo que cambia en la base de datos.
 - **Qué no es:** no decide nada. Los bloqueantes se citan por su ID de [Coherencia](../vault/Proyecto/Coherencia.md) y las decisiones por su número; aquí solo se agrupa lo que hoy no se puede implementar.
-- **Verificado el 17/11/2026** contra las migraciones `V1`-`V12`, `docs/api/endpoints.md`, `docs/reglas/` y las decisiones 0001-0010. Si cambia cualquiera de esos cuatro, revisa la tabla de §3 (ver §6).
+- **Verificado el 19/11/2026** contra las migraciones `V1`-`V15`, `docs/api/endpoints.md`, `docs/reglas/` y las decisiones 0001-0012. **La BD es definitiva: no se planean migraciones nuevas**, así que lo que queda se arregla en el contrato o en las reglas.
 
 ## 1. Identidad y sesiones (B1, B2 · [0009](../vault/Decisiones/0009-identidad.md))
 
@@ -16,9 +16,9 @@
 
 | Tabla | Qué se crea o cambia | Lo pide |
 |---|---|---|
-| `usuarios` | Tabla `usuarios_roles (usuario_id, rol)` con `CHECK` de tres valores y FK a `usuarios` (decisión de @Marina, 18/11); `estado` sustituye a `activo`; `nombre` y `apellidos` separados; `password_hash` (nulo si SSO), `password_cambiado_en`, `intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `motivo_baja` y `sso_subject` (UNIQUE) si hay SSO | U-01, U-04, U-08, contrato §1-2, 0009, 0012 |
+| `usuarios` | Tabla `usuarios_roles (usuario_id, rol)` con `CHECK` de tres valores y FK a `usuarios` (decisión de @Marina, 18/11); `estado` sustituye a `activo`; `nombre` y `apellidos` separados; `password_hash` (nulo si SSO), `intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `motivo_baja` y `sso_subject` (UNIQUE) si hay SSO | U-01, U-04, U-08, contrato §1-2, 0009, 0012 |
 | `tokens_usuario` (nueva) | **no se crea**: U-10 a U-15 retiradas (18/11) y la contraseña del admin de desarrollo viene de variable de entorno (U-21) | — |
-| `sesiones_usuario` (nueva) | `usuario_id`, `token_hash`, `creado_en`, `revocado_en`, `ip`, `user_agent`; tope de 3 con desalojo de la más antigua. Una de las dos tablas nuevas (opción B, 18/11) | U-16 a U-20, contrato §1, 0012 |
+| `sesiones_usuario` (nueva) | `usuario_id`, `token_hash`, `creado_en`, `expira_en`, `revocado_en`, `ip`, `user_agent`; tope de 3 con desalojo de la más antigua. Una de las **dos tablas nuevas** con `usuarios_roles` (opción B, 18/11) | U-16 a U-20, contrato §1, 0012 |
 | `idx_usuarios_rol_activo` | se cae con `rol`/`activo`; entran `(estado)` e `idx_usuarios_roles_rol` | B1, 0012 |
 
 Con SSO, `password_hash` queda **solo** para el admin de desarrollo y la invitación por email desaparece; `tokens_usuario` no se crea. Eso importa porque **no hay proveedor de correo elegido** (B2): sin invitaciones ni reset no hace falta SMTP.
@@ -29,7 +29,7 @@ Con SSO, `password_hash` queda **solo** para el admin de desarrollo y la invitac
 
 **Decidido.** El PDF final se **reconstruye**: lienzo nuevo y texto nuevo, sin un píxel del escaneo. No es estética, es que el PDF es lo único que sale del despacho y no puede llevar capa oculta, metadatos ni una zona sin censurar. Se acepta la contrapartida: sellos, firmas manuscritas y textura no se reproducen.
 
-**El hueco.** `bloques_layout` **no existe** en las migraciones, pero tres rutas y todo el PDF dependen de ella (B3). Además, las anotaciones guardan offsets sobre el texto completo y su propio `bbox`, mientras el contrato dice que los offsets son dentro de `bloques_layout.contenido` y devuelve `bloque_id`. Y el OCR actual —PaddleOCR-VL por Ollama, prompt `OCR:`— devuelve **texto sin coordenadas**: hoy nada puede rellenar el `bbox` que pide la API.
+**El hueco.** `bloques_layout` ya existe en `V14`, pero las anotaciones guardan offsets sobre el texto completo y su propio `bbox`; el contrato ya se ha alineado con eso (no hay `bloque_id`). Y el OCR actual —PaddleOCR-VL por Ollama, prompt `OCR:`— devuelve **texto sin coordenadas**: hoy nada puede rellenar el `bbox` que pide la API.
 
 **La salida acordada (17/11).** No se elige una fuente de geometría: se decide **por documento**, en este orden y quedándose con la primera que funcione.
 
@@ -42,43 +42,31 @@ Lo aplicado queda en `origen_geometria` para que el render sea reproducible.
 **Lo que falta antes de implementar:**
 
 1. **Medir el corpus real**: qué proporción de los documentos del Colegio llega como PDF con texto. Sin ese dato no se sabe si la rama 2 se paga.
-2. **Crear `bloques_layout`** y fijar **una** base para los offsets (propuesta: dentro de `contenido` del bloque, con `bloque_id` en la anotación).
-3. **Decidir si el OCR es asíncrono por página** (I5) y si la demo necesita «dos lecturas»: cuesta el doble de OCR (~1.375 pág/h en vez de 2.750).
-4. **Semáforo por página** (B5): sin el contraste guardado no se puede pintar; necesita la tabla de páginas.
+2. ~~Crear `bloques_layout`~~: hecho en `V14`; los offsets se cuentan sobre `contenido_texto`.
+3. **Decidir si el OCR es asíncrono por página** (I5). Las «dos lecturas» ya están decididas (A-24) y cuestan el doble de OCR (~1.375 pág/h en vez de 2.750).
+4. ~~Semáforo por página (B5)~~: `paginas_documento` ya tiene lector (`GET /documents/{id}/pages`).
 
 **Lo que no cambia:** 0007, el JSON de estructura y el render. Cuando llegue el `bbox`, se rellena el mismo JSON y no se toca el código de dibujo.
 
 ## 3. Todo lo que cambia en la BD
 
-| Tabla | Qué falta o cambia | Lo pide | Depende de |
+| Tabla | Qué queda | Lo pide | Depende de |
 |---|---|---|---|
-| `usuarios` | estado, contraseña, SSO, intentos y último acceso | B1 | 0009 |
-| `tokens_usuario` | **no se crea**: U-10 a U-15 retiradas (18/11); la contraseña del admin de desarrollo viene de variable de entorno | — | — |
-| `sesiones_usuario` | tabla nueva: `usuario_id`, `token_hash`, `creado_en`, `revocado_en`, `ip`, `user_agent` | B1 | 0009, 0012 |
-| `documentos` | `num_paginas` | B5 | — |
-| `documentos` | CHECK de `estado`: falta `pendiente_visto_bueno`; decidir si hace falta un estado de reapertura | A-15, A-19, B7 | 0005 |
-| `documentos` | `visto_bueno_por`, `visto_bueno_en`, `cerrado_en` | A-15, A-19 | 0005 |
-| `documentos` | `hash_export` y `exportado_en`: o se quedan aquí o se van a la versión, **un solo dueño** | B8 | 0007 |
-| `documentos` | marca del original cifrado y de su clave (KMS o columna) | 0004 | — |
-| `versiones_documento` | `hash_export` y `exportado_en` si B8 se resuelve por versión | B8 | 0007 |
-| `bloques_layout` | tabla nueva: `version_id`, `pagina`, `orden`, `label`, `bbox`, `contenido` | B3 | 0007 |
-| `paginas_documento` | tabla nueva: documento, número, contraste, estado, avisos, si se leyó | B5, I5 | — |
-| `anotaciones_entidad` | `bloque_id`; base única de offsets; CHECK de `accion_aplicada` con censurar, etiqueta e iniciales; qué pasa con `bbox_x/y/ancho/alto` | B3, I1 | 0007 |
-| `revisiones` | `revisor_id` a nulo; estado `en_cola`; `asignado_a`, `asignado_en`, `fecha_limite`, `aviso_24h_enviado_en` | B4, A-05, A-20 | 0005 |
-| `reglas_anonimizacion` | `accion_por_defecto` pasa de `tachado` a censurar | I1 | 0005 |
-| `configuracion_sistema` (seed) | quitar motores OCR en cloud, `preservar_formato_pdf = false`, fuera el «timeout de 60 min» (el plazo es 48 h laborables) y corregir `version_esquema_bd` | H6 | — |
-| `categorias_sensibles` (seed) | `NUSS` deja de ser `rgpd_especial`: es un identificador, no un dato del art. 9 | H8 | — |
-| `seudonimos` | tabla nueva y cifrada **solo si** se mantiene la promesa de la maqueta («taula de pseudònims xifrada i separada») | I2 | 0005, 0007 |
+| `usuarios` | sin `roles[]`, `estado`, `sso_subject` ni `password_hash`: el login tiene que caber en `rol`/`activo` o quedar fuera del piloto | B1 | 0009 |
+| `sesiones_usuario` | no existe: sin sesión propia hay que decidir cómo se guarda el token y si hay más de una sesión | B1, U-16 a U-20 | 0009, 0012 |
+| `documentos` | `hash_export` no existe: el hash vive en `versiones_documento.metadatos_proceso->>'hash_export'` (B8 cerrado 19/11) | B8 | 0007 |
+| `anotaciones_entidad` | sin `bloque_id`: el contrato ya cuenta los offsets sobre `contenido_texto` y usa el `bbox` de la detección | B3 | — |
+| `seudonimos` | no existe: la maqueta no puede prometer «taula de pseudònims xifrada i separada» | I2 | — |
+| `reglas_anonimizacion` | `accion_por_defecto` sigue en `tachado`; las reglas no deben prometer otro defecto | I1 | 0005 |
+| `configuracion_sistema` (seed) | motores OCR en cloud, `preservar_formato_pdf = true` y el timeout de 60 min siguen sembrados | H6 | — |
+| `categorias_sensibles` (seed) | `NUSS` sigue marcado `rgpd_especial` | H8 | — |
 | `auditoria` | **no cambia**: `evento` + `detalle` JSONB aguantan login, SSO, reapertura y export | — | — |
 
-### Migraciones mínimas
+`documentos.num_paginas`, `bloques_layout`, `paginas_documento`, `revisiones.asignado_a`/`en_cola` y las columnas del visto bueno y del cierre **ya están en `V14`/`V15`**.
 
-| # | Contenido | Se puede empezar |
-|---|---|---|
-| V13 | Identidad: `usuarios_roles`, `estado`, `sso_subject`, índices; `sesiones_usuario` (2 tablas nuevas); `tokens_usuario` no se crea | **No**: espera 0009 y 0012 |
-| V14 | Estructura: `bloques_layout`, `paginas_documento`, `num_paginas`, índices | **Escrita** (`V14__create_bloques_layout.sql`): no depende de identidad |
-| V15 | Flujo y export: estados, columnas del visto bueno, `revisiones`, seeds corregidos | **Escrita** (`V15__flujo_revision_y_export.sql`), salvo el hash: espera 0005 |
-| V16 | Hash del PDF (B8), cuando se decida el dueño | No: espera B8 |
+### Migraciones
+
+**No hay migraciones nuevas.** La BD (`V1`-`V15`) es la definitiva desde el 19/11: `V13` no se escribe y `V16` no se abre. Lo que quede se resuelve en el contrato, en las reglas o queda fuera del alcance.
 
 Los once puntos revisados, las cinco preguntas contestadas y el orden están en [`vault/Decisiones/0011-ajustes-al-modelo-de-marina.md`](../vault/Decisiones/0011-ajustes-al-modelo-de-marina.md).
 

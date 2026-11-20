@@ -16,7 +16,7 @@
 - **Fechas:** ISO 8601 en UTC (`2026-11-16T10:00:00Z`).
 - **Errores:** misma forma siempre.
 - **Idempotencia:** todo `POST` que crea recursos acepta `Idempotency-Key` opcional.
-- **Concurrencia:** los cierres exigen `If-Match` con el `updated_at` leído; si no coincide, `409`.
+- **Concurrencia:** el cierre de revisión exige `If-Match` con el `actualizado_en` leído; si no coincide, `409` (A-23). La toma de la cola no usa `If-Match` (A-05).
 
 ```json
 {
@@ -63,11 +63,13 @@ Los roles se releen de la base de datos en cada petición: un token no arrastra 
 | `GET` | `/api/v1/admin/users` | A | `usuarios` |
 | `PATCH` | `/api/v1/admin/users/{id}` | A | `usuarios`, `sesiones_usuario` |
 | `DELETE` | `/api/v1/admin/users/{id}/sessions` | A | `sesiones_usuario` |
-| `POST` | `/api/v1/transform/document` | T | `documentos`, `versiones_documento`, `bloques_layout` |
+| `POST` | `/api/v1/transform/document` | T | `documentos`, `versiones_documento`, `bloques_layout`, `paginas_documento` |
 | `POST` | `/api/v1/transform/plain-text` | T, R | `versiones_documento` |
 | `POST` | `/api/v1/transform/build` | T, R | `versiones_documento` |
 | `GET` | `/api/v1/documents` | T, R | `documentos` |
 | `GET` | `/api/v1/documents/{id}` | T, R | `documentos`, `versiones_documento` |
+| `GET` | `/api/v1/documents/{id}/pages` | T, R | `paginas_documento` |
+| `GET` | `/api/v1/documents/{id}/original` | T (dueño), R | `documentos` |
 | `DELETE` | `/api/v1/documents/{id}` | T (dueño), A | `documentos` |
 | `GET` | `/api/v1/documents/{id}/versions` | R | `versiones_documento` |
 | `GET` | `/api/v1/documents/{id}/versions/{numero_version}` | R | `versiones_documento` |
@@ -193,6 +195,7 @@ Sube el documento, guarda el fichero **cifrado** y ejecuta OCR y layout con Padd
 - 1 fila en `documentos`, con el original cifrado
 - versión `original` (sin texto)
 - versión `ocr_texto` con una fila por bloque en `bloques_layout`
+- una fila por página en `paginas_documento`, con el contraste y el semáforo de calidad (`V14`)
 
 **Aquí no se anonimiza** (decisión 0004): el original cifrado se conserva para la revisión y la anonimización se aplica al construir la versión que va a revisión y al exportar.
 
@@ -228,7 +231,7 @@ Errores: `404` si el documento no existe, `500` si falla la generación.
 
 ### `GET /documents?estado=&page=&limit=`
 
-Lista documentos. El transcriptor ve solo los suyos; el revisor ve todos.
+Lista documentos. El transcriptor ve solo los suyos; el revisor ve todos. Excluye los que están en `eliminado`.
 
 `200` → `{ "items": [ { "id", "nombre_original", "estado", "num_paginas", "creado_en" } ], ... }`.
 
@@ -254,9 +257,37 @@ Lista documentos. El transcriptor ve solo los suyos; el revisor ve todos.
 }
 ```
 
+### `GET /documents/{id}/pages`
+
+Semáforo por página: una entrada por fila de `paginas_documento`. Es lo que pinta la bandeja y el aviso de calidad antes de revisar.
+
+```json
+{
+  "items": [
+    {
+      "numero": 1,
+      "contraste": 62,
+      "estado": "aviso",
+      "avisos": [{ "tipo": "contraste_bajo", "mensaje": "Escaneo muy claro", "bbox": { "x": 120, "y": 340, "ancho": 800, "alto": 220 } }],
+      "leida_ocr": true
+    }
+  ]
+}
+```
+
+`estado`: `ok | aviso | error`. `404` si el documento no existe. El detalle de los avisos está en `docs/reglas/aprobacion.md` §8.
+
+### `GET /documents/{id}/original`
+
+Descarga el original **descifrado**, para comparar con la transcripción. Es la pantalla central de la revisión.
+
+`200` → binario con el `mime_type` guardado y `Content-Disposition: inline`. Cada acceso se registra en `auditoria` (quién, cuándo, qué documento).
+
+Errores: `404` si el documento o el fichero no existen, `410` si el original ya se purgó.
+
 ### `DELETE /documents/{id}`
 
-`204`. Borrado lógico (`eliminado_en`). No borra las versiones ni la auditoría.
+`204`. Borrado lógico: pasa `estado` a `eliminado` y rellena `eliminado_en`. No borra las versiones, las anotaciones ni la auditoría.
 
 ---
 
@@ -317,9 +348,9 @@ Errores: `404` si el documento o la regla no existen, `409` si ya hay un proceso
 
 ### `GET /documents/{id}/annotations?version=&categoria=&pendientes=true`
 
-`200` → `{ "items": [ { "id", "bloque_id", "categoria", "inicio_offset", "fin_offset", "texto_original", "accion_aplicada", "confianza_deteccion", "decision_revisor" } ] }`.
+`200` → `{ "items": [ { "id", "categoria", "inicio_offset", "fin_offset", "texto_original", "pagina_numero", "accion_aplicada", "confianza_deteccion", "decision_revisor" } ] }`.
 
-Los offsets son índices de carácter dentro de `bloques_layout.contenido`.
+Los offsets son índices de carácter dentro de `versiones_documento.contenido_texto`: la anotación no apunta a un bloque de layout. `pagina_numero` y `bbox` los rellena la detección, no el layout. `version` filtra por `version_id`, `categoria` por `categoria_id` y `pendientes=true` por `decision_revisor IS NULL` (A-09).
 
 ### `PATCH /annotations/{id}`
 
@@ -335,6 +366,8 @@ Decisión del revisor sobre una entidad detectada.
 ```
 
 `200`. Rellena `revisado_por` y `revisado_en`. Cada cambio se audita.
+
+Errores: `409` si la revisión de esa versión no está `en_proceso`: cerrada la revisión, la anotación es de solo lectura (A-11).
 
 ---
 
@@ -382,7 +415,7 @@ No hay comprobación de «nadie revisa lo suyo»: A-07 está retirada (18/11), a
 
 ### `PATCH /reviews/{id}`
 
-Cierra la revisión. Exige `If-Match` con el `updated_at` que devolvió la última lectura.
+Cierra la revisión. Exige `If-Match` con el `actualizado_en` que devolvió la última lectura.
 
 ```json
 { "estado": "aprobado", "comentario_general": "Correcto" }
@@ -392,7 +425,7 @@ Efectos según `estado`:
 
 | `estado` | Versión creada | `documentos.estado` |
 | --- | --- | --- |
-| `aprobado` | `final_aprobado` con `es_actual = true` | `aprobado`, o `pendiente_visto_bueno` si `requiere_visto_bueno` |
+| `aprobado` | `final_aprobado` con `es_actual = true` | `aprobado`, o `pendiente_visto_bueno` si `requiere_visto_bueno` (en pausa con A-15) |
 | `rechazado_con_cambios` | `revisado_humano` | `rechazado` |
 | `devuelto` | ninguna | `en_revision`, la revisión vuelve a `en_cola` |
 
@@ -402,11 +435,11 @@ Errores:
 
 - `422` con la lista de `anotacion_id` si quedan anotaciones pendientes y se intenta aprobar.
 - `422` si faltan `comentario_general` en `rechazado_con_cambios` o `devuelto`.
-- `409` si `If-Match` no coincide con el `updated_at` actual (otro revisor cerró antes), o si la revisión no está `en_proceso`.
+- `409` si `If-Match` no coincide con el `actualizado_en` actual (otro revisor cerró antes), o si la revisión no está `en_proceso`.
 
 ### `POST /documents/{id}/reopen`
 
-Devuelve un documento rechazado al circuito. Crea una versión `anonimizado_ia` nueva con la regla vigente, una revisión nueva en `en_cola` con `numero_intento + 1` y deja el documento en `en_revision`.
+Devuelve al circuito un documento **rechazado o aprobado**. Crea una versión `anonimizado_ia` nueva con la regla vigente, una revisión nueva en `en_cola` con `numero_intento + 1` y deja el documento en `en_revision`.
 
 ```json
 { "comentario": "Se corrige el escaneo de la página 3" }
@@ -414,7 +447,7 @@ Devuelve un documento rechazado al circuito. Crea una versión `anonimizado_ia` 
 
 `201` → `{ "version_id": "uuid", "numero_version": 5, "revision_id": "uuid", "numero_intento": 2 }`.
 
-Errores: `409` si el documento no está `rechazado`, `422` si no hay texto que anonimizar.
+Errores: `409` si el documento no está `rechazado` ni `aprobado`, `422` si no hay texto que anonimizar o falta `comentario` al reabrir un aprobado (A-19).
 
 ### `POST /documents/{id}/sign-off`
 
@@ -432,7 +465,7 @@ Errores: `409` si el documento no está en `pendiente_visto_bueno`.
 
 ### `POST /documents/{id}/export`
 
-Cierra el expediente. Genera el PDF definitivo desde la versión aprobada (ya anonimizada), guarda `hash_export` y `exportado_en`, y pasa el documento a `exportado`.
+Cierra el expediente. Genera el PDF definitivo desde la versión aprobada (ya anonimizada), guarda el hash en la versión (`metadatos_proceso->>'hash_export'`) y `exportado_en` en el documento, y lo pasa a `exportado`.
 
 `200` → binario, `Content-Type: application/pdf`, `Content-Disposition: attachment; filename="documento.pdf"` y cabecera `X-Document-Hash` con el SHA-256.
 
@@ -542,12 +575,16 @@ en_revision
   └─ pendiente_visto_bueno ──POST /documents/{id}/sign-off──→ aprobado
 
 aprobado ──POST /documents/{id}/export──→ exportado
+aprobado ──POST /documents/{id}/reopen──→ en_revision   (con comentario, A-19)
+
+cualquier estado ──DELETE /documents/{id}──→ eliminado
 ```
 
 - `ocr_procesando` y `anonimizando` son transitorios: si el proceso falla, el documento vuelve al estado anterior y se registra en `auditoria`.
-- `pendiente_visto_bueno` solo existe si la versión tiene alguna anotación de una categoría con `rgpd_especial = true`.
+- `pendiente_visto_bueno` solo existe si la versión tiene alguna anotación de una categoría con `rgpd_especial = true`. **En pausa con A-15**: mientras dure, `requiere_visto_bueno` es siempre `false` y este estado no se usa.
+- `eliminado` lo marca `DELETE /documents/{id}`, junto con `eliminado_en`; no se sale de él.
 - `exportado` lo marca únicamente `POST /documents/{id}/export`. `POST /transform/build` es vista previa y no cambia estados.
-- `aprobado` está congelado: no admite versiones nuevas salvo reapertura explícita de un revisor.
+- `aprobado` está congelado: no admite versiones nuevas salvo `POST /documents/{id}/reopen` con `<comentario>` (A-19).
 - Ningún endpoint permite saltarse un estado; el `409` lo impide.
 
 ## 10. Qué endpoint escribe qué
@@ -559,7 +596,8 @@ aprobado ──POST /documents/{id}/export──→ exportado
 | Login / logout | `sesiones_usuario` |
 | Cambio de rol, bloqueo o baja | `usuarios`, `sesiones_usuario` |
 | Revocar sesiones | `sesiones_usuario` |
-| Subida + OCR | `documentos`, `versiones_documento` (2), `bloques_layout` |
+| Subida + OCR | `documentos`, `versiones_documento` (2), `bloques_layout`, `paginas_documento` |
+| Leer páginas u original | solo `auditoria` (el original, siempre) |
 | Anonimizar | `versiones_documento` (1), `anotaciones_entidad` (N) |
 | Revisar anotación | `anotaciones_entidad` |
 | Abrir revisión | `revisiones` (`en_cola`), `documentos` |
@@ -567,7 +605,7 @@ aprobado ──POST /documents/{id}/export──→ exportado
 | Cerrar revisión | `revisiones`, `versiones_documento`, `documentos` |
 | Reabrir rechazado | `documentos`, `versiones_documento`, `revisiones` |
 | Visto bueno | `documentos` (`visto_bueno_por`, `visto_bueno_en`) |
-| Exportar | `documentos` (`hash_export`, `exportado_en`, `cerrado_en`) |
+| Exportar | `documentos` (`exportado_en`, `cerrado_en`), `versiones_documento` (`metadatos_proceso->>'hash_export'`) |
 | Reglas / categorías | `reglas_anonimizacion`, `regla_categorias`, `categorias_sensibles` |
 | Configuración | `configuracion_sistema` |
 | Todo lo anterior | `auditoria` (una fila por cambio) |
