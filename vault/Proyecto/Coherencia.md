@@ -17,7 +17,7 @@ La revisión del 16/11 encontró cuatro bloqueantes y nueve importantes. Hoy que
 |---|---|---|
 | 16/11 | **A-15 ya no usa `nivel_riesgo`.** La doble firma se dispara con `rgpd_especial = true` (art. 9-10 RGPD). Con el seed actual, `nivel_riesgo = alto` incluía DNI, nombre, dirección e IBAN, así que todo expediente acababa en `pendiente_visto_bueno` y la regla dejaba de ser excepcional. | `docs/reglas/aprobacion.md` §7, `docs/api/endpoints.md` §9, [[0005-reglas-usuarios-y-aprobacion]] regla 6 |
 | 16/11 | **La decisión del PDF final pasa de 0006 a 0007**: había dos 0006 en la bóveda y una era de Presidio. | [[0007-generacion-pdf-final]] |
-| 16/11 | **El stack del backend no estaba escrito en ningún sitio**: solo se deducía de las dependencias del PDF. Queda en Propuesta, con Python + FastAPI como recomendación y C# como alternativa evaluada. | [[0008-stack-backend]] |
+| 16/11 | **El stack del backend no estaba escrito en ningún sitio**: solo se deducía de las dependencias del PDF. Queda en Propuesta, con Python + FastAPI como recomendación y C# como alternativa evaluada. **Aceptada el 20/11 y reabierta el mismo día**: el ETL sale del backend y cae el argumento de un solo lenguaje; [[0014-stack-backend-c-sharp-java-python]] compara C#, Java y Python | [[0008-stack-backend]] |
 | 19/11 | **README alineado con el contrato**: fuera `/user/register`, fuera la exportación a Word, árbol con `docs/api/`, `docs/reglas/` y `docs/export/`, migraciones `V1`-`V15` | `README.md` (H1, H2) |
 | 19/11 | **Arquitectura sin referencias muertas**: `er-diagram.md` (no existe) → `diagrama-bbdd-borrador.png`; «7 triggers» → 16 | `docs/architecture/README.md` (H4) |
 | 19/11 | **El semáforo por página y el original ya tienen ruta**: `GET /documents/{id}/pages` y `GET /documents/{id}/original` | `docs/api/endpoints.md` (B5) |
@@ -67,7 +67,7 @@ No se puede implementar el contrato tal cual. Ordenados por lo que cuesta descub
 | H6 | ~~V12 siembra motores OCR en cloud, `preservar_formato_pdf = true`, `tiempo_max_revision_minutos = 60` y `version_esquema_bd = 1`~~ **Resuelto (20/11)**: `V15` corrige los cuatro (paddleocr-vl en local, `false`, clave borrada, versión 15) | `V15:141-161` |
 | H7 | ~~`vault/Inicio.md` escribe `Investigacion/` y la carpeta es `investigacion/`: en Linux rompe~~ **Ya estaba bien** (minúscula) | `vault/Inicio.md` |
 | H8 | ~~`categorias_sensibles` marca `NUSS` como `rgpd_especial`~~ **Resuelto (20/11)**: `V15` lo pone en `false` | `V15:136-139` |
-| H9 | **No había stack de backend escrito**: ni lenguaje, ni framework, ni driver, ni dónde se despliega. Solo `reportlab` en el diseño del PDF. Resuelto como propuesta en [[0008-stack-backend]] | `README.md`, `docs/architecture/README.md` |
+| H9 | ~~**No había stack de backend escrito**: ni lenguaje, ni framework, ni driver, ni dónde se despliega. Solo `reportlab` en el diseño del PDF~~ **Reabierto (20/11)**: con el ETL fuera, [[0014-stack-backend-c-sharp-java-python]] decide entre C#, Java y Python | `README.md`, `docs/architecture/README.md` |
 
 ## La maqueta contra el plan
 
@@ -92,8 +92,8 @@ Detalle menor pero elocuente: en la maqueta el «escaneo» es HTML, no una image
 
 ## Cómo se cierra
 
-0. **Stack** (H9): decidir Python + FastAPI o C# en [[0008-stack-backend]] antes de escribir el primer endpoint. Es barato hoy y caro después.
-1. **Identidad** (B1): es lo único que sigue abierto. @Rubén ya votó 0009 (SSO + admin local); faltan @Kevin, @Marina y @Alex en 0008 y @Kevin y @Alex en 0012. Mientras no se cierre, el alta de usuarios se queda fuera del piloto; no habrá `V13`.
+0. **Stack** (H9): **reabierto** (20/11): [[0014-stack-backend-c-sharp-java-python]] decide entre C#, Java y Python. @Rubén.
+1. **Identidad** (B1): es lo único que sigue abierto. @Rubén ya votó 0009 (SSO + admin local) y 0008 está reabierta; faltan @Kevin y @Alex en 0012. Mientras no se cierre, el alta de usuarios se queda fuera del piloto; no habrá `V13`.
 2. **Defectos que piden decisión**: E-33 (`regla_categorias` frente a `reglas_anonimizacion.configuracion`), E-38 (mapa de seudónimos), E-39 (licencia de PyMuPDF), E-44 (retención y acción por defecto en el documento RGPD). Los demás están en el [[Registro de errores]].
 3. **Maqueta** (I4, I8): el botón «Exportar PDF» de la revisión sigue activo antes de aprobar, y hay que decidir si la demo va con una o dos personas.
 

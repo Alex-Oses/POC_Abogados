@@ -9,10 +9,16 @@
 - 0009 aceptada por @Rubén: SSO del ICAT sin gestión de cuentas y admin local solo de desarrollo; la opción de cuentas locales queda como alternativa si el ICAT no puede dar SSO en plazo. B2 resuelto en [[Coherencia]]; `docs/pendientes.md` y el contrato dejan de esperarla.
 - 0012: @Rubén confirma la tabla `usuarios_roles` de @Marina y no ve problema en el `JOIN`/`EXISTS` de la vista ni en el trigger; sigue **Propuesta** a falta de @Kevin y @Alex.
 
+- [[0008-stack-backend]] se aceptó el 20/11 con Python 3.12 + FastAPI y se **reabrió el mismo día**: al sacar el ETL del backend (§2 del [[Enfoque tecnico]]) desaparece el argumento de «un solo lenguaje». 0008 queda **Sustituida por [[0014-stack-backend-c-sharp-java-python]]**, en **Propuesta** y a falta de @Rubén, que compara C#, Java y Python con sus seis criterios (pocas librerías, legibilidad, responsabilidades, Docker, tipado y velocidad).
+- El equipo son cinco personas, @Yaser incluido (ETL): queda escrito en [[Equipo]] para que no dependa de lo que cada uno recuerde.
+- [[Coherencia]] actualizada el 20/11: de once contradicciones queda una (B1); I1, H6 y H8 se cerraron con `V15`, e I2, I3 y H5 con el contrato y 0004.
+- Nueva [[0013-consultas-sql-o-sqlalchemy-core]] en **Propuesta**, encargada a @Rubén: SQL directo con `psycopg` o híbrido con SQLAlchemy Core para el 80 % y `text()`/`.sql` para vistas, informes y colas.
+- [[Estructura del backend]]: borrador con el árbol de carpetas y los imports previstos, para editar entre @Rubén y yo. Handlers síncronos, `services/` y `middleware/` separados, sin `modules/OCR` (eso es ETL).
+
 ## Siguiente
 
 - Revisar los 34 defectos que siguen abiertos en el [[Registro de errores]] y decidir cuáles entran antes del 27/11.
-- [[Coherencia]] actualizada el 20/11: de once contradicciones queda una (B1); I1, H6 y H8 se cerraron con `V15`, e I2, I3 y H5 con el contrato y 0004.
+- @Rubén decide [[0014-stack-backend-c-sharp-java-python]] (C#, Java o Python) y [[0013-consultas-sql-o-sqlalchemy-core]].
 
 ## Bloqueos / preguntas
 

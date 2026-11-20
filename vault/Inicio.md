@@ -16,6 +16,7 @@ Bóveda compartida del equipo. Vive dentro del repo: cada `git pull` la actualiz
   - [[Modelo de datos]]: modelo de @Marina y en qué se diferencia de 0010
   - [[Coherencia]]: contradicciones abiertas entre contrato, modelo y maqueta
   - [[Enfoque tecnico]]: enfoque del backend y su frontera con el ETL (entrega 27/11, propuesta)
+  - [[Estructura del backend]]: carpetas e imports previstos (borrador para editar)
 - `docs/api/` y `docs/reglas/`: contrato completo y reglas de negocio (detalle)
 - `docs/export/`: generación del PDF final desde la estructura guardada
 - `vault/Investigacion/`: investigaciones con su coste (deuda técnica), p. ej. [[Anonimizacion con Presidio]]; los scripts de los bancos de pruebas están en `investigacion/`

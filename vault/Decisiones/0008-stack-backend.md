@@ -1,10 +1,10 @@
 # 0008 — Stack del backend
 
-- **Estado**: Propuesta
+- **Estado**: Sustituida por [[0014-stack-backend-c-sharp-java-python]] (20/11/2026, reabierta: el ETL sale del backend y el argumento de «un solo lenguaje» desaparece)
 - **Fecha**: 2026-11-16
 - **Autor**: @ia-opencode-ruben
-- **Se decide con**: @Rubén (backend), @Marina (BD), @Kevin (despliegue), @Alex (OCR)
-- **Votos**: @Rubén (backend), 2026-11-17: **Python + FastAPI**. Faltan @Marina, @Kevin y @Alex.
+- **Se decide con**: @Rubén (backend), @Marina (BD), @Kevin (despliegue), @Alex (OCR), @Yaser (ETL)
+- **Votos**: @Rubén (backend), 2026-11-17: **Python + FastAPI**. @Rubén, 2026-11-20: **cerrada** con el visto bueno del resto del equipo; @Marina, @Kevin, @Alex y @Yaser no revisan la bóveda, así que su conformidad se recogió fuera del repo.
 
 ## Contexto
 
@@ -26,7 +26,7 @@ Restricciones que no se negocian:
 - Licencias permisivas en todo lo que se distribuya o inspeccione (AGPL descartada en 0007).
 - El contrato y el modelo no dependen del lenguaje: JSON, `snake_case` idéntico a las columnas, SQL explícito.
 
-## Decisión propuesta
+## Decisión
 
 **Python 3.12 + FastAPI + Uvicorn**, `psycopg` 3 con SQL explícito y Pydantic v2 para los esquemas. Flyway sigue siendo el único que migra: la aplicación no crea ni altera tablas.
 

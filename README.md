@@ -19,7 +19,7 @@ Prueba de concepto para el **Il·lustre Col·legi de l'Advocacia de Tarragona (I
 | Modelo de datos (PostgreSQL) | Cerrado (V1–V15) | [docs/architecture](docs/architecture/README.md) |
 | Anonimización local (Presidio) | Investigada y medida | [documentación y rendimiento](docs/presidio.md) |
 | Maqueta navegable del flujo completo | Hecha | [maqueta/index.html](maqueta/index.html) · [documentación](docs/maqueta.md) |
-| Código de la aplicación | Sin empezar | — |
+| Código de la aplicación | Sin empezar; stack en revisión (C#, Java o Python) | [docs/pendientes.md](docs/pendientes.md) |
 
 ## Rendimiento del OCR
 
