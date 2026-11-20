@@ -2,9 +2,10 @@
 
 - **Para**: entrega del 27/11/2026 (ver [[Equipo]])
 - **Estado**: **borrador** · 20/11/2026 · se edita en este mismo fichero
-- **Aviso**: está escrito para **Python + FastAPI**. Si [[0014-stack-backend-c-sharp-java-python]] cae en C# o Java, se mantienen las carpetas y la frontera, y se rehacen ficheros e imports.
+- **Aviso**: está escrito para **Python + FastAPI**. Si [[0014-stack-backend-c-sharp-java-python]] cae en C# o Java, se usa la versión de ese lenguaje; las carpetas y la frontera son las mismas.
 - **Autor**: @ia-opencode-ruben
-- **Qué es**: dónde vive cada cosa en el backend y qué imports se prevén. El *por qué* del stack está en [[Enfoque tecnico]]; el contrato, en [`docs/api/endpoints.md`](../../docs/api/endpoints.md).
+- **Qué es**: la propuesta de estructura en **Python + FastAPI**. Sus hermanas son [[Estructura del backend (CSharp)]] y [[Estructura del backend (Java)]]; las tres comparan lo mismo antes de cerrar [[0014-stack-backend-c-sharp-java-python]].
+- **Dónde mirar**: el *por qué* del stack está en [[Enfoque tecnico]] y el contrato en [`docs/api/endpoints.md`](../../docs/api/endpoints.md).
 
 ## 1. Regla de frontera
 

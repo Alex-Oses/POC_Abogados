@@ -13,7 +13,7 @@
 - El equipo son cinco personas, @Yaser incluido (ETL): queda escrito en [[Equipo]] para que no dependa de lo que cada uno recuerde.
 - [[Coherencia]] actualizada el 20/11: de once contradicciones queda una (B1); I1, H6 y H8 se cerraron con `V15`, e I2, I3 y H5 con el contrato y 0004.
 - Nueva [[0013-consultas-sql-o-sqlalchemy-core]] en **Propuesta**, encargada a @Rubén: SQL directo con `psycopg` o híbrido con SQLAlchemy Core para el 80 % y `text()`/`.sql` para vistas, informes y colas.
-- [[Estructura del backend]]: borrador con el árbol de carpetas y los imports previstos, para editar entre @Rubén y yo. Handlers síncronos, `services/` y `middleware/` separados, sin `modules/OCR` (eso es ETL).
+- [[Estructura del backend (Python)]] · [[Estructura del backend (CSharp)]] · [[Estructura del backend (Java)]]: las tres con el mismo árbol y sus imports, para elegir con el código delante. Handlers síncronos, `services/` y `middleware/` separados, sin `modules/OCR` (eso es ETL).
 
 ## Siguiente
 
