@@ -3,7 +3,7 @@
 - **Estado:** abierto
 - **Autor:** @ia-opencode-maga369
 - **Creado:** 20/11/2026
-- **Actualizado:** 20/11/2026, segunda pasada centrada en base de datos
+- **Actualizado:** 20/11/2026, tercera pasada: contrato contra `V1`-`V15`, export, RGPD y maqueta
 - **Alcance:** los 41 ficheros versionados del repo (`README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/api/`, `docs/architecture/`, `docs/reglas/`, `docs/export/`, `docs/presidio.md`, `vault/`, `maqueta/`, `scripts/`) y, leídos enteros, las 14 migraciones (`V1`–`V12`, `V14`, `V15`), `views.sql`, `triggers.sql` y `partitioning.sql`.
 - **Para qué:** una sola lista de defectos, con evidencia, impacto y estado, para no reabrirlos ni volver a reportar lo descartado.
 - **Qué no es:** no sustituye al [[Tablero]] ni a [[Coherencia]]. Aquí van defectos comprobables; allí, decisiones y bloqueantes.
@@ -51,6 +51,26 @@
 | E-28 | P2 | `V15` da por existente un único `(version_id, numero_intento)` que `V7` no creó | `V15:87-88`, `V7` | abierto |
 | E-29 | P2 | `views.sql` dice ejecutarse tras V10, pero necesita columnas de V15 | `views.sql:3` | abierto |
 | E-30 | P2 | `horas_media_estado` mide antigüedad, no tiempo en el estado | `views.sql:150,156-165` | abierto |
+| E-31 | P1 | `versiones_documento.es_actual` no existe y el contrato lo usa para la versión vigente | `endpoints.md:210,428` vs `V4` | abierto |
+| E-32 | P1 | `pipeline_version` y `confianza_layout_promedio` no existen; la tabla solo tiene `confianza_promedio` | `endpoints.md:254-255,298` vs `V4:12` | abierto |
+| E-33 | P1 | `regla_categorias` no existe: `/rules` no puede guardar categorías | `endpoints.md:88-90,609` | abierto |
+| E-34 | P1 | Identidad y sesiones: faltan las columnas y tablas que usan el contrato y U-04/U-05/U-08 | `V1` vs `endpoints.md:143,163,176`; `Modelo de datos.md:233-237` | abierto |
+| E-35 | P1 | `paginas_documento.estado` vale `revisar/ilegible`, pero el contrato devuelve `aviso/error` | `endpoints.md:270,278` vs `V14:20-21` | abierto |
+| E-36 | P1 | La vista de métricas y el trigger de revisor asumen un rol único, no `usuarios_roles` | `views.sql:136`, `triggers.sql:134-136` vs 0012 | bloqueado (0012) |
+| E-37 | P1 | El export se dice idempotente sobre `exportado`, pero el mismo endpoint responde `409` si no está `aprobado` | `endpoints.md:472,474`; `pdf.md:148` | abierto |
+| E-38 | P1 | Se prometen seudónimos coherentes sin tabla ni mapa que los sostenga | `Modelo de datos.md:250`; `maqueta/index.html:156,188` | abierto |
+| E-39 | P2 | `pdf.md` prohíbe PyMuPDF por AGPL y a la vez lo elige para leer la geometría | `pdf.md:102,156` | abierto |
+| E-40 | P2 | `pdf.md` atribuye la reconstrucción del PDF a la decisión 0006, que es Presidio | `pdf.md:12,188` | abierto |
+| E-41 | P2 | El README de arquitectura deja un bloque de código SQL sin cerrar | `docs/architecture/README.md:18-34` | abierto |
+| E-42 | P2 | `V15` siembra plazo, aviso y calendario de A-20, una regla retirada | `V15:163-172`; `README.md:9` | abierto |
+| E-43 | P2 | `V12` activa notificaciones por email/Slack sin proveedor ni regla que las pida | `V12:21-22` | abierto |
+| E-44 | P2 | El documento RGPD describe otro sistema: acción por defecto y borrado físico | `rgpd-considerations.md:11-13,48` vs `V15:151-153` | abierto |
+| E-45 | P2 | La maqueta promete borrar la imagen y la capa de texto de un PDF reconstruido | `maqueta/index.html:155-156,187-188`; `docs/maqueta.md` §3.7 | abierto |
+| E-46 | P2 | La documentación sigue mandando arreglos a `V13`/`V16`, que ya no existirán | `usuarios.md:98-101`; `pendientes.md:77,99`; `Modelo de datos.md:245,252` | abierto |
+| E-47 | P2 | La cabecera de `V15` describe un estado anterior: 0005 sin aceptar y B8 con migración | `V15:4-5,30,32` | abierto |
+| E-48 | P2 | El README dice que las reglas están «cerradas y auditadas» y varias siguen en propuesta o en pausa | `README.md:18` vs `reglas-de-negocio.md` | abierto |
+| E-49 | P2 | U-12 retirada dice que la ruta de recuperación «sigue existiendo»; el contrato la retiró | `reglas-de-negocio.md:193` vs `endpoints.md` §1 | abierto |
+| E-50 | P2 | [[Modelo de datos]] da por abiertos B5 y B8 y dice que `preservar_formato_pdf = false` contradice 0007 | `Modelo de datos.md:245,248-249` | abierto |
 
 ---
 
@@ -292,6 +312,152 @@
 
 ---
 
+## Tercera pasada (20/11)
+
+> Contrato contra `V1`-`V15`, documentación del export, RGPD y maqueta. Sigue sin haber motor: todo es lectura del SQL y de los documentos.
+
+### E-31 · `versiones_documento.es_actual` no existe
+
+- **Evidencia.** `docs/api/endpoints.md:210` lee «la versión vigente (`es_actual = true`)» y `:428` crea `final_aprobado` «con `es_actual = true`». No hay ninguna aparición de `es_actual` en `docs/architecture/migrations/` ni en `views.sql`; `v_documento_actual` resuelve la vigente por `MAX(numero_version)`.
+- **Impacto.** El contrato pide una bandera que la base no tiene. `POST /transform/plain-text` y el cierre de revisión no se pueden implementar tal como están escritos; el backend tendrá que usar la versión de mayor número y el contrato mentirá.
+- **Arreglo.** Quitar `es_actual` del contrato y decir «la versión de mayor `numero_version`», como ya hace la vista. Si se quiere explícita, se edita `V4`/`V15`; no se crea una `V16`.
+- **Estado.** abierto.
+
+### E-32 · `pipeline_version` y `confianza_layout_promedio` no existen
+
+- **Evidencia.** `docs/api/endpoints.md:254-255` y `:298` devuelven `pipeline_version` y `confianza_layout_promedio`. `V4__create_versiones_documento.sql:12` solo tiene `confianza_promedio`; `pipeline_version` no aparece en ninguna migración.
+- **Impacto.** Dos respuestas del contrato no se pueden servir desde el esquema. O se inventan en el backend o el cliente recibe campos distintos de los documentados.
+- **Arreglo.** Devolver `confianza_promedio` y guardar la versión del pipeline en `metadatos_proceso` (que ya es JSONB), o añadir las columnas editando `V4`.
+- **Estado.** abierto.
+
+### E-33 · `regla_categorias` no existe
+
+- **Evidencia.** `docs/api/endpoints.md:88-90` declara que `/rules` escribe en `reglas_anonimizacion` y `regla_categorias`, y `:609` repite la tabla. No hay ninguna migración que la cree; `[[Modelo de datos]]:246` lo reconoce: «no existen en `V1`-`V15`. Necesitan migración».
+- **Impacto.** `POST /rules` y `PATCH /rules/{id}` no pueden guardar la lista de categorías de una regla. Si el backend usa `configuracion` JSONB, el contrato sigue prometiendo una tabla que no está.
+- **Arreglo.** Usar `reglas_anonimizacion.configuracion` (ya guarda categorías y acciones) y quitar `regla_categorias` del contrato, o crear la tabla editando `V5`; no hay `V16`.
+- **Estado.** abierto.
+
+### E-34 · Identidad y sesiones: faltan columnas y tablas que el contrato ya usa
+
+- **Evidencia.** `V1__create_usuarios.sql` solo tiene `email`, `nombre_completo`, `rol` y `activo`. El contrato devuelve `nombre`, `apellidos`, `roles`, `estado` y `ultimo_acceso` (`endpoints.md:143,163`), escribe `eliminado_en` al dar de baja (`:176`) y usa `sesiones_usuario` (`:77` y todo §1). `[[Modelo de datos]]:233-237` añade `usuarios_roles`, `estado`, `sso_subject`, `eliminado_en` y `sesiones_usuario`; ninguna está en `V1`-`V15`.
+- **Impacto.** Es B1 con nombres y apellidos: el alta por SSO, el estado de la cuenta, la baja, el tope de tres sesiones y la revocación no se pueden implementar sobre el esquema definitivo.
+- **Arreglo.** Decidir si el piloto cabe en `rol`/`activo` (y recortar el contrato) o si se edita `V1` para añadir lo mínimo; no habrá `V13`. La decisión es de 0009/0012.
+- **Estado.** abierto.
+
+### E-35 · `paginas_documento.estado`: el contrato y la BD usan vocabularios distintos
+
+- **Evidencia.** `V14__create_bloques_layout.sql:20-21` acepta `ok`, `revisar` e `ilegible`. El contrato devuelve `"estado": "aviso"` (`endpoints.md:270`) y documenta `ok | aviso | error` (`:278`).
+- **Impacto.** La API promete estados que la base nunca guarda. Un cliente que filtre por `aviso` o `error` no recibe nada, y el semáforo de la bandeja pinta códigos distintos de los que persiste el OCR.
+- **Arreglo.** Alinear el contrato con la BD (`ok | revisar | ilegible`) o cambiar el `CHECK` editando `V14`. Lo barato es el contrato.
+- **Estado.** abierto.
+
+### E-36 · La vista de métricas y el trigger de revisor asumen un rol único
+
+- **Evidencia.** `views.sql:136`: `WHERE u.rol = 'revisor' AND u.activo = true`. `triggers.sql:134-136`: rechaza al asignado si `(SELECT rol FROM usuarios WHERE id = NEW.asignado_a) <> 'revisor'`. 0012 y U-01 ponen los roles en `usuarios_roles (usuario_id, rol)` (N:M) y eliminan `usuarios.rol`; U-04 sustituye `activo` por `estado`.
+- **Impacto.** Un admin que también revisa desaparece de `v_metricas_revisor` y no puede ser asignado por el trigger. Si 0012 se acepta y `rol` desaparece, la vista y el trigger dejan de funcionar.
+- **Arreglo.** `EXISTS (SELECT 1 FROM usuarios_roles ur WHERE ur.usuario_id = u.id AND ur.rol = 'revisor')` y `estado = 'activo'` en la vista; el trigger, la misma comprobación. Va con 0012.
+- **Estado.** bloqueado (0012).
+
+### E-37 · El export no puede ser idempotente y responder `409` a la vez
+
+- **Evidencia.** `docs/api/endpoints.md:472`: «`409` si el documento no está `aprobado`». `:474`: «Un documento ya exportado devuelve el mismo PDF y el mismo hash: la operación es idempotente». `docs/export/pdf.md:148` repite que la segunda llamada devuelve el fichero guardado.
+- **Impacto.** Un documento exportado está en `exportado`, no en `aprobado`, así que la segunda llamada recibe `409` y nunca devuelve el PDF ni el hash. La idempotencia que promete el contrato no existe, y no hay forma de volver a descargar lo exportado.
+- **Arreglo.** Aceptar `aprobado` **o** `exportado` cuando ya hay `ruta_pdf` y hash; `409` solo para el resto. O retirar la frase de idempotencia.
+- **Estado.** abierto.
+
+### E-38 · Seudónimos «coherentes» sin tabla ni mapa
+
+- **Evidencia.** `[[Modelo de datos]]:250` lo dice: «`pseudonimizado` guarda `texto_sustitucion` en la anotación, así que la misma persona puede salir con dos seudónimos distintos en el mismo documento». La maqueta promete lo contrario en `maqueta/index.html:156,188` (`g4`: «Pseudònims coherents dins del document, sense taula que guardar») y `docs/maqueta.md` §3.6. No hay tabla de seudónimos ni mapa en `metadatos_proceso`.
+- **Impacto.** Dos apariciones de la misma persona pueden recibir letras distintas: se rompe la legibilidad del documento y la promesa de la demo, y el revisor no tiene forma de comprobarlo. En un documento anonimizado, la coherencia también es una propiedad de privacidad.
+- **Arreglo.** Guardar el mapa persona → seudónimo en `versiones_documento.metadatos_proceso` (sin tabla nueva) o añadir la tabla editando `V6`/`V15`; decidir antes de la demo.
+- **Estado.** abierto.
+
+### E-39 · `pdf.md` prohíbe PyMuPDF y a la vez lo elige
+
+- **Evidencia.** `docs/export/pdf.md:102` propone «`PyMuPDF` (`page.get_text("dict")`)» como primera fuente de geometría. `:156` dice: «Nada de PyMuPDF (AGPL): obligaría a abrir el código del producto».
+- **Impacto.** La fuente de cajas que el documento considera preferida está bajo la licencia que el propio documento descarta. Si el Colegio no acepta AGPL, la rama 1 del algoritmo no se puede usar, y con ella se cae el caso normal (PDF con capa de texto).
+- **Arreglo.** Decidir la licencia antes de implementar; si no vale AGPL, usar `pypdf`/`pdfplumber` (MIT/BSD) para las cajas o quedarse en el modelo de layout. La decisión afecta a 0007.
+- **Estado.** abierto.
+
+### E-40 · `pdf.md` atribuye la reconstrucción a la decisión 0006
+
+- **Evidencia.** `docs/export/pdf.md:12` remite el «modo imagen» a la decisión 0006 y `:188` dice «Aceptada en la decisión 0006». La reconstrucción del PDF es la 0007; la 0006 es Presidio. E-10 cubre los wikilinks, no estas dos frases.
+- **Impacto.** Quien siga el documento acaba en la decisión equivocada y no encuentra la base de la reconstrucción.
+- **Arreglo.** `0006` → `0007` en las dos líneas.
+- **Estado.** abierto.
+
+### E-41 · El README de arquitectura deja un bloque de código SQL sin cerrar
+
+- **Evidencia.** `docs/architecture/README.md:18-34`: el bloque abierto en la línea 19 no se cierra; la línea 23 («Orden de Ejecución») y los comandos de `flyway`/`psql` quedan dentro del bloque.
+- **Impacto.** GitHub renderiza toda la sección de despliegue como un único bloque SQL, sin encabezado, y el copiar-pegar incluye texto que no es SQL. Es la puerta de entrada a la carpeta del modelo.
+- **Arreglo.** Cerrar el bloque tras la línea 22, poner `### Orden de ejecución` y abrir un bloque nuevo para los comandos.
+- **Estado.** abierto.
+
+### E-42 · `V15` siembra el plazo, el aviso y el calendario de A-20, una regla retirada
+
+- **Evidencia.** `V15:163-172` inserta `revision_plazo_horas`, `revision_aviso_horas` y `calendario_laboral` con comentarios «A-20». `docs/reglas/aprobacion.md` §8 y `reglas-de-negocio.md` retiran A-20 el 18/11; `[[Coherencia]]` B4 deja `fecha_limite` y `aviso_24h_enviado_en` «sin uso». `docs/architecture/README.md:9` también describe V15 como «plazos».
+- **Impacto.** La base define un plazo y un aviso que ninguna regla implementa, y el índice `idx_revisiones_plazo` barre columnas muertas. Quedan dos fuentes de verdad: la config y las reglas retiradas.
+- **Arreglo.** Quitar los tres `INSERT` y el índice, o marcarlos como reservados para una A-20 futura; corregir los comentarios y el README.
+- **Estado.** abierto.
+
+### E-43 · `V12` activa notificaciones sin proveedor ni regla
+
+- **Evidencia.** `V12:21-22` siembra `notificar_revisor_nuevas_pendientes` y `notificar_transcriptor_rechazo` en `true`. `docs/pendientes.md` §1 dice que no hay proveedor de correo (B2); A-20 retirada elimina el aviso de 24 h y A-21 no prevé notificaciones. V15 corrige otros seeds, pero no estos.
+- **Impacto.** El backend puede construir un canal de email/Slack que nadie ha decidido, o dejar dos `true` que prometen avisos inexistentes. Es configuración que miente.
+- **Arreglo.** Borrar las dos claves o ponerlas en `false` con una nota; si se retoman, van con una regla nueva.
+- **Estado.** abierto.
+
+### E-44 · El documento RGPD describe otro sistema (acción por defecto y borrado)
+
+- **Evidencia.** `docs/architecture/rgpd-considerations.md:48` fija `accion_por_defecto="tachado"`; `V15:151-153` lo cambia a `"censurar"` (y la descripción de la clave). `rgpd-considerations.md:11-13` promete borrado físico del original a los 30 días y `Cascade delete` de versiones y anotaciones; `V15:31` y A-18 dicen que el borrado lógico «no borra versiones ni anotaciones» y A-21 deja el original sin caducidad; `:37` habla de 60 meses. H3 de [[Coherencia]] cubre parte de la cascada, pero no la acción por defecto ni el plazo de 30 días.
+- **Impacto.** El ROPA/EIPD describe una acción y una retención que el sistema no aplica. En un documento legal, eso no es cosmético.
+- **Arreglo.** Alinear las tres cosas con A-18/A-21 y V15; decidir el plazo de conservación (U-08) y escribirlo en un solo sitio.
+- **Estado.** abierto.
+
+### E-45 · La maqueta promete borrar imagen y capa de texto de un PDF reconstruido
+
+- **Evidencia.** `maqueta/index.html:155,187` (`conf_1`): «el text original s'elimina de la capa de text, de la imatge i de les metadades». `:156,188` (`g2`): «Zones de la imatge esborrades». `docs/maqueta.md` §3.7: «borrado real (texto, imagen y metadatos)». La decisión 0007 reconstruye un PDF nuevo sin ningún píxel del escaneo: no hay capa de texto ni imagen que borrar. I2 solo cubrió el texto de `g2`.
+- **Impacto.** La demo atribuye al producto una garantía que no ejecuta: no se borra nada porque no se copia nada. Quien vea la pantalla puede creer que el original se limpia y se conserva, justo lo contrario de 0007.
+- **Arreglo.** Cambiar las tres frases por «PDF reconstruido desde el texto: no contiene el escaneo, su capa de texto ni sus metadatos».
+- **Estado.** abierto.
+
+### E-46 · La documentación sigue mandando arreglos a `V13`/`V16`
+
+- **Evidencia.** `docs/reglas/usuarios.md:98-101` llama «tabla de `V13`» a `sesiones_usuario` y dice que «`V13` no se ha escrito». `docs/pendientes.md:77` pone `V13` como desbloqueo de 0009 y `:99` la lista como migración futura. `[[Modelo de datos]]:245` manda `hash_export` a `V16` y `:252` deja `V13` pendiente. El propio registro dice «en `V13` o en `V16`» en E-14, E-27 y E-28. `docs/pendientes.md:69` y [[Coherencia]] dicen lo contrario: no habrá `V13` ni `V16`.
+- **Impacto.** El lector espera migraciones que no se van a escribir y los arreglos del registro apuntan a ficheros inexistentes. La premisa de la BD definitiva se cae en cuanto se sigue un enlace.
+- **Arreglo.** Sustituir `V13`/`V16` por «editar la migración existente» o «fuera de alcance» en todos esos sitios, incluidos E-14, E-27 y E-28.
+- **Estado.** abierto.
+
+### E-47 · La cabecera de `V15` describe un estado anterior
+
+- **Evidencia.** `V15:4` dice «Depende de 0005 ... no aplicar antes de que se acepte»; 0005 está **Aceptada** desde el 19/11. `V15:5` dice que el hash del PDF «tendrá su migración»; B8 se cerró el 19/11 con el hash en `metadatos_proceso` y sin migración. `:32` sigue diciendo «pendiente de B8». `:30` describe `cerrado_en` como «cierre o reapertura», pero A-19 dice que lo escribe el export.
+- **Impacto.** Un lector que despliegue por orden cree que V15 depende de una decisión no aceptada y que falta una migración que nunca llegará. El comentario de `cerrado_en` contradice la regla.
+- **Arreglo.** Actualizar los cuatro comentarios; el SQL no cambia.
+- **Estado.** abierto.
+
+### E-48 · El README dice que las reglas están «cerradas y auditadas»
+
+- **Evidencia.** `README.md:18` presenta «Reglas de negocio (U-01 a U-21, A-01 a A-24) | Cerradas y auditadas». En `docs/reglas/reglas-de-negocio.md`, U-01 y U-05 están «propuesta (0012)», A-06 «propuesta», A-15 «en pausa» y A-22 «sin efecto».
+- **Impacto.** El estado que se enseña al cliente dice que todo está cerrado cuando la identidad y los roles siguen esperando votos. La auditoría que se promete no cubre las reglas en propuesta.
+- **Arreglo.** «Propuestas y cerradas; el estado de cada una, en su fila».
+- **Estado.** abierto.
+
+### E-49 · U-12 retirada dice que la ruta de recuperación sigue existiendo
+
+- **Evidencia.** `docs/reglas/reglas-de-negocio.md:193`: U-12, «Recuperación con enlace de un solo uso», se retira porque «la ruta sigue existiendo, sin regla que la gobierne». `docs/api/endpoints.md` §1 dice que «Invitación y recuperación de contraseña se retiran» y que no hay `tokens_usuario`; `docs/reglas/usuarios.md` §5 lo repite.
+- **Impacto.** Una tabla de reglas retiradas afirma que hay una ruta que el contrato ya no tiene. Alguien puede implementarla o preguntar por ella en la demo.
+- **Arreglo.** «La ruta también se retira con U-10 a U-15».
+- **Estado.** abierto.
+
+### E-50 · [[Modelo de datos]] da por abiertos B5 y B8 y se equivoca con `preservar_formato_pdf`
+
+- **Evidencia.** `vault/Proyecto/Modelo de datos.md:245` dice que `hash_export` está «sin decidir» y que iría en `V16`; B8 se cerró el 19/11 en `metadatos_proceso`. `:248` dice que `GET /documents/{id}/pages` no tiene endpoint; existe desde el 19/11 (B5). `:249` dice que `preservar_formato_pdf = false` contradice 0007; es justo lo que 0007 pide (reconstruir sin formato original) y V15 lo pone en `false`.
+- **Impacto.** El ER que se presenta como fuente de verdad contradice al contrato y a V15 en tres puntos, y manda a `V16` un hash que ya tiene dueño.
+- **Arreglo.** Actualizar las tres viñetas; dejar solo lo que siga abierto (seudónimos, retención).
+- **Estado.** abierto.
+
+---
+
 ## Descartados
 
 Falsos positivos comprobados. Se dejan aquí para no volver a reportarlos.
@@ -307,5 +473,5 @@ Falsos positivos comprobados. Se dejan aquí para no volver a reportarlos.
 
 - **Nada está ejecutado en un motor.** Sin PostgreSQL local y con Docker caído, E-01, E-03, E-16 y E-17 son lectura, no prueba. En cuanto haya motor, se aplican las migraciones y este registro se actualiza con el resultado.
 - **No se ha auditado el rendimiento con datos.** Las observaciones de E-22, E-23 y E-30 son de diseño; no hay medidas.
-- **El contrato cita dos tablas que aún no existen** (`sesiones_usuario` y `regla_categorias`): no es un error, están en V13 y V16, pendientes de 0009/0012 y de B8.
+- **El contrato cita tablas y columnas que no existen** (`sesiones_usuario`, `regla_categorias`, `es_actual`, `pipeline_version`): eso ya no es una nota al margen, son E-31 a E-34. La BD es definitiva y no hay `V13`/`V16`.
 - **La maqueta no se ha probado en navegador** y de `docs/api/endpoints.md` solo se ha contrastado el modelo de tablas, no ruta por ruta.
