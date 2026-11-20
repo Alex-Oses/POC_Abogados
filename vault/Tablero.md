@@ -11,10 +11,9 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 Resto:
 - [ ] Decidir el stack del backend: Python + FastAPI o C# · [[0008-stack-backend]] · @Rubén @Kevin
-- [ ] Cerrar los bloqueantes que quedan de [[Coherencia]]: identidad (B1, B2) · @Rubén @Marina
-- [ ] Decidir identidad: SSO del ICAT sin gestión de cuentas y admin local solo de desarrollo · [[0009-identidad]] · @Rubén @Kevin @Marina @Alex
+- [ ] Cerrar el bloqueante que queda de [[Coherencia]]: identidad (B1) · @Rubén @Marina
 - [ ] Aceptar el modelo de roles: tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`** (decisión de @Marina, 18/11) · [[0012-identidad-y-roles]] · @Kevin @Alex
-- [ ] Aceptar 0009 y completar el callback SSO del contrato con el registro OIDC del ICAT (ya hay dos rutas propuestas) · @Rubén @Kevin
+- [ ] Completar el callback SSO del contrato con el registro OIDC del ICAT (ya hay dos rutas propuestas) · @Rubén @Kevin
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Alex
 
 - [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
@@ -29,6 +28,9 @@ Resto:
 ## En curso
 
 ## Hecho
+
+- [x] Identidad decidida (20/11, @Rubén): SSO del ICAT sin gestión de cuentas y admin local solo de desarrollo · [[0009-identidad]] · @Rubén
+- [x] Roles confirmados (20/11, @Rubén): tabla `usuarios_roles (N:M)` de @Marina, sin pegas al `JOIN`/`EXISTS` de `v_metricas_revisor` ni al trigger de revisor · [[0012-identidad-y-roles]] · @Rubén
 
 - [x] B8 cerrado (19/11, @Rubén): el hash del PDF es **de la versión**, en `versiones_documento.metadatos_proceso->>'hash_export'`; `documentos` solo guarda `exportado_en`. Sin `V16` · [[Coherencia]]
 - [x] Contrato cerrado sin tocar la BD: `GET /documents/{id}/pages` y `GET /documents/{id}/original` (B5), offsets de anotaciones sobre `contenido_texto` (B3), `/reopen` acepta `aprobado` con motivo (A-19) y A-17/A-24 decididas · `docs/api/endpoints.md`, `docs/reglas/` · @ia-opencode-ruben
@@ -67,5 +69,4 @@ Resto:
 <!-- - @destinatario: pregunta · @autor -->
 - @Alex: ¿bajamos la protección de `main`? Hoy exige 1 aprobación en todo, y con dos personas con escritura cada PR mío espera a que lo mires: es el mayor freno del día a día. Propuesta en tres pasos, de menos a más: **(1)** `CODEOWNERS` con revisión obligatoria solo de `backend/`, `docs/api/`, `docs/reglas/` y `docs/architecture/migrations/`, y los PR que solo tocan `vault/`, `maqueta/` o `docs/export/` se auto-mergean con CI verde; **(2)** si GitHub no les encaja así, bajar a 0 aprobaciones y exigir solo `Require status checks` + `Require conversation resolution`; **(3)** mantener el bloqueo de push directo a `main` en cualquier caso. Lo que no propongo es quitar la protección: solo el paso por revisión en lo que no es código. · @ia-opencode-ruben
 - @Marina: [[0012-identidad-y-roles]] cambia tu modelo aceptado, pero **la BD es definitiva y `V13` no se escribe**. `usuarios` se queda con `rol` y `activo`, sin `usuarios_roles`, sin `sso_subject`, sin `password_hash` y sin `sesiones_usuario`. ¿El alta y la sesión se implementan sobre esas dos columnas, o el login queda fuera del piloto? · @ia-opencode-ruben
-- @Rubén: @Marina decidió el 18/11 que los roles van en **tabla `usuarios_roles` (N:M)**, no en la columna `roles TEXT[]` que proponía 0012. He corregido 0012 (decisión, SQL, trigger y vista) para que no se contradiga con [`docs/reglas/reglas-de-negocio.md`](../docs/reglas/reglas-de-negocio.md) ni con [[Modelo de datos]]. ¿Lo confirmas, o ves algún problema con el `JOIN`/`EXISTS` en `v_metricas_revisor` y en el trigger de revisor? · @ia-opencode-maga369
 - @Alex: la maqueta promete «zones de la imatge esborrades (no només tapades)», pero el PDF final se reconstruye sin ningún píxel del escaneo (0007): no hay imagen que borrar y tampoco se conservan sellos ni firmas manuscritas. ¿Cambiamos el texto por «el PDF no contiene ninguna imagen del original» o preferís mantener la promesa tal cual en la demo? (I2) · @ia-opencode-ruben

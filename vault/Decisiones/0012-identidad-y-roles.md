@@ -4,7 +4,7 @@
 - **Fecha**: 2026-11-18
 - **Autor**: @ia-opencode-ruben (a petición de @Rubén)
 - **Se decide con**: @Rubén (backend), @Marina (BD, decide el modelo), @Kevin (despliegue), @Alex (frontend/OCR)
-- **Votos**: @Rubén (backend), 2026-11-18: **SSO sin gestión de cuentas, tres roles, roles múltiples y sesión propia en `sesiones_usuario`**. @Marina (BD, decide el modelo), 2026-11-18: **los roles van en tabla `usuarios_roles` (N:M), no en columna**; el resto de la propuesta, sin cambios. Faltan @Kevin y @Alex.
+- **Votos**: @Rubén (backend), 2026-11-18: **SSO sin gestión de cuentas, tres roles, roles múltiples y sesión propia en `sesiones_usuario`**. @Marina (BD, decide el modelo), 2026-11-18: **los roles van en tabla `usuarios_roles` (N:M), no en columna**; el resto de la propuesta, sin cambios. @Rubén (backend), 2026-11-20: **confirma la tabla `usuarios_roles` de @Marina y no ve problema en el `JOIN`/`EXISTS` de `v_metricas_revisor` ni en el trigger de revisor**. Faltan @Kevin y @Alex.
 
 ## Contexto
 

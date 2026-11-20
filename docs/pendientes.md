@@ -10,7 +10,7 @@
 
 **Dónde estamos.** `V1__create_usuarios.sql` tiene `email`, `nombre_completo`, `rol`, `activo`. El contrato pide SSO, login local solo del admin de desarrollo, tres sesiones simultáneas y una cuenta con estados (`activo | bloqueado | baja`). `docs/reglas/usuarios.md` §7 ya escribió la lista; el modelo no la tiene.
 
-**Qué falta decidir.** [0009](../vault/Decisiones/0009-identidad.md) está en Propuesta: SSO del ICAT, cuentas locales o SSO + admin local de emergencia. Voto de @Rubén por la tercera; faltan @Kevin, @Marina y @Alex. Y hay una dependencia externa que no vota nadie del equipo: **el ICAT tiene que registrar la aplicación OIDC** (redirect URI, secreto, grupos). Son 1-2 semanas de terceros; si no llegan, la opción de cuentas locales sigue valiendo para el piloto y no cierra la puerta al SSO.
+**Qué falta decidir.** [0009](../vault/Decisiones/0009-identidad.md) está **aceptada (20/11)**: SSO del ICAT + admin local solo de desarrollo, con cuentas locales como alternativa. Queda una dependencia externa que no vota nadie del equipo: **el ICAT tiene que registrar la aplicación OIDC** (redirect URI, secreto, grupos). Son 1-2 semanas de terceros; si no llegan, el piloto arranca con cuentas locales y no cierra la puerta al SSO.
 
 **Qué arrastra a la BD**
 
@@ -74,7 +74,7 @@ Los once puntos revisados, las cinco preguntas contestadas y el orden están en 
 
 | Decisión | Quién falta | Desbloquea |
 |---|---|---|
-| [0009](../vault/Decisiones/0009-identidad.md) identidad | @Kevin, @Marina, @Alex | V13 y todo el alta de usuarios |
+| [0009](../vault/Decisiones/0009-identidad.md) identidad | **Aceptada (20/11)**; falta el registro OIDC del ICAT | el alta de usuarios |
 | [0008](../vault/Decisiones/0008-stack-backend.md) stack | @Marina, @Kevin, @Alex | el primer endpoint |
 | [0005](../vault/Decisiones/0005-reglas-usuarios-y-aprobacion.md) reglas de usuarios y aprobación | @Rubén | estados, cola de revisión, reglas (V15) |
 | [0007](../vault/Decisiones/0007-generacion-pdf-final.md) PDF final | @Rubén | `bloques_layout` y el export |
