@@ -10,7 +10,7 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 - [ ] Decidir el caso a presentar (justicia gratuita, anonimización o ambos)
 
 Resto:
-- [ ] Revisar el [[Registro de errores]] y decidir qué se corrige antes del 27/11: 15 defectos, 3 de ellos en el SQL (E-01 a E-03)
+- [ ] Revisar el [[Registro de errores]] y decidir qué se corrige antes del 27/11: 27 defectos abiertos, 4 de ellos en el SQL (E-01, E-03, E-16 y E-17)
 - [ ] Decidir el stack del backend: Python + FastAPI o C# · [[0008-stack-backend]] · @Rubén @Kevin
 - [ ] Cerrar los bloqueantes que quedan de [[Coherencia]]: identidad (B1, B2) · @Rubén @Marina
 - [ ] Decidir identidad: SSO del ICAT sin gestión de cuentas y admin local solo de desarrollo · [[0009-identidad]] · @Rubén @Kevin @Marina @Alex
