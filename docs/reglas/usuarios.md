@@ -98,7 +98,7 @@ Con SSO ([[0009-identidad]]), esta sección ya solo mira al **admin de desarroll
 | Caducidad de la sesión | `sesiones_usuario.expira_en` (tabla nueva; U-16 y U-18 lo necesitan) | U-18 |
 | Orden de antigüedad de sesiones | `sesiones_usuario.creado_en` (la misma tabla) | U-17 |
 
-Ninguna de estas columnas está todavía en `docs/architecture/`: la BD (`V1`-`V15`) es definitiva y no habrá `V13`, así que se añaden editando la migración que corresponda. El SQL exacto está en [[0012-identidad-y-roles]], sección «Para @Marina: el SQL de `V13`», que habrá que aplicar sobre una migración existente.
+Ninguna de estas columnas está todavía en `docs/architecture/`: la BD (`V1`-`V15`) es definitiva y no habrá `V13`, así que se añaden al final de `V15` editada ([[0015-identidad-en-v15]]). El SQL exacto está en [[0012-identidad-y-roles]], sección «Para @Marina: el SQL de `V15`».
 
 ## 8. Endpoints
 

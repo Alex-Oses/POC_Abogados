@@ -52,8 +52,8 @@ Lo aplicado queda en `origen_geometria` para que el render sea reproducible.
 
 | Tabla | Qué queda | Lo pide | Depende de |
 |---|---|---|---|
-| `usuarios` | sin `roles[]`, `estado`, `sso_subject` ni `password_hash`: el login tiene que caber en `rol`/`activo` o quedar fuera del piloto | B1 | 0009 |
-| `sesiones_usuario` | no existe: sin sesión propia hay que decidir cómo se guarda el token y si hay más de una sesión | B1, U-16 a U-20 | 0009, 0012 |
+| `usuarios` | se añade al final de `V15` editada ([[0015-identidad-en-v15]]): fuera `rol`/`activo`; entran `estado`, `sso_subject`, `password_hash`, `motivo_baja` y `eliminado_en` | B1 | [[0015-identidad-en-v15]] |
+| `sesiones_usuario` | tabla nueva al final de `V15` editada, con `token_hash` y `expira_en` ([[0015-identidad-en-v15]]) | B1, U-16 a U-20 | 0012, [[0015-identidad-en-v15]] |
 | `documentos` | `hash_export` no existe: el hash vive en `versiones_documento.metadatos_proceso->>'hash_export'` (B8 cerrado 19/11) | B8 | 0007 |
 | `anotaciones_entidad` | sin `bloque_id`: el contrato ya cuenta los offsets sobre `contenido_texto` y usa el `bbox` de la detección | B3 | — |
 | `seudonimos` | no existe: la maqueta no puede prometer «taula de pseudònims xifrada i separada» | I2 | — |
@@ -66,7 +66,7 @@ Lo aplicado queda en `origen_geometria` para que el render sea reproducible.
 
 ### Migraciones
 
-**No hay migraciones nuevas.** La BD (`V1`-`V15`) es la definitiva desde el 19/11: `V13` no se escribe y `V16` no se abre. Lo que quede se resuelve en el contrato, en las reglas o queda fuera del alcance.
+**No hay migraciones nuevas.** La BD (`V1`-`V15`) es la definitiva desde el 19/11: `V13` no se escribe y `V16` no se abre. La identidad se añade al final de `V15` editada ([[0015-identidad-en-v15]]); lo demás se resuelve en el contrato, en las reglas o queda fuera del alcance.
 
 Los once puntos revisados, las cinco preguntas contestadas y el orden están en [`vault/Decisiones/0011-ajustes-al-modelo-de-marina.md`](../vault/Decisiones/0011-ajustes-al-modelo-de-marina.md).
 
@@ -74,7 +74,8 @@ Los once puntos revisados, las cinco preguntas contestadas y el orden están en 
 
 | Decisión | Quién falta | Desbloquea |
 |---|---|---|
-| [0009](../vault/Decisiones/0009-identidad.md) identidad | **Aceptada (20/11)**; falta el registro OIDC del ICAT | el alta de usuarios (editando una migración existente; no hay `V13`) |
+| [0009](../vault/Decisiones/0009-identidad.md) identidad | **Aceptada (20/11)**; falta el registro OIDC del ICAT | el alta de usuarios: el SQL va al final de `V15` editada ([0015](../vault/Decisiones/0015-identidad-en-v15.md)) |
+| [0015](../vault/Decisiones/0015-identidad-en-v15.md) identidad en V15 | **Aceptada (23/11)**; falta implementar | editar `V15`, `views.sql`, `triggers.sql` y el diccionario de datos |
 | [0008](../vault/Decisiones/0008-stack-backend.md) stack | **Reabierta (20/11)**: la decide @Rubén | [0014](../vault/Decisiones/0014-stack-backend-c-sharp-java-python.md): C#, Java o Python |
 | [0005](../vault/Decisiones/0005-reglas-usuarios-y-aprobacion.md) reglas de usuarios y aprobación | @Rubén | estados, cola de revisión, reglas (V15) |
 | [0007](../vault/Decisiones/0007-generacion-pdf-final.md) PDF final | @Rubén | `bloques_layout` y el export |

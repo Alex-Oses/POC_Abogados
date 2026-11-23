@@ -1,14 +1,14 @@
 # 0013 · Consultas: SQL directo o híbrido con SQLAlchemy Core
 
-- **Estado**: Propuesta
+- **Estado**: Aceptada (2026-11-23, @Rubén)
 - **Fecha**: 2026-11-20
 - **Autor**: @ia-opencode-ruben
 - **Se decide con**: @Rubén (backend)
-- **Votos**: pendiente. La decide @Rubén.
+- **Votos**: @Rubén (backend), 2026-11-23: **SQL directo**. El driver y un mapeador fino; ninguna capa que sepa del esquema.
 
 ## Contexto
 
-[[0008-stack-backend]] fijó Python 3.12 + FastAPI y **SQL explícito**, con el ORM descartado a propósito. Queda por decidir *cómo se escribe ese SQL*: a mano con `psycopg` 3, o con **SQLAlchemy Core**. Core no es el ORM: no hay clases mapeadas ni sesiones con identidad, así que esta decisión no revierte 0008.
+[[0008-stack-backend]] fijó **SQL explícito** y descartó el ORM; [[0014-stack-backend-c-sharp-java-python]] decide el lenguaje. Queda por decidir *cómo se escribe ese SQL*: a mano con el driver, o con un constructor de consultas. La comparativa se hizo con **SQLAlchemy Core**, que no es el ORM: no hay clases mapeadas ni sesiones con identidad, así que no revertía 0008.
 
 El modelo de @Marina no es genérico: `JSONB`, vistas (`v_documento_actual`, `v_metricas_revisor`), índices parciales, `DISTINCT ON`, particiones y tomas de cola con `UPDATE ... WHERE estado = 'en_cola'`. Flyway es el dueño del esquema y en backend hay una persona.
 
@@ -34,17 +34,19 @@ El modelo de @Marina no es genérico: `JSONB`, vistas (`v_documento_actual`, `v_
 
 ## Decisión
 
-**Híbrido.** SQLAlchemy Core para el 80 % (listados con filtros, CRUD, permisos) y `text()` o ficheros `.sql` con nombre para el 20 % que es PostgreSQL puro: vistas, informes de `v_metricas_revisor`, `JSONB` del hash, `DISTINCT ON` y tomas de cola.
+**SQL directo**, con el driver y un mapeador de filas que no sabe nada del esquema: `psycopg` 3 + `.sql` con nombre en Python, `Npgsql` + `Dapper` en C#, `JdbcClient` en Java.
 
-Core cubre justo donde el SQL a mano se rompe (filtros opcionales, listas `IN`, paginación) y bajar a SQL cuando la consulta se complica es una válvula de escape que siempre funciona.
+- El driver solo hace conexión, parámetros y transacciones. El mapeador convierte filas en el DTO: ~2.000 líneas, MIT, sin dependencias, sin migraciones, sin `DbContext` y sin `Table` que declarar. **No duplica lo que manda Flyway.**
+- El SQL es SQL: `JSONB`, vistas, `DISTINCT ON` y `UPDATE ... WHERE estado = 'en_cola'` se copian tal cual del esquema.
+- Parámetros siempre (`%s`, `@nombre` + `new { ... }`, `:nombre`), y la inyección desaparece por construcción: no hay API que invite a concatenar.
+- Filtros opcionales: una lista de condiciones y otra de parámetros por consulta. Es el único punto donde el híbrido era más cómodo, y no compensa la capa.
 
-Si se rechaza, todo va con `psycopg` + `.sql` y el riesgo se concentra en la composición dinámica de filtros.
+Se descartó el **híbrido con SQLAlchemy Core**: resolvía los filtros dinámicos, pero obligaba a mantener a mano una declaración de tablas y vistas contra Flyway. Con 40 rutas y una persona, esa capa cuesta más de lo que ahorra.
 
 ## Consecuencias
 
-- Si [[0014-stack-backend-c-sharp-java-python]] acaba en C# o Java, esta decisión se reescribe con la pareja equivalente: `Dapper` frente a EF Core en C#, `JdbcClient` frente a JPA en Java. El criterio es el mismo: composición tipada para el 80 % y SQL explícito para el 20 %.
-- Nueva dependencia `sqlalchemy`, ya prevista en el árbol de [[Estructura del backend (Python)]].
-- `db/tables.py` declara a mano las tablas y vistas que se consultan con Core. **Si Flyway cambia una columna, hay que tocarlo**: ese coste es la razón de no meterlo todo por Core.
-- Flyway sigue siendo el dueño del esquema; no entra Alembic.
-- Los `.sql` con nombre se quedan para informes, vistas y colas.
-- Queda escrito que «SQLAlchemy» aquí no significa ORM, para que nadie lea que 0008 se ha revertido.
+- **Sin dependencia nueva** en ningún lenguaje: `psycopg` ya estaba, `Dapper` son 2.000 líneas sin dependencias, `JdbcClient` viene en `spring-boot-starter-jdbc`.
+- `db/tables.py` desaparece del árbol de [[Estructura del backend (Python)]]: nada declara el esquema salvo Flyway.
+- Flyway sigue siendo el dueño del esquema; no entran Alembic, EF Core ni JPA.
+- El coste aceptado: los filtros opcionales se concatenan a mano. Se paga con una lista de condiciones y parámetros por consulta.
+- El mapeo es explícito: si una columna cambia de nombre, falla la consulta, no un `Table` olvidado.

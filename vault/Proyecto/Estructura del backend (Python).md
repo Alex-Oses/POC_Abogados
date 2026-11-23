@@ -26,7 +26,6 @@ backend/
       logging.py              # logs sin payloads: ni un nombre ni un DNI
     db/
       pool.py                 # ConnectionPool de psycopg + tx()
-      tables.py               # Table(...) de lo que se consulta con Core
       queries/                # .sql con nombre: vistas, informes, colas
         __init__.py
         documents.sql
@@ -65,7 +64,7 @@ Reglas de forma:
 - **`services/` separado** de `api/`: el router valida y delega; el servicio hace la consulta y decide.
 - **`middleware/auth.py` solo identifica** (deja el token en `request.state`). Quién puede qué se decide en `deps.require_role()`, porque necesita el rol por ruta y distinguir 403 de 404. Un middleware que autorice acaba con una lista de rutas exentas que nadie mantiene.
 - **`middleware/handler_error.py` no es middleware**: expone una función `install(app)` que registra `app.add_exception_handler`.
-- **`db/tables.py` es deuda consciente**: Flyway manda, así que si cambia una columna hay que tocar el `Table` a mano. Por eso solo entran ahí las tablas que se consultan con Core ([[0013-consultas-sql-o-sqlalchemy-core]]).
+- **`db/` no declara el esquema**: solo el pool, `tx()` y los `.sql` con nombre. Flyway manda y nada más lo duplica ([[0013-consultas-sql-o-sqlalchemy-core]]).
 
 ## 3. Imports previstos
 
@@ -126,13 +125,6 @@ from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
 from app.core.config import settings
-```
-
-### `app/db/tables.py`
-
-```python
-from sqlalchemy import Column, MetaData, Table
-from sqlalchemy.dialects.postgresql import JSONB, UUID
 ```
 
 ### `app/db/queries/__init__.py`
@@ -209,10 +201,8 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from psycopg import Connection
-from sqlalchemy import select
 
 from app.core.errors import AppError
-from app.db import tables
 from app.db.queries import SQL
 ```
 
@@ -268,7 +258,7 @@ from app.main import app
 ```toml
 dependencies = [
   "fastapi", "uvicorn[standard]", "pydantic", "pydantic-settings",
-  "psycopg[binary,pool]", "sqlalchemy", "httpx",
+  "psycopg[binary,pool]", "httpx",
 ]
 [dependency-groups]
 dev = ["pytest", "ruff"]
@@ -290,6 +280,6 @@ dev = ["pytest", "ruff"]
 
 ## 5. Pendiente
 
-- [[0013-consultas-sql-o-sqlalchemy-core]]: si es SQL directo, desaparecen `sqlalchemy` y `db/tables.py`.
+- [[0013-consultas-sql-o-sqlalchemy-core]] **cerrada (23/11)**: SQL directo con `psycopg` + `.sql`; sin `sqlalchemy` y sin declarar el esquema.
 - `middleware/limit_rate.py` es por proceso: con más de un worker de Uvicorn, cada uno lleva su cuenta. Con un worker sobra.
 - Los *jobs* de `jobs/` dependen de que se cierre el OCR por página ([[Tablero]]).

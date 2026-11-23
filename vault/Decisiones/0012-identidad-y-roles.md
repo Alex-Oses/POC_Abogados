@@ -14,7 +14,7 @@ Tres piezas estaban decididas por separado y no encajan entre sí:
 - [[0005-reglas-usuarios-y-aprobacion]] fija **un rol por usuario** (`usuarios.rol`) y cuatro roles, con `supervisor` para asignar, dar el visto bueno y reabrir.
 - [[0011-ajustes-al-modelo-de-marina]] acaba de aceptar `V14` y `V15`; `V13` (identidad) sigue sin escribir porque espera a 0009. [[0010-modelo-de-datos]] cierra con `usuarios.rol` de un solo valor.
 
-@Rubén cambia el criterio el 18/11: **el producto no gestiona cuentas**. Entra quien el ICAT diga, y el software solo guarda qué puede hacer cada persona. Eso deja `V13` como el único sitio donde el cambio sale gratis: la migración no existe todavía.
+@Rubén cambia el criterio el 18/11: **el producto no gestiona cuentas**. Entra quien el ICAT diga, y el software solo guarda qué puede hacer cada persona. En ese momento el cambio salía gratis porque `V13` no existía; el 23/11 se cerró que va al final de `V15` editada ([[0015-identidad-en-v15]]), sin abrir migración nueva.
 
 ## Decisión
 
@@ -24,21 +24,21 @@ Tres piezas estaban decididas por separado y no encajan entre sí:
 4. **Varios roles por usuario en una tabla**, `usuarios_roles (usuario_id, rol)`: el permiso es la **unión** de los roles. **`usuarios.rol` desaparece.** La clave es el par (`usuario_id`, `rol`), con FK a `usuarios` y `CHECK` de los tres valores; sin columnas de más, el «quién y cuándo» va a `auditoria`.
 5. **La doble firma queda en pausa** (18/11): A-07 (nadie revisa lo suyo) se retira y A-15 (otro revisor firma) se para. Consecuencia asumida: hoy un revisor puede revisar y cerrar un documento que subió él.
 6. **La primera entrada crea la ficha sin roles.** Un usuario sin roles no ve documentos; un admin le asigna los suyos. No hay alta previa ni invitación que esperar.
-7. **La sesión es nuestra** (18/11, @Rubén): token opaco revocable, 3 a la vez, 1 h con renovación y 12 h máximo, revocado al cambiar roles, bloquear o dar de baja. Se guarda en `sesiones_usuario`, una de las **dos tablas nuevas** de `V13`.
+7. **La sesión es nuestra** (18/11, @Rubén): token opaco revocable, 3 a la vez, 1 h con renovación y 12 h máximo, revocado al cambiar roles, bloquear o dar de baja. Se guarda en `sesiones_usuario`, una de las **dos tablas nuevas** de `V15` (editada, [[0015-identidad-en-v15]]).
 
 ## Lo que cambia en la base de datos
 
-Sobre lo aceptado en 0011. **Todo lo estructural cabe en `V13`**, que todavía no está escrita. **Dos tablas nuevas: `usuarios_roles` (decisión de @Marina) y `sesiones_usuario`.**
+Sobre lo aceptado en 0011. **Todo lo estructural cabe al final de `V15` (editada)**, porque `V13` no existe ni se va a escribir ([[0015-identidad-en-v15]]). **Dos tablas nuevas: `usuarios_roles` (decisión de @Marina) y `sesiones_usuario`.**
 
 | Dónde | Qué cambia | Coste |
 |---|---|---|
-| `V1__create_usuarios.sql` | `usuarios.rol` y su `CHECK` de cuatro valores se retiran en `V13`, no en `V1` (V1-V12 no se tocan) | nulo: una migración que aún no existe |
-| `V13` · roles | Entra `usuarios_roles (usuario_id, rol)` con FK a `usuarios`, `CHECK (rol IN ('transcriptor','revisor','admin'))` y `PRIMARY KEY (usuario_id, rol)`. Sale `usuarios.rol` | 1 tabla |
-| `V13` · identidad | Entra `usuarios.sso_subject TEXT UNIQUE` y `usuarios.password_hash TEXT` (nuevo y nulo: solo lo usa el admin de desarrollo) | 2 líneas |
-| `V13` · cuenta | Entra `usuarios.estado` (`activo`/`bloqueado`/`baja`) y sale `activo` (U-04); entran `motivo_baja` y `eliminado_en` (U-08) | 3 líneas |
-| `V13` · índices | `idx_usuarios_rol_activo (rol, activo)` se cae con las columnas viejas; entra `(estado)` y un índice por `usuarios_roles (rol)` para listar revisores | 2 líneas |
-| `V13` · sesiones | Entra `sesiones_usuario` (decisión de @Rubén, 18/11): `usuario_id`, `token_hash`, `creado_en`, `expira_en`, `revocado_en`, `ip`, `user_agent` | 1 tabla |
-| `V15__flujo_revision_y_export.sql` | **Ningún cambio estructural.** `visto_bueno_por` ya es un FK a `usuarios` y no comprueba rol. Solo dos comentarios dicen «supervisor» → «revisor» | 2 líneas de texto |
+| `V1__create_usuarios.sql` | `usuarios.rol` y su `CHECK` de cuatro valores se retiran al final de `V15` editada, no en `V1` (V1-V14 no se tocan) | nulo: unas líneas al final de `V15` |
+| `V15` · roles | Entra `usuarios_roles (usuario_id, rol)` con FK a `usuarios`, `CHECK (rol IN ('transcriptor','revisor','admin'))` y `PRIMARY KEY (usuario_id, rol)`. Sale `usuarios.rol` | 1 tabla |
+| `V15` · identidad | Entra `usuarios.sso_subject TEXT UNIQUE` y `usuarios.password_hash TEXT` (nuevo y nulo: solo lo usa el admin de desarrollo) | 2 líneas |
+| `V15` · cuenta | Entra `usuarios.estado` (`activo`/`bloqueado`/`baja`) y sale `activo` (U-04); entran `motivo_baja` y `eliminado_en` (U-08) | 3 líneas |
+| `V15` · índices | `idx_usuarios_rol_activo (rol, activo)` se cae con las columnas viejas; entra `(estado)` y un índice por `usuarios_roles (rol)` para listar revisores | 2 líneas |
+| `V15` · sesiones | Entra `sesiones_usuario` (decisión de @Rubén, 18/11): `usuario_id`, `token_hash`, `creado_en`, `expira_en`, `revocado_en`, `ip`, `user_agent` | 1 tabla |
+| `V15__flujo_revision_y_export.sql` | **Aquí va todo lo anterior, al final del fichero** ([[0015-identidad-en-v15]]). Además, `visto_bueno_por` ya es un FK a `usuarios` y no comprueba rol; dos comentarios dicen «supervisor» → «revisor» | lo de las filas de arriba, más 2 líneas de texto |
 | `triggers.sql` (validación de revisor) | `(SELECT rol FROM usuarios ...)` pasa a `NOT EXISTS (SELECT 1 FROM usuarios_roles WHERE usuario_id = NEW.asignado_a AND rol = 'revisor')` | 2 líneas; lo firma @Marina |
 | `views.sql` (`v_metricas_revisor`) | `u.rol = 'revisor' AND u.activo` pasa a `EXISTS (... usuarios_roles ... rol = 'revisor') AND u.estado = 'activo'` | 2 líneas; lo firma @Marina |
 | `data-dictionary.md` | La fila `rol` sale; entra la tabla `usuarios_roles` y, en `usuarios`, `estado` y `sso_subject` | texto |
@@ -56,7 +56,7 @@ Sobre lo aceptado en 0011. **Todo lo estructural cabe en `V13`**, que todavía n
 | Añadir un rol | Reescribir el `CHECK` de la columna | Un valor más en el `CHECK` de `rol` |
 | Metadato del par (quién lo dio, cuándo) | No; va a `auditoria` | Tampoco hoy: la tabla solo tiene el par. Se puede añadir sin cambiar de forma |
 
-@Marina decide el modelo y elige la tabla el 18/11: el rol pasa a ser una **fila** con FK al usuario, y el catálogo de tres valores se valida en `usuarios_roles.rol`. El coste son dos tablas nuevas en `V13` en vez de una y un `JOIN` en la vista de métricas y en el trigger de revisor; a cambio, el rol deja de ser un tipo especial (`TEXT[]`) y un cuarto rol, o colgar del par quién lo asignó, no obliga a cambiar el tipo de una columna.
+@Marina decide el modelo y elige la tabla el 18/11: el rol pasa a ser una **fila** con FK al usuario, y el catálogo de tres valores se valida en `usuarios_roles.rol`. El coste son dos tablas nuevas en `V15` en vez de una y un `JOIN` en la vista de métricas y en el trigger de revisor; a cambio, el rol deja de ser un tipo especial (`TEXT[]`) y un cuarto rol, o colgar del par quién lo asignó, no obliga a cambiar el tipo de una columna.
 
 ### La tabla de sesiones: `sesiones_usuario`
 
@@ -73,9 +73,9 @@ A habría ahorrado la tabla, pero **U-02 ya obliga a releer los roles en cada pe
 
 `tokens_usuario` **no se crea**: al retirar U-10 a U-15 no hay invitación ni reset gobernados por token, y la contraseña del admin de desarrollo se cambia cambiando la variable de entorno (U-21). Tampoco hace falta nada por A-15 (en pausa: las columnas de `V15` se quedan sin usar) ni por A-20 (retirada: `fecha_limite` y `aviso_24h_enviado_en` existen y se quedan vacías).
 
-### Para @Marina: el SQL de `V13`
+### Para @Marina: el SQL de `V15`
 
-Esto es todo lo que habría que escribir si aceptas esta propuesta: **dos tablas nuevas y el resto columnas**. Se aplica sobre `V1` (`usuarios` tiene hoy `rol`, `activo`, `creado_en`, `actualizado_en`) y no toca `V1`-`V12`:
+Esto es todo lo que habría que añadir al final de `V15`: **dos tablas nuevas y el resto columnas** ([[0015-identidad-en-v15]]). Se aplica sobre el `usuarios` que deja `V1` (`rol`, `activo`, `creado_en`, `actualizado_en`) y no toca `V1`-`V14`:
 
 ```sql
 -- 1. Roles: una tabla N:M en lugar de una columna (decisión de @Marina, 18/11)
@@ -117,7 +117,7 @@ CREATE TABLE sesiones_usuario (
 CREATE INDEX idx_sesiones_usuario_usuario ON sesiones_usuario (usuario_id, creado_en DESC);
 ```
 
-Y dos cambios de texto en ficheros que ya existen:
+Y dos cambios de texto en ficheros que ya existen. **Orden obligatorio:** soltar `v_metricas_revisor` antes de los `ALTER TABLE ... DROP COLUMN` y recrearla después; reemplazar la función del trigger en el mismo cambio ([[0015-identidad-en-v15]] § Condición).
 
 ```sql
 -- views.sql, v_metricas_revisor
@@ -167,5 +167,5 @@ AND NOT EXISTS (
 - Decidido: **B**, sesión propia en `sesiones_usuario` (18/11). U-16 a U-20 siguen vigentes.
 - Decidido: **roles en tabla `usuarios_roles`** (@Marina, 18/11).
 - Votos de @Kevin y @Alex a este documento y a [[0009-identidad]]; falta que @Rubén confirme el cambio de los roles a tabla.
-- Que @Marina acepte el resto del cambio de modelo (`estado`, `sso_subject`, sin `tokens_usuario`) y escriba `V13` con el SQL de la sección «Para @Marina».
+- Que @Marina acepte el resto del cambio de modelo (`estado`, `sso_subject`, sin `tokens_usuario`): el SQL de la sección «Para @Marina» va al final de `V15` ([[0015-identidad-en-v15]]).
 - Pedir al ICAT el registro de la aplicación OIDC.
