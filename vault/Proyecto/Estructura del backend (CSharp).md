@@ -1,9 +1,9 @@
 # Estructura del backend (CSharp)
 
 - **Para**: entrega del 27/11/2026 (ver [[Equipo]])
-- **Estado**: **borrador** · 20/11/2026 · se edita en este mismo fichero
+- **Estado**: **alternativa documentada** · no seleccionada · 23/11/2026
 - **Autor**: @ia-opencode-ruben
-- **Qué es**: la misma propuesta que [[Estructura del backend (Python)]], escrita en C#. No decide nada: sirve para comparar con [[Estructura del backend (Java)]] antes de cerrar [[0014-stack-backend-c-sharp-java-python]].
+- **Qué es**: alternativa escrita en C#. Es ventajosa si Presidio sale del backend como servicio independiente; no sustituye a la estructura Python aceptada.
 - **Dónde mirar**: el *por qué* del stack está en [[Enfoque tecnico]] y el contrato en [`docs/api/endpoints.md`](../../docs/api/endpoints.md).
 
 ## 1. Frontera

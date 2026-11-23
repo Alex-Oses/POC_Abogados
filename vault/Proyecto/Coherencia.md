@@ -68,7 +68,7 @@ No se puede implementar el contrato tal cual. Ordenados por lo que cuesta descub
 | H6 | ~~V12 siembra motores OCR en cloud, `preservar_formato_pdf = true`, `tiempo_max_revision_minutos = 60` y `version_esquema_bd = 1`~~ **Resuelto (20/11)**: `V15` corrige los cuatro (paddleocr-vl en local, `false`, clave borrada, versión 15) | `V15:141-161` |
 | H7 | ~~`vault/Inicio.md` escribe `Investigacion/` y la carpeta es `investigacion/`: en Linux rompe~~ **Ya estaba bien** (minúscula) | `vault/Inicio.md` |
 | H8 | ~~`categorias_sensibles` marca `NUSS` como `rgpd_especial`~~ **Resuelto (20/11)**: `V15` lo pone en `false` | `V15:136-139` |
-| H9 | ~~**No había stack de backend escrito**: ni lenguaje, ni framework, ni driver, ni dónde se despliega. Solo `reportlab` en el diseño del PDF~~ **Reabierto (20/11)**: con el ETL fuera, [[0014-stack-backend-c-sharp-java-python]] decide entre C#, Java y Python | `README.md`, `docs/architecture/README.md` |
+| H9 | ~~**No había stack de backend escrito**: ni lenguaje, ni framework, ni driver, ni dónde se despliega. Solo `reportlab` en el diseño del PDF~~ **Resuelto (23/11)**: [[0014-stack-backend-c-sharp-java-python]] acepta Python 3.12 + FastAPI; C# y Java quedan como alternativas | `README.md`, `docs/architecture/README.md` |
 
 ## La maqueta contra el plan
 
@@ -93,7 +93,7 @@ Detalle menor pero elocuente: en la maqueta el «escaneo» es HTML, no una image
 
 ## Cómo se cierra
 
-0. **Stack** (H9): **reabierto** (20/11): [[0014-stack-backend-c-sharp-java-python]] decide entre C#, Java y Python. @Rubén.
+0. **Stack** (H9): **cerrado** (23/11): [[0014-stack-backend-c-sharp-java-python]] acepta Python 3.12 + FastAPI. C# sería ventajoso si Presidio se separa como servicio independiente.
 1. **Identidad** (B1): **Resuelto (23/11)** con [[0015-identidad-en-v15]]: el SQL de 0012 va al final de `V15` editada, sin abrir migración. Queda implementarlo y los votos de @Kevin y @Alex en 0012; el alta de usuarios ya no está fuera del piloto.
 2. **Defectos que piden decisión**: E-33 (`regla_categorias` frente a `reglas_anonimizacion.configuracion`), E-38 (mapa de seudónimos), E-39 (licencia de PyMuPDF), E-44 (retención y acción por defecto en el documento RGPD). Los demás están en el [[Registro de errores]].
 3. **Maqueta** (I4, I8): el botón «Exportar PDF» de la revisión sigue activo antes de aprobar, y hay que decidir si la demo va con una o dos personas.

@@ -10,11 +10,12 @@
 - Actualizados [[Equipo]], [[Enfoque tecnico]], las estructuras C#/Java/Python y [[0006-presidio-anonimizacion-local]].
 - Actualizada la tarea de ajuste de Presidio en [[Tablero]]: pasa a @Rubén.
 - Añadida una valoración explícita de C# + Presidio en [[0014-stack-backend-c-sharp-java-python]].
+- Cambiado el stack a **Python 3.12 + FastAPI** como decisión aceptada. C# y Java se conservan como alternativas, y C# se señala como ventajoso si Presidio sale del backend como servicio independiente.
 
 ## Siguiente
 
 - Visto bueno del equipo sobre [[0016-responsabilidades-ocr-presidio-pdf]].
-- Cerrar [[0014-stack-backend-c-sharp-java-python]] y diseñar el contrato HTTP del servicio Python de Presidio si se elige C#.
+- Mantener [[0014-stack-backend-c-sharp-java-python]] cerrado con Python como stack aceptado. C# solo se usa si Presidio se separa más adelante.
 - Implementar el PDF final bajo la responsabilidad de @Rubén.
 
 ## Bloqueos / preguntas

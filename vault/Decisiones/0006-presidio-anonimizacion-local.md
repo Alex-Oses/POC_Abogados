@@ -15,5 +15,5 @@ Usar Presidio (analyzer + anonymizer) con spaCy en castellano y catalán, con pa
 
 ## Consecuencias
 
-- Dependencia Python en un servicio de anonimización de la responsabilidad de @Rubén. Si el API queda en C# o Java, se llama por HTTP desde el backend; no se convierte en una librería de .NET o JVM ni se mezcla con la operación OCR de @Alex.
+- Dependencia Python dentro del backend Python aceptado. Si Presidio se separa en el futuro y el API pasa a C# o Java, se llama por HTTP desde el backend; C# sería especialmente adecuado para ese caso de separación.
 - Para el POC, la exportación genera un PDF nuevo desde el texto anonimizado; tapar la imagen original queda como deuda.

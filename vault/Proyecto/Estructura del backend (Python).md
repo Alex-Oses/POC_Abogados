@@ -1,10 +1,10 @@
 # Estructura del backend
 
 - **Para**: entrega del 27/11/2026 (ver [[Equipo]])
-- **Estado**: **borrador** · 20/11/2026 · se edita en este mismo fichero
-- **Aviso**: está escrito para **Python + FastAPI**. Si [[0014-stack-backend-c-sharp-java-python]] cae en C# o Java, se usa la versión de ese lenguaje; las carpetas y la frontera son las mismas.
+- **Estado**: **estructura aceptada** · 23/11/2026 · se implementará en este fichero
+- **Lenguaje**: **Python 3.12 + FastAPI**, único stack del backend técnico: API, Presidio y PDF.
 - **Autor**: @ia-opencode-ruben
-- **Qué es**: la propuesta de estructura en **Python + FastAPI**. Sus hermanas son [[Estructura del backend (CSharp)]] y [[Estructura del backend (Java)]]; las tres comparan lo mismo antes de cerrar [[0014-stack-backend-c-sharp-java-python]].
+- **Qué es**: la estructura seleccionada en **Python + FastAPI**. [[Estructura del backend (CSharp)]] y [[Estructura del backend (Java)]] se conservan como alternativas si cambia la frontera de Presidio.
 - **Dónde mirar**: el *por qué* del stack está en [[Enfoque tecnico]] y el contrato en [`docs/api/endpoints.md`](../../docs/api/endpoints.md).
 
 ## 1. Regla de frontera

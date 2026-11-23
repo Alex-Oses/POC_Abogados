@@ -34,7 +34,7 @@ El modelo de @Marina no es genérico: `JSONB`, vistas (`v_documento_actual`, `v_
 
 ## Decisión
 
-**SQL directo**, con el driver y un mapeador de filas que no sabe nada del esquema: `psycopg` 3 + `.sql` con nombre en Python, `Npgsql` + `Dapper` en C#, `JdbcClient` en Java.
+**SQL directo**, con el driver y un mapeador de filas que no sabe nada del esquema: `psycopg` 3 + `.sql` con nombre en el backend Python aceptado. `Npgsql` + `Dapper` o `JdbcClient` quedan como alternativas si cambia el stack.
 
 - El driver solo hace conexión, parámetros y transacciones. El mapeador convierte filas en el DTO: ~2.000 líneas, MIT, sin dependencias, sin migraciones, sin `DbContext` y sin `Table` que declarar. **No duplica lo que manda Flyway.**
 - El SQL es SQL: `JSONB`, vistas, `DISTINCT ON` y `UPDATE ... WHERE estado = 'en_cola'` se copian tal cual del esquema.

@@ -27,6 +27,5 @@ El backend conserva la API, los permisos, las sesiones, el estado del documento,
 ## Consecuencias
 
 - La carpeta `Infrastructure/Etl` o equivalente contiene clientes HTTP; no contiene OCR ni dependencias de Presidio.
-- Si el API es C#, Java o .NET, Presidio se despliega como servicio Python independiente.
-- Si el API es Python, se puede compartir el lenguaje con Presidio, pero sigue existiendo una frontera de proceso si se quiere aislar el modelo.
-- La comparación C#/Java/Python de [[0014-stack-backend-c-sharp-java-python]] debe valorar el contenedor Python adicional de Presidio.
+- Python es el stack aceptado: API, Presidio y PDF comparten el mismo runtime.
+- Si Presidio se separa del backend en el futuro, C# sería una alternativa ventajosa para el API independiente; Java también puede mantenerse como referencia.

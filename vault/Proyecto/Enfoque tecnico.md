@@ -1,7 +1,7 @@
 # Enfoque técnico del backend
 
 - **Para**: entrega del viernes 27/11/2026 (ver [[Equipo]])
-- **Estado**: **propuesta** · 17/11/2026
+- **Estado**: **aceptado para el backend** · stack Python · 23/11/2026
 - **Autor**: @ia-opencode-ruben
 - **Qué es**: cómo se construye y por qué el **backend** (la API que sostiene el contrato). No cubre la arquitectura del sistema ni el ETL: eso lo lleva @Yaser y se documenta aparte. El detalle de cada ruta está en [`docs/api/endpoints.md`](../../docs/api/endpoints.md), las reglas en [`docs/reglas/`](../../docs/reglas/) y el modelo de datos lo cierra @Marina en [[Modelo de datos]].
 
@@ -30,7 +30,7 @@ Puntos a cerrar con @Yaser antes de escribir código (no los decido yo):
 
 ## 3. Stack
 
-**Reabierto el 20/11**: [[0014-stack-backend-c-sharp-java-python]] compara C#, Java y Python. La razón principal de 0008 (un solo lenguaje con el OCR y Presidio) deja de valer porque el ETL queda fuera del backend (§2). Mientras 0014 no se cierre, aquí se describe la opción Python, que es la que está escrita en [[Estructura del backend (Python)]]; las de [[Estructura del backend (CSharp)]] y [[Estructura del backend (Java)]] ya están escritas para comparar. Cómo se escriben las consultas se cerró el 23/11: **SQL directo** con el driver y un mapeador fino ([[0013-consultas-sql-o-sqlalchemy-core]]).
+**Cerrado el 23/11**: [[0014-stack-backend-c-sharp-java-python]] acepta **Python 3.12 + FastAPI**. El motivo es mantener el backend, Presidio y la generación del PDF en un único stack. C# y Java quedan como estructuras de referencia; C# sería ventajoso si Presidio se separa posteriormente como servicio independiente. Las consultas usan **SQL directo** con el driver y un mapeador fino ([[0013-consultas-sql-o-sqlalchemy-core]]).
 
 | Por qué (opción Python) | Qué se descartó |
 |---|---|
@@ -130,7 +130,7 @@ Cada promesa del backend tiene su prueba; si no la tiene, no es una promesa:
 
 | Abierto | Quién | Qué bloquea |
 |---|---|---|
-| ~~[[0008-stack-backend]]~~ **Reabierta (20/11)**: [[0014-stack-backend-c-sharp-java-python]] compara C#, Java y Python | — | — |
+| ~~[[0008-stack-backend]]~~ **Resuelta (23/11)**: [[0014-stack-backend-c-sharp-java-python]] acepta Python; C#/Java quedan como alternativas | — | — |
 | [[0009-identidad]]: SSO sin gestión de cuentas, admin local solo en desarrollo | @Kevin, @Marina, @Alex + registro OIDC del ICAT (1-2 semanas de terceros) | El login real y la primera ruta con permisos |
 | Modelo de datos ([[0010-modelo-de-datos]]): `usuarios_roles` (tabla N:M, decisión de @Marina) y sin `tokens_usuario` | @Marina | Editar `V15` ([[0015-identidad-en-v15]]) |
 | Sesión propia en `sesiones_usuario` ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | `V15`: la otra tabla nueva ([[0015-identidad-en-v15]]) |
