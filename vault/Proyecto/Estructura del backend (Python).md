@@ -49,9 +49,10 @@ backend/
     integrations/
       etl.py                  # cliente del OCR, Presidio y orquestación del dato
       storage.py              # originales y PDF en disco, con ruta y hash
+      pdf.py                  # render determinista con ReportLab
     jobs/
       ocr.py                  # Cuando I5 se cierre: OCR por página en segundo plano
-      pdf.py
+      # El PDF no usa jobs: export.py lo genera sincrónicamente
   tests/
     conftest.py               # PostgreSQL real + un usuario por rol
     test_documents.py  test_review.py  test_export.py
@@ -258,7 +259,8 @@ from app.main import app
 ```toml
 dependencies = [
   "fastapi", "uvicorn[standard]", "pydantic", "pydantic-settings",
-  "psycopg[binary,pool]", "httpx",
+  "psycopg[binary,pool]", "httpx", "presidio-analyzer", "presidio-anonymizer",
+  "reportlab", "pypdf",
 ]
 [dependency-groups]
 dev = ["pytest", "ruff"]

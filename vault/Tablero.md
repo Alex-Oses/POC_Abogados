@@ -22,13 +22,15 @@ Resto:
 - [ ] Semáforo de calidad: contraste antes del OCR (< 80 → volver a escanear) y heurísticas de texto después
 - [ ] Validación de DNI/NIE (letra de control) e IBAN
 - [ ] Corrección catalana: «l·l» y apóstrofo tipográfico
-- [ ] Implementar el PDF final: estructura + reconstrucción con reportlab · [[0007-generacion-pdf-final]]
+- [ ] Implementar el PDF final con ReportLab: estructura, sustituciones, hash y idempotencia · [[0007-generacion-pdf-final]] · @Rubén
 - [ ] Preparar la reunión con el ICAT (preguntas en [[Propuesta ICAT]])
 - [ ] Prueba de humo del stack en Arm64 y medición del OCR en el servidor · [[Servidor definitivo]] · @Kevin @Alex
 
 ## En curso
 
 ## Hecho
+
+- [x] PDF final decidido: reconstrucción desde estructura con ReportLab, modo layout/secuencial, hash en la versión e idempotencia; responsabilidad de @Rubén · [[0007-generacion-pdf-final]] · 23/11/2026
 
 - [x] Consultas decididas (23/11, @Rubén): **SQL directo** con el driver y un mapeador fino (`psycopg` + `.sql`, o `Npgsql` + `Dapper` si 0014 cae en C#); sin SQLAlchemy y sin declarar el esquema · [[0013-consultas-sql-o-sqlalchemy-core]] · @Rubén
 - [x] Identidad resuelta (23/11, @Rubén): el SQL de [[0012-identidad-y-roles]] va al final de `V15` editada, sin `V13` ni `V16`; B1 resuelto en [[Coherencia]] · [[0015-identidad-en-v15]] · @Rubén

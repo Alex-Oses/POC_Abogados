@@ -25,6 +25,7 @@ La revisión del 16/11 encontró cuatro bloqueantes y nueve importantes. Hoy **n
 | 20/11 | **I1 cerrado por `V15`**: el `CHECK` de `accion_aplicada` pasa a 8 valores (`censurar`, `etiqueta`, `iniciales`, `pseudonimizado`, `eliminado`, `mantenido`, `tachado`, `pendiente_revision`) y `accion_por_defecto` pasa a `censurar` | `V15:110-118,151-154` |
 | 20/11 | **H6 y H8 cerrados por `V15`**: motores OCR en local, `preservar_formato_pdf = false`, fuera `tiempo_max_revision_minutos`, `version_esquema_bd = 15` y `NUSS` deja de ser `rgpd_especial` | `V15:136-161` |
 | 20/11 | **El contrato deja de pedir columnas que no existen** (E-31, E-32, E-35, E-37): sin `es_actual`, con `confianza_promedio`, estados de página de `V14` y export idempotente | `docs/api/endpoints.md` (PR #41) |
+| 23/11 | **PDF final cerrado**: reconstrucción con ReportLab, modo layout/secuencial, hash en la versión y responsabilidad de @Rubén | [[0007-generacion-pdf-final]], `docs/export/pdf.md` |
 | 20/11 | **I2 y H5 cerrados**: la maqueta ya no promete «zones de la imatge esborrades» y `usuarios.md` ya no apunta a `V13` | `maqueta/index.html`, `docs/reglas/usuarios.md` (PR #41) |
 
 ## Bloqueantes
@@ -95,7 +96,7 @@ Detalle menor pero elocuente: en la maqueta el «escaneo» es HTML, no una image
 
 0. **Stack** (H9): **cerrado** (23/11): [[0014-stack-backend-c-sharp-java-python]] acepta Python 3.12 + FastAPI. C# sería ventajoso si Presidio se separa como servicio independiente.
 1. **Identidad** (B1): **Resuelto (23/11)** con [[0015-identidad-en-v15]]: el SQL de 0012 va al final de `V15` editada, sin abrir migración. Queda implementarlo y los votos de @Kevin y @Alex en 0012; el alta de usuarios ya no está fuera del piloto.
-2. **Defectos que piden decisión**: E-33 (`regla_categorias` frente a `reglas_anonimizacion.configuracion`), E-38 (mapa de seudónimos), E-39 (licencia de PyMuPDF), E-44 (retención y acción por defecto en el documento RGPD). Los demás están en el [[Registro de errores]].
+2. **Defectos que piden decisión**: E-33 (`regla_categorias` frente a `reglas_anonimizacion.configuracion`), E-38 (mapa de seudónimos), E-44 (retención y acción por defecto en el documento RGPD). E-39 queda corregido con `pypdf`. Los demás están en el [[Registro de errores]].
 3. **Maqueta** (I4, I8): el botón «Exportar PDF» de la revisión sigue activo antes de aprobar, y hay que decidir si la demo va con una o dos personas.
 
 Lo cerrado no se reabre: B3, B5, B6, B7, B8, I1, I2, I3, I9 y H1-H8 se resolvieron entre el 17 y el 20/11 y su fila lo dice.

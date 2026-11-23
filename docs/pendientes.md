@@ -33,7 +33,7 @@ Con SSO, `password_hash` queda **solo** para el admin de desarrollo y la invitac
 
 **La salida acordada (17/11).** No se elige una fuente de geometría: se decide **por documento**, en este orden y quedándose con la primera que funcione.
 
-1. **Capa de texto del PDF subido** (PyMuPDF `page.get_text("dict")`): caja, tamaño y origen reales, sin OCR y en milisegundos.
+1. **Capa de texto del PDF subido** (`pypdf`): caja y origen disponibles, sin OCR y sin licencia AGPL.
 2. **Modelo de layout** (pipeline completo de PaddleOCR/PP-Structure, o `docling`): una pasada más por página.
 3. **Modo secuencial**: mismo orden y jerarquía, sin posiciones.
 

@@ -87,7 +87,22 @@ Es donde el backend justifica su existencia:
 | Sin dudas, sin export | Una anotación sin decisión devuelve error, nunca un PDF |
 | Nada se borra | Anulación y reapertura son estados; el original cifrado se conserva ([[0004-anonimizacion-antes-o-despues-de-revision]], Aceptada) |
 
-Dueño del hash del PDF (B8) sigue abierto: `documentos` o `versiones_documento`. Hasta que se cierre, el export no se implementa.
+### 6.1 Generación del PDF final
+
+La implementación pertenece al backend Python y a @Rubén. El endpoint `POST /documents/{id}/export`:
+
+1. Comprueba el estado `aprobado` o `exportado`, el permiso del usuario y que no quede ninguna anotación sin decisión.
+2. Carga en una sola consulta la versión aprobada, `bloques_layout`, anotaciones y metadatos necesarios.
+3. Aplica las sustituciones a cada bloque según `decision_revisor`, normaliza el layout y selecciona el modo `layout` o `secuencial`.
+4. Renderiza un lienzo nuevo con ReportLab: sin píxeles del original, sin capa de texto oculta y sin metadatos de escaneo.
+5. Calcula el SHA-256, escribe el fichero y guarda el hash en `metadatos_proceso->>'hash_export'`.
+6. Actualiza `ruta_pdf`, `exportado_en` y `estado = 'exportado'` en la misma operación que la auditoría.
+
+La segunda llamada a exportar sirve el fichero existente si su hash coincide y no vuelve a renderizar. Si el texto, el rango o el bloque están desincronizados, devuelve `409` y no escribe un PDF parcial.
+
+El OCR puede aportar geometría, Presidio puede aportar propuestas y el backend aplica las decisiones humanas. Ninguno compone el PDF: esa responsabilidad termina en `app/services/export.py` y su render de ReportLab.
+
+El hash del PDF pertenece a la versión en `versiones_documento.metadatos_proceso->>'hash_export'`; `documentos` solo conserva `exportado_en` (B8 resuelto).
 
 ## 7. Lo que tarda
 
@@ -134,7 +149,6 @@ Cada promesa del backend tiene su prueba; si no la tiene, no es una promesa:
 | [[0009-identidad]]: SSO sin gestión de cuentas, admin local solo en desarrollo | @Kevin, @Marina, @Alex + registro OIDC del ICAT (1-2 semanas de terceros) | El login real y la primera ruta con permisos |
 | Modelo de datos ([[0010-modelo-de-datos]]): `usuarios_roles` (tabla N:M, decisión de @Marina) y sin `tokens_usuario` | @Marina | Editar `V15` ([[0015-identidad-en-v15]]) |
 | Sesión propia en `sesiones_usuario` ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | `V15`: la otra tabla nueva ([[0015-identidad-en-v15]]) |
-| Dueño del hash del PDF (B8) | @Rubén | El export idempotente |
 | OCR síncrono o por página (I5) | sin dueño | La forma de las rutas de OCR |
 | Frontera fina con el ETL (§2) | @Rubén y @Yaser | Quién escribe bloques y anotaciones |
 
