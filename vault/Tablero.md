@@ -12,7 +12,7 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 Resto:
 - [ ] Revisar el [[Registro de errores]] y decidir qué se corrige antes del 27/11: 34 defectos abiertos, 4 de ellos en el SQL (E-01, E-03, E-16 y E-17)
 - [ ] Cerrar el stack del backend: @Rubén ya votó **C#**; falta el visto bueno del resto por Teams · [[0014-stack-backend-c-sharp-java-python]] · @Rubén
-- [ ] Implementar la identidad en `V15` editada: dos tablas, cinco columnas y la retirada de `rol`/`activo`, más vista, trigger y diccionario · [[0015-identidad-en-v15]] · @Rubén @Marina
+- [ ] Implementar la identidad en `V15` editada: dos tablas, cinco columnas y la retirada de `rol`/`activo`, más vista, trigger y diccionario, manteniendo intacto el modelo lógico-relacional · [[0015-identidad-en-v15]] · @Rubén @Marina
 - [ ] Aceptar el modelo de roles: tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`** (decisión de @Marina, 18/11) · [[0012-identidad-y-roles]] · @Kevin @Alex
 - [ ] Completar el callback SSO del contrato con el registro OIDC del ICAT (ya hay dos rutas propuestas) · @Rubén @Kevin
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Alex

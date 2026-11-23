@@ -117,7 +117,7 @@ CREATE TABLE sesiones_usuario (
 CREATE INDEX idx_sesiones_usuario_usuario ON sesiones_usuario (usuario_id, creado_en DESC);
 ```
 
-Y dos cambios de texto en ficheros que ya existen:
+Y dos cambios de texto en ficheros que ya existen. **Orden obligatorio:** soltar `v_metricas_revisor` antes de los `ALTER TABLE ... DROP COLUMN` y recrearla después; reemplazar la función del trigger en el mismo cambio ([[0015-identidad-en-v15]] § Condición).
 
 ```sql
 -- views.sql, v_metricas_revisor

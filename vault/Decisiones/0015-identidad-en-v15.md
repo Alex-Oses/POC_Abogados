@@ -4,7 +4,7 @@
 - **Fecha**: 2026-11-23
 - **Autor**: @ia-opencode-ruben
 - **Se decide con**: @Rubén (backend), @Marina (BD)
-- **Votos**: @Rubén (backend), 2026-11-23: **editar `V15`** y meter la identidad completa; `@Marina` no revisa la bóveda, así que su conformidad se recoge fuera.
+- **Votos**: @Rubén (backend), 2026-11-23: **editar `V15`** y meter la identidad completa; `@Marina` no revisa la bóveda, así que su conformidad se recoge fuera. @Rubén (backend), 2026-11-23: **adelante**, con la condición de que el modelo lógico-relacional se mantenga intacto y coherente.
 
 ## Contexto
 
@@ -31,6 +31,19 @@ Tres salidas, y dos se descartaron:
 5. Índices: fuera `idx_usuarios_rol_activo`; entran `(estado)` y `usuarios_roles (rol)`.
 
 El SQL exacto y los cambios de `views.sql` y `triggers.sql` están en [[0012-identidad-y-roles]], sección «Para @Marina». No se copian aquí para que exista una sola versión.
+
+### Condición: el modelo lógico-relacional no cambia
+
+Lo que se mueve es dónde vive la identidad, no la estructura del modelo. Se conservan la PK de `usuarios`, las FK de `revisiones`, `documentos`, `versiones_documento` y `auditoria`, la historia (quien firmó queda firmado) y todas las tablas que no son de identidad. Las dos tablas nuevas cuelgan de `usuarios` con `ON DELETE CASCADE`.
+
+El orden de implementación importa, porque hay dependencias reales:
+
+1. **Soltar `v_metricas_revisor` antes** de retirar `rol`/`activo`: usa `u.rol` y `u.activo`, y un `DROP COLUMN` con la vista viva falla. Se recrea después con `EXISTS (usuarios_roles)` y `estado = 'activo'`.
+2. **Reemplazar la función del trigger de revisor** en el mismo cambio: lee `usuarios.rol` y pasa a `NOT EXISTS` sobre `usuarios_roles`.
+3. `idx_usuarios_rol_activo` cae con las columnas; no hace falta borrarlo antes.
+4. **No se tocan** `revisiones`, `documentos`, `versiones_documento`, `anotaciones_entidad`, `auditoria` ni los seeds.
+
+Se considera implementada cuando `flyway migrate` funciona desde cero, `views.sql` y `triggers.sql` no mencionan `rol`/`activo`, y `data-dictionary.md` tiene `usuarios_roles` y las columnas nuevas.
 
 Esto decide **dónde**, no **qué**: 0012 sigue en Propuesta hasta que la voten @Kevin y @Alex.
 
