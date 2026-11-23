@@ -1,14 +1,14 @@
 # Estructura del backend (Java)
 
 - **Para**: entrega del 27/11/2026 (ver [[Equipo]])
-- **Estado**: **borrador** · 20/11/2026 · se edita en este mismo fichero
+- **Estado**: **alternativa documentada** · no seleccionada · 23/11/2026
 - **Autor**: @ia-opencode-ruben
-- **Qué es**: la misma propuesta que [[Estructura del backend (Python)]], escrita en Java. No decide nada: sirve para comparar con [[Estructura del backend (CSharp)]] antes de cerrar [[0014-stack-backend-c-sharp-java-python]].
+- **Qué es**: alternativa escrita en Java. Se conserva como referencia para despliegues o requisitos JVM; no sustituye a la estructura Python aceptada.
 - **Dónde mirar**: el *por qué* del stack está en [[Enfoque tecnico]] y el contrato en [`docs/api/endpoints.md`](../../docs/api/endpoints.md).
 
 ## 1. Frontera
 
-El backend **no hace OCR, ni anonimiza, ni compone el PDF** ([[Enfoque tecnico]] §2). No hay `modules/ocr`: hay un `RestClient` en `integration/`. Si el OCR entra en el backend, entra en `jobs/`.
+El backend **no implementa PaddleOCR-VL**: @Alex mantiene el OCR y su semáforo. @Rubén implementa Presidio y el PDF final, y los expone como servicios Python locales. El backend conserva el API REST, permisos, transacciones y auditoría.
 
 ## 2. Stack
 

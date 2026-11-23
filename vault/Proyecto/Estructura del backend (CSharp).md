@@ -1,14 +1,14 @@
 # Estructura del backend (CSharp)
 
 - **Para**: entrega del 27/11/2026 (ver [[Equipo]])
-- **Estado**: **borrador** · 20/11/2026 · se edita en este mismo fichero
+- **Estado**: **alternativa documentada** · no seleccionada · 23/11/2026
 - **Autor**: @ia-opencode-ruben
-- **Qué es**: la misma propuesta que [[Estructura del backend (Python)]], escrita en C#. No decide nada: sirve para comparar con [[Estructura del backend (Java)]] antes de cerrar [[0014-stack-backend-c-sharp-java-python]].
+- **Qué es**: alternativa escrita en C#. Es ventajosa si Presidio sale del backend como servicio independiente; no sustituye a la estructura Python aceptada.
 - **Dónde mirar**: el *por qué* del stack está en [[Enfoque tecnico]] y el contrato en [`docs/api/endpoints.md`](../../docs/api/endpoints.md).
 
 ## 1. Frontera
 
-El backend **no hace OCR, ni anonimiza, ni compone el PDF** ([[Enfoque tecnico]] §2). No hay `Modules/Ocr`: hay un `HttpClient` en `Infrastructure/Etl`. Si el OCR entra en el backend, entra en `Jobs/`.
+El backend **no implementa PaddleOCR-VL**: el OCR es responsabilidad de @Alex y se consume por HTTP. @Rubén implementa la anonimización con Presidio y la composición del PDF. @Yaser orquesta el recorrido del dato sin implementar motores. Como Presidio es Python, C# consume un servicio local de Presidio por HTTP o ejecuta el mismo contenedor compartido; no se integra mediante el runtime de .NET.
 
 ## 2. Stack
 
@@ -60,7 +60,7 @@ backend/
         Database.cs              # NpgsqlDataSource
         DocumentStore.cs         # Dapper
         Sql/  documents.sql  review.sql  reports.sql
-      Etl/  EtlClient.cs
+      Etl/  EtlClient.cs       # OCR, Presidio y PDF como servicios HTTP
       Storage/  FileStorage.cs
   tests/
     Api.Tests/  Application.Tests/

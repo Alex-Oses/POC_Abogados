@@ -59,7 +59,7 @@
 | E-36 | P1 | La vista de métricas y el trigger de revisor asumen un rol único, no `usuarios_roles` | `views.sql:136`, `triggers.sql:134-136` vs 0012 | bloqueado (0012) |
 | E-37 | P1 | El export se dice idempotente sobre `exportado`, pero el mismo endpoint responde `409` si no está `aprobado` | `endpoints.md:472,474`; `pdf.md:148` | **corregido** (20/11) |
 | E-38 | P1 | Se prometen seudónimos coherentes sin tabla ni mapa que los sostenga | `Modelo de datos.md:250`; `maqueta/index.html:156,188` | abierto |
-| E-39 | P2 | `pdf.md` prohíbe PyMuPDF por AGPL y a la vez lo elige para leer la geometría | `pdf.md:102,156` | abierto |
+| E-39 | P2 | `pdf.md` prohíbe PyMuPDF por AGPL y a la vez lo elige para leer la geometría | `pdf.md:102,156` | corregido (23/11): se elige `pypdf` BSD |
 | E-40 | P2 | `pdf.md` atribuye la reconstrucción del PDF a la decisión 0006, que es Presidio | `pdf.md:12,188` | **corregido** (20/11) |
 | E-41 | P2 | El README de arquitectura deja un bloque de código SQL sin cerrar | `docs/architecture/README.md:18-34` | **corregido** (20/11) |
 | E-42 | P2 | `V15` siembra plazo, aviso y calendario de A-20, una regla retirada | `V15:163-172`; `README.md:9` | abierto |
@@ -372,12 +372,12 @@
 - **Arreglo.** Guardar el mapa persona → seudónimo en `versiones_documento.metadatos_proceso` (sin tabla nueva) o añadir la tabla editando `V6`/`V15`; decidir antes de la demo.
 - **Estado.** abierto.
 
-### E-39 · `pdf.md` prohíbe PyMuPDF y a la vez lo elige
+### E-39 · `pdf.md` no debe mezclar licencias
 
 - **Evidencia.** `docs/export/pdf.md:102` propone «`PyMuPDF` (`page.get_text("dict")`)» como primera fuente de geometría. `:156` dice: «Nada de PyMuPDF (AGPL): obligaría a abrir el código del producto».
 - **Impacto.** La fuente de cajas que el documento considera preferida está bajo la licencia que el propio documento descarta. Si el Colegio no acepta AGPL, la rama 1 del algoritmo no se puede usar, y con ella se cae el caso normal (PDF con capa de texto).
-- **Arreglo.** Decidir la licencia antes de implementar; si no vale AGPL, usar `pypdf`/`pdfplumber` (MIT/BSD) para las cajas o quedarse en el modelo de layout. La decisión afecta a 0007.
-- **Estado.** abierto.
+- **Arreglo.** Decidir la licencia antes de implementar; se elige `pypdf` con licencia BSD y se descarta PyMuPDF. Si no hay cajas suficientes, el export usa el modo secuencial.
+- **Estado.** corregido (23/11).
 
 ### E-40 · `pdf.md` atribuye la reconstrucción a la decisión 0006
 

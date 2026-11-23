@@ -1,15 +1,15 @@
 # Estructura del backend
 
 - **Para**: entrega del 27/11/2026 (ver [[Equipo]])
-- **Estado**: **borrador** · 20/11/2026 · se edita en este mismo fichero
-- **Aviso**: está escrito para **Python + FastAPI**. Si [[0014-stack-backend-c-sharp-java-python]] cae en C# o Java, se usa la versión de ese lenguaje; las carpetas y la frontera son las mismas.
+- **Estado**: **estructura aceptada** · 23/11/2026 · se implementará en este fichero
+- **Lenguaje**: **Python 3.12 + FastAPI**, único stack del backend técnico: API, Presidio y PDF.
 - **Autor**: @ia-opencode-ruben
-- **Qué es**: la propuesta de estructura en **Python + FastAPI**. Sus hermanas son [[Estructura del backend (CSharp)]] y [[Estructura del backend (Java)]]; las tres comparan lo mismo antes de cerrar [[0014-stack-backend-c-sharp-java-python]].
+- **Qué es**: la estructura seleccionada en **Python + FastAPI**. [[Estructura del backend (CSharp)]] y [[Estructura del backend (Java)]] se conservan como alternativas si cambia la frontera de Presidio.
 - **Dónde mirar**: el *por qué* del stack está en [[Enfoque tecnico]] y el contrato en [`docs/api/endpoints.md`](../../docs/api/endpoints.md).
 
 ## 1. Regla de frontera
 
-El backend **no hace OCR, ni anonimiza, ni compone el PDF** ([[Enfoque tecnico]] §2). Por eso no hay `modules/OCR` ni `modules/Anonimize`: hay un cliente HTTP en `integrations/etl.py`. Si algún día el OCR entra en el backend, entra en `jobs/`, no en un módulo nuevo.
+El backend **no implementa PaddleOCR-VL**: @Alex mantiene el OCR y su semáforo. @Rubén implementa Presidio y el PDF final, dentro o junto al servicio Python según el stack elegido. El backend expone las rutas, aplica permisos y persiste los resultados.
 
 ## 2. Árbol
 
@@ -47,11 +47,12 @@ backend/
     schemas/                  # Pydantic: entrada y salida, nada más
       common.py  auth.py  users.py  documents.py  review.py  export.py
     integrations/
-      etl.py                  # cliente del ETL/Ollama (OCR, Presidio)
+      etl.py                  # cliente del OCR, Presidio y orquestación del dato
       storage.py              # originales y PDF en disco, con ruta y hash
+      pdf.py                  # render determinista con ReportLab
     jobs/
       ocr.py                  # Cuando I5 se cierre: OCR por página en segundo plano
-      pdf.py
+      # El PDF no usa jobs: export.py lo genera sincrónicamente
   tests/
     conftest.py               # PostgreSQL real + un usuario por rol
     test_documents.py  test_review.py  test_export.py
@@ -258,7 +259,8 @@ from app.main import app
 ```toml
 dependencies = [
   "fastapi", "uvicorn[standard]", "pydantic", "pydantic-settings",
-  "psycopg[binary,pool]", "httpx",
+  "psycopg[binary,pool]", "httpx", "presidio-analyzer", "presidio-anonymizer",
+  "reportlab", "pypdf",
 ]
 [dependency-groups]
 dev = ["pytest", "ruff"]

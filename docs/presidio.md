@@ -58,7 +58,7 @@ Dos decisiones que conviene entender antes de mirar resultados:
 
 **Detección y decisión son cosas distintas.** Presidio propone qué tapar; la persona revisora decide en la pantalla de anonimización (ver la [maqueta](maqueta.md)). El sistema nunca exporta sin confirmación.
 
-**El PDF final no reutiliza la imagen.** Con el texto anonimizado se reconstruye un PDF nuevo, que es lo que decide [0006 — Generación del PDF final](../vault/Decisiones/0006-generacion-pdf-final.md): se guarda la estructura del original y se renderiza con el texto ya anonimizado, así que el PDF no contiene nada recuperable del original y no hay que volver a pasar por OCR.
+**El PDF final no reutiliza la imagen.** Con el texto anonimizado se reconstruye un PDF nuevo, que es lo que decide [0007 — Generación del PDF final](../vault/Decisiones/0007-generacion-pdf-final.md): se guarda la estructura del original y se renderiza con el texto ya anonimizado, así que el PDF no contiene nada recuperable del original y no hay que volver a pasar por OCR.
 
 Queda una pregunta abierta con el backend: el contrato de `GET /documents/{id}/versions/{n}/blocks` pide un `bbox` por bloque y el OCR por Ollama, con el prompt `OCR:`, devuelve solo texto. Si el modelo acaba dando coordenadas, tapar la imagen original sería una alternativa con un segundo OCR; si no, la reconstrucción es el único camino. La decisión 0006 sigue en **Propuesta** hasta aclararlo.
 
