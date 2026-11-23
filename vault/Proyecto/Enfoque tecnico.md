@@ -29,7 +29,7 @@ Puntos a cerrar con @Yaser antes de escribir código (no los decido yo):
 
 ## 3. Stack
 
-**Reabierto el 20/11**: [[0014-stack-backend-c-sharp-java-python]] compara C#, Java y Python. La razón principal de 0008 (un solo lenguaje con el OCR y Presidio) deja de valer porque el ETL queda fuera del backend (§2). Mientras 0014 no se cierre, aquí se describe la opción Python, que es la que está escrita en [[Estructura del backend (Python)]]; las de [[Estructura del backend (CSharp)]] y [[Estructura del backend (Java)]] ya están escritas para comparar. Cómo se escriben las consultas se decide en [[0013-consultas-sql-o-sqlalchemy-core]].
+**Reabierto el 20/11**: [[0014-stack-backend-c-sharp-java-python]] compara C#, Java y Python. La razón principal de 0008 (un solo lenguaje con el OCR y Presidio) deja de valer porque el ETL queda fuera del backend (§2). Mientras 0014 no se cierre, aquí se describe la opción Python, que es la que está escrita en [[Estructura del backend (Python)]]; las de [[Estructura del backend (CSharp)]] y [[Estructura del backend (Java)]] ya están escritas para comparar. Cómo se escriben las consultas se cerró el 23/11: **SQL directo** con el driver y un mapeador fino ([[0013-consultas-sql-o-sqlalchemy-core]]).
 
 | Por qué (opción Python) | Qué se descartó |
 |---|---|

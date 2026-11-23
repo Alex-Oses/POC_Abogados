@@ -201,7 +201,7 @@ La autorización por rol en el endpoint es lo que permite devolver 403 en un sit
 
 ## 7. Pendiente
 
-- **Dapper o EF Core** (la pregunta de [[0013-consultas-sql-o-sqlalchemy-core]] en versión C#): Dapper deja el SQL tal cual; EF Core da composición tipada pero arrastra migraciones que chocan con Flyway.
+- **`Dapper` y ningún ORM** ([[0013-consultas-sql-o-sqlalchemy-core]], cerrada el 23/11): Dapper deja el SQL tal cual y no declara el esquema; EF Core arrastra migraciones que chocan con Flyway.
 - **Una `Api.csproj` o tres proyectos**: hoy tres; el compilador ayuda a defenderlo, pero cuesta un `ProjectReference` por capa.
 - `Jobs/` solo tiene sentido cuando el OCR sea por página ([[Tablero]]).
 - La validación automática de `DataAnnotations` en Minimal APIs no viene de serie: o filter propio o `MinimalApis.Extensions`.

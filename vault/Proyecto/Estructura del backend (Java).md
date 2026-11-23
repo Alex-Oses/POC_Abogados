@@ -206,7 +206,7 @@ app:
 
 ## 7. Pendiente
 
-- **`JdbcClient` o JPA** (la pregunta de [[0013-consultas-sql-o-sqlalchemy-core]] en versión Java): `JdbcClient` mantiene el SQL de Flyway como única verdad; JPA ahorra mapeo pero duplica el esquema.
+- **`JdbcClient`, sin JPA** ([[0013-consultas-sql-o-sqlalchemy-core]], cerrada el 23/11): mantiene el SQL de Flyway como única verdad; JPA duplica el esquema.
 - **Spring Security o filtro propio**: el starter pesa y trae CSRF, CORS y sesiones que aquí no se usan. La alternativa es un `OncePerRequestFilter` y comprobar roles a mano; menos dependencias, más código propio que auditar.
 - `@PreAuthorize` (necesita `@EnableMethodSecurity`) frente a reglas por ruta en `SecurityConfig`: las reglas por ruta se leen de un tirón.
 - `jobs/` solo tiene sentido cuando el OCR sea por página ([[Tablero]]).

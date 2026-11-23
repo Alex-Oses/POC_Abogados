@@ -82,7 +82,7 @@ Java es la alternativa seria si el criterio que manda es «lo que el ICAT ya con
 
 ## Consecuencias
 
-- **Si C# o Java**: se usa tal cual [[Estructura del backend (CSharp)]] o [[Estructura del backend (Java)]], ya escritas. Se mantienen las carpetas y la frontera; cambian ficheros, extensiones y los dos o tres helpers. [[0013-consultas-sql-o-sqlalchemy-core]] cambia de nombre: en C# la elección es `Dapper` frente a EF Core, y en Java `JdbcClient` frente a JPA.
+- **Si C# o Java**: se usa tal cual [[Estructura del backend (CSharp)]] o [[Estructura del backend (Java)]], ya escritas. Se mantienen las carpetas y la frontera; cambian ficheros, extensiones y los dos o tres helpers. [[0013-consultas-sql-o-sqlalchemy-core]] ya está cerrada en SQL directo: `Npgsql` + `Dapper` en C#, `JdbcClient` en Java.
 - La decisión no la cierra el documento: [[Estructura del backend (Python)]], [[Estructura del backend (CSharp)]] y [[Estructura del backend (Java)]] son la misma propuesta en tres lenguajes, para comparar el código que habría que escribir.
 - **Si Python**: no se toca nada, y 0008 vuelve a estar vigente sin más.
 - El coste de decidir mal se paga en enero, no hoy: no hay código.

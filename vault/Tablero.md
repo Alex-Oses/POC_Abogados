@@ -14,7 +14,6 @@ Resto:
 - [ ] Cerrar el stack del backend: @Rubén ya votó **C#**; falta el visto bueno del resto por Teams · [[0014-stack-backend-c-sharp-java-python]] · @Rubén
 - [ ] Cerrar el bloqueante que queda de [[Coherencia]]: identidad (B1) · @Rubén @Marina
 - [ ] Aceptar el modelo de roles: tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`** (decisión de @Marina, 18/11) · [[0012-identidad-y-roles]] · @Kevin @Alex
-- [ ] Decidir si las consultas van con SQL directo o con SQLAlchemy Core (`text()` para vistas e informes) · [[0013-consultas-sql-o-sqlalchemy-core]] · @Rubén
 - [ ] Completar el callback SSO del contrato con el registro OIDC del ICAT (ya hay dos rutas propuestas) · @Rubén @Kevin
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Alex
 
@@ -31,6 +30,7 @@ Resto:
 
 ## Hecho
 
+- [x] Consultas decididas (23/11, @Rubén): **SQL directo** con el driver y un mapeador fino (`psycopg` + `.sql`, o `Npgsql` + `Dapper` si 0014 cae en C#); sin SQLAlchemy y sin declarar el esquema · [[0013-consultas-sql-o-sqlalchemy-core]] · @Rubén
 - [x] Identidad decidida (20/11, @Rubén): SSO del ICAT sin gestión de cuentas y admin local solo de desarrollo · [[0009-identidad]] · @Rubén
 - [x] Roles confirmados (20/11, @Rubén): tabla `usuarios_roles (N:M)` de @Marina, sin pegas al `JOIN`/`EXISTS` de `v_metricas_revisor` ni al trigger de revisor · [[0012-identidad-y-roles]] · @Rubén
 
