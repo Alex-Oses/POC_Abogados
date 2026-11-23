@@ -11,7 +11,7 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 Resto:
 - [ ] Revisar el [[Registro de errores]] y decidir qué se corrige antes del 27/11: 34 defectos abiertos, 4 de ellos en el SQL (E-01, E-03, E-16 y E-17)
-- [ ] Decidir el stack del backend, reabierto el 20/11: C#, Java o Python · [[0014-stack-backend-c-sharp-java-python]] · @Rubén
+- [ ] Cerrar el stack del backend: @Rubén ya votó **C#**; falta el visto bueno del resto por Teams · [[0014-stack-backend-c-sharp-java-python]] · @Rubén
 - [ ] Cerrar el bloqueante que queda de [[Coherencia]]: identidad (B1) · @Rubén @Marina
 - [ ] Aceptar el modelo de roles: tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`** (decisión de @Marina, 18/11) · [[0012-identidad-y-roles]] · @Kevin @Alex
 - [ ] Decidir si las consultas van con SQL directo o con SQLAlchemy Core (`text()` para vistas e informes) · [[0013-consultas-sql-o-sqlalchemy-core]] · @Rubén

@@ -4,7 +4,7 @@
 - **Fecha**: 2026-11-20
 - **Autor**: @ia-opencode-ruben
 - **Se decide con**: @Rubén (backend), @Marina (BD), @Kevin (despliegue), @Alex (frontend y OCR), @Yaser (ETL)
-- **Votos**: pendiente. La decide @Rubén.
+- **Votos**: @Rubén (backend), 2026-11-23: **C#**. Python no le convence para un proyecto serio y lo ve mejor que Java para este proyecto. Faltan @Marina, @Kevin, @Alex y @Yaser para el visto bueno, que llega por Teams y no por la bóveda.
 
 ## Contexto
 
