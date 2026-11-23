@@ -15,7 +15,7 @@ Resto:
 - [ ] Implementar la identidad en `V15` editada: dos tablas, cinco columnas y la retirada de `rol`/`activo`, más vista, trigger y diccionario, manteniendo intacto el modelo lógico-relacional · [[0015-identidad-en-v15]] · @Rubén @Marina
 - [ ] Aceptar el modelo de roles: tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`** (decisión de @Marina, 18/11) · [[0012-identidad-y-roles]] · @Kevin @Alex
 - [ ] Completar el callback SSO del contrato con el registro OIDC del ICAT (ya hay dos rutas propuestas) · @Rubén @Kevin
-- [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Alex
+- [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Rubén
 
 - [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
 - [ ] Endpoint que reciba un PDF y devuelva texto por página con su color de semáforo · [[Rendimiento OCR]]

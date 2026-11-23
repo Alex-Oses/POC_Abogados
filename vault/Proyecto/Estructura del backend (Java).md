@@ -8,7 +8,7 @@
 
 ## 1. Frontera
 
-El backend **no hace OCR, ni anonimiza, ni compone el PDF** ([[Enfoque tecnico]] §2). No hay `modules/ocr`: hay un `RestClient` en `integration/`. Si el OCR entra en el backend, entra en `jobs/`.
+El backend **no implementa PaddleOCR-VL**: @Alex mantiene el OCR y su semáforo. @Rubén implementa Presidio y el PDF final, y los expone como servicios Python locales. El backend conserva el API REST, permisos, transacciones y auditoría.
 
 ## 2. Stack
 

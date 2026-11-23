@@ -8,9 +8,9 @@
 
 ## Contexto
 
-[[0008-stack-backend]] se cerró el 20/11 con **Python 3.12 + FastAPI** por un motivo que ya no se sostiene: las tres piezas caras (OCR, Presidio y composición del PDF) son Python, así que un solo lenguaje evitaba un segundo runtime y un contrato interno.
+[[0008-stack-backend]] se cerró el 20/11 con **Python 3.12 + FastAPI** por un motivo que ya no se sostiene: las tres piezas caras (OCR, Presidio y composición del PDF) se suponía que compartían una única frontera técnica. Tras la aclaración del equipo, las responsabilidades quedan separadas: @Alex implementa PaddleOCR-VL, @Rubén Presidio y el PDF final, y @Yaser el recorrido y la orquestación del dato sin implementar los motores.
 
-Ese motivo ha cambiado. La frontera del [[Enfoque tecnico]] §2 deja el **ETL fuera del backend**: PaddleOCR-VL y Presidio son de @Yaser y se consumen por HTTP. El backend queda como lo que el contrato pide: 40 rutas REST y JSON, permisos, transacciones y auditoría sobre PostgreSQL. No comparte una línea de código con el ETL, así que **no gana nada por estar en su mismo lenguaje**.
+Ese motivo ha cambiado. La frontera del [[Enfoque tecnico]] §2 deja el OCR fuera del backend: PaddleOCR-VL lo implementa @Alex y se consume por HTTP. Presidio es responsabilidad técnica de @Rubén y también puede aislarse en un servicio Python. El backend queda como lo que el contrato pide: 40 rutas REST y JSON, permisos, transacciones y auditoría sobre PostgreSQL.
 
 Condición que hace barato reabrir: no hay ni una línea de backend escrita. Cambiar hoy cuesta una decisión; cambiar en enero cuesta un backend.
 
@@ -61,7 +61,8 @@ Los criterios que pone @Rubén, por orden de peso:
 | PostgreSQL 14+ y Flyway | Sigue siendo el dueño del esquema; el backend solo lee y escribe SQL parametrizado |
 | El contrato de 40 rutas | Es HTTP y JSON; no depende del lenguaje                                            |
 | Docker                  | Las tres tienen imagen oficial y multi-stage                                       |
-| La frontera con el ETL  | HTTP; el backend no importa Presidio ni PaddleOCR                                  |
+| La frontera con el OCR  | HTTP; PaddleOCR-VL lo implementa y mide @Alex                                      |
+| La frontera con Presidio | HTTP a un servicio Python aislado si el API es C#, Java o .NET; PDF y reglas las implementa @Rubén |
 | El frontend             | Sin decidir. Con C# abre Blazor; con Java, Angular; con Python, lo que sea         |
 
 ## Los contenedores
@@ -70,7 +71,13 @@ Pregunta de @Rubén: ¿el ETL es un contenedor, o el OCR y Presidio van por su c
 
 - El backend **solo necesita una URL** del ETL. Da igual si detrás hay un contenedor o tres.
 - Lo razonable, por recursos, son **cuatro o cinco**: `db`, `api`, `etl`, `ocr` (con GPU) y `anonymizer` (CPU). OCR y Presidio no comparten ni GPU ni ciclo de vida.
-- Si @Yaser prefiere un solo contenedor `etl` con PaddleOCR y Presidio dentro, el backend no cambia. Ese detalle se cierra en la frontera del [[Enfoque tecnico]] §2, no aquí.
+- Los motores no se agrupan por decisión del ETL: PaddleOCR lo mantiene @Alex y Presidio @Rubén. @Yaser decide el recorrido de datos y puede orquestar contenedores separados o uno compartido. Separarlos mantiene los ciclos de vida, fallos y despliegues independientes.
+
+### Valoración C# + Presidio
+
+**Valoración: buena opción para el API, pero no óptima como única plataforma técnica.** C# aporta tipado fuerte, buen rendimiento de I/O, Npgsql/Dapper maduro y poco código ajeno al contrato. Sin embargo, Presidio no es una biblioteca .NET madura equivalente: usar C# obliga a mantener un servicio Python extra o a reimplementar parte de los reconocedores. Eso añade un contenedor, contrato HTTP, serialización, reintentos y observabilidad.
+
+Para este POC es viable si se acepta ese coste: el backend C# decide y persiste, el servicio Python ejecuta Presidio bajo propiedad de @Rubén y el OCR queda separado bajo @Alex. La alternativa Python evita el salto C#↔Python, pero sacrifica parte del tipado y la experiencia de @Rubén con C#. Java no mejora Presidio y añade más complejidad operativa.
 
 ## Decisión
 

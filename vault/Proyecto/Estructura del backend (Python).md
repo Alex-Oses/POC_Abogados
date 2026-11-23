@@ -9,7 +9,7 @@
 
 ## 1. Regla de frontera
 
-El backend **no hace OCR, ni anonimiza, ni compone el PDF** ([[Enfoque tecnico]] §2). Por eso no hay `modules/OCR` ni `modules/Anonimize`: hay un cliente HTTP en `integrations/etl.py`. Si algún día el OCR entra en el backend, entra en `jobs/`, no en un módulo nuevo.
+El backend **no implementa PaddleOCR-VL**: @Alex mantiene el OCR y su semáforo. @Rubén implementa Presidio y el PDF final, dentro o junto al servicio Python según el stack elegido. El backend expone las rutas, aplica permisos y persiste los resultados.
 
 ## 2. Árbol
 
@@ -47,7 +47,7 @@ backend/
     schemas/                  # Pydantic: entrada y salida, nada más
       common.py  auth.py  users.py  documents.py  review.py  export.py
     integrations/
-      etl.py                  # cliente del ETL/Ollama (OCR, Presidio)
+      etl.py                  # cliente del OCR, Presidio y orquestación del dato
       storage.py              # originales y PDF en disco, con ruta y hash
     jobs/
       ocr.py                  # Cuando I5 se cierre: OCR por página en segundo plano

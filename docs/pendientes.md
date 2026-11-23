@@ -79,7 +79,7 @@ Los once puntos revisados, las cinco preguntas contestadas y el orden están en 
 | [0008](../vault/Decisiones/0008-stack-backend.md) stack | **Reabierta (20/11)**: la decide @Rubén | [0014](../vault/Decisiones/0014-stack-backend-c-sharp-java-python.md): C#, Java o Python |
 | [0005](../vault/Decisiones/0005-reglas-usuarios-y-aprobacion.md) reglas de usuarios y aprobación | @Rubén | estados, cola de revisión, reglas (V15) |
 | [0007](../vault/Decisiones/0007-generacion-pdf-final.md) PDF final | @Rubén | `bloques_layout` y el export |
-| [0006](../vault/Decisiones/0006-presidio-anonimizacion-local.md) Presidio | @Alex | acciones de anonimización (I1) |
+| [0006](../vault/Decisiones/0006-presidio-anonimizacion-local.md) Presidio | @Rubén | acciones de anonimización (I1) |
 | [0002](../vault/Decisiones/0002-postgresql.md) PostgreSQL + Flyway | equipo | ya se da por hecho en todo el repo |
 
 ## 5. Riesgos, por orden de lo que cuesta descubrir tarde

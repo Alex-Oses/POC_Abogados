@@ -8,7 +8,7 @@
 
 ## 1. Frontera
 
-El backend **no hace OCR, ni anonimiza, ni compone el PDF** ([[Enfoque tecnico]] §2). No hay `Modules/Ocr`: hay un `HttpClient` en `Infrastructure/Etl`. Si el OCR entra en el backend, entra en `Jobs/`.
+El backend **no implementa PaddleOCR-VL**: el OCR es responsabilidad de @Alex y se consume por HTTP. @Rubén implementa la anonimización con Presidio y la composición del PDF. @Yaser orquesta el recorrido del dato sin implementar motores. Como Presidio es Python, C# consume un servicio local de Presidio por HTTP o ejecuta el mismo contenedor compartido; no se integra mediante el runtime de .NET.
 
 ## 2. Stack
 
@@ -60,7 +60,7 @@ backend/
         Database.cs              # NpgsqlDataSource
         DocumentStore.cs         # Dapper
         Sql/  documents.sql  review.sql  reports.sql
-      Etl/  EtlClient.cs
+      Etl/  EtlClient.cs       # OCR, Presidio y PDF como servicios HTTP
       Storage/  FileStorage.cs
   tests/
     Api.Tests/  Application.Tests/

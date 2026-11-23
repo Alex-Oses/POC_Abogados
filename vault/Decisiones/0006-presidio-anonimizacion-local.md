@@ -3,6 +3,7 @@
 - **Estado**: Aceptada (2026-11-19, @Rubén)
 - **Fecha**: 2026-11-16
 - **Autor**: @ia-claude-alex (para @Alex)
+- **Responsable de implementación**: @Rubén (Presidio y reglas de sustitución)
 
 ## Contexto
 
@@ -14,5 +15,5 @@ Usar Presidio (analyzer + anonymizer) con spaCy en castellano y catalán, con pa
 
 ## Consecuencias
 
-- Dependencia Python en el backend (@Rubén) o como servicio aparte (@Kevin).
+- Dependencia Python en un servicio de anonimización de la responsabilidad de @Rubén. Si el API queda en C# o Java, se llama por HTTP desde el backend; no se convierte en una librería de .NET o JVM ni se mezcla con la operación OCR de @Alex.
 - Para el POC, la exportación genera un PDF nuevo desde el texto anonimizado; tapar la imagen original queda como deuda.

@@ -7,7 +7,7 @@
 
 ## 1. Alcance
 
-El backend es el servicio que **expone las 40 rutas del contrato, guarda el estado y decide quién puede hacer qué**. No hace OCR, ni anonimización, ni compone el PDF: pide esas transformaciones, espera el resultado y lo persiste con sus permisos y su rastro.
+El backend es el servicio que **expone las 40 rutas del contrato, guarda el estado y decide quién puede hacer qué**. PaddleOCR-VL lo implementa @Alex fuera del backend. @Rubén implementa Presidio y la composición del PDF, y el backend los coordina, persiste sus resultados y aplica permisos y auditoría.
 
 Esa frontera no es burocracia. Si el backend hiciera el OCR, una subida tendría la API bloqueada dos minutos por documento y cualquier fallo de la GPU tumbaría también la consulta de un expediente ya aprobado.
 
@@ -15,8 +15,9 @@ Esa frontera no es burocracia. Si el backend hiciera el OCR, una subida tendría
 
 | Quién | Qué es suyo |
 |---|---|
-| **Backend** (@Rubén) | Contrato HTTP, sesiones y permisos, máquina de estados del documento, transacciones, auditoría, encolado de lo largo, idempotencia del export, forma de los errores |
-| **ETL** (@Yaser) | Recorrido del dato: extracción y OCR, layout, anonimización, composición del PDF, semáforo de calidad y sus métricas |
+| **Backend** (@Rubén) | Contrato HTTP, sesiones y permisos, máquina de estados del documento, transacciones, auditoría, encolado, idempotencia del export, forma de los errores, Presidio y composición del PDF |
+| **OCR** (@Alex) | PaddleOCR-VL, extracción de texto y layout, semáforo de calidad y sus métricas |
+| **ETL** (@Yaser) | Recorrido y orquestación del dato entre el API, el OCR y los servicios de anonimización/export; sin implementar motores técnicos |
 | **Base de datos** (@Marina) | Esquema, migraciones y lo que se guarda de cada paso |
 
 Lo que cruza la frontera son **datos** (fichero, estructura, anotaciones), nunca estado: el ETL no escribe en las tablas del contrato ni decide si un documento se puede exportar. Se conectan por las rutas `/transform/*`, `/anonymize` y `/export`, que el backend expone y delega.
@@ -33,7 +34,7 @@ Puntos a cerrar con @Yaser antes de escribir código (no los decido yo):
 
 | Por qué (opción Python) | Qué se descartó |
 |---|---|
-| Las tres piezas caras ya son Python (OCR, Presidio, PDF): un runtime, un CI y sin contrato interno HTTP. El cuello de botella es la GPU, no el lenguaje | **C# + ASP.NET Core**: pedía un sidecar Python para Presidio y el PDF. Con el ETL fuera, ese coste desaparece y queda solo «otro runtime» |
+| Presidio y el PDF pueden compartir el mismo runtime Python en el trabajo de @Rubén | **C# + ASP.NET Core**: preserva un tipo fuerte en la API, pero Presidio exige un servicio Python separado por HTTP |
 | SQL explícito: el modelo usa `JSONB`, particiones, índices parciales y consultas de informe | **ORM**: estorba más de lo que ahorra en ese modelo |
 | Un solo despliegue | **Microservicios**: un Colegio, un servidor y una persona en backend |
 
