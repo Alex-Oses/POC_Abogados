@@ -249,7 +249,7 @@ erDiagram
 - **Tabla de seudónimos** (I2): `pseudonimizado` guarda `texto_sustitucion` en la anotación, así que la misma persona puede salir con dos seudónimos distintos en el mismo documento.
 - **NUSS en `rgpd_especial`** (H8): la lista de la columna solo cubre art. 9-10, pero el seed `V11` sigue metiendo NUSS. Con A-15 en pausa no dispara nada; si vuelve, lo hace mal.
 - **Seeds de `configuracion_sistema`**: los motores OCR en cloud y el timeout de revisión de 60 min contradicen 0001. `preservar_formato_pdf = false` **no** es un defecto: es lo que pide 0007 (reconstruir sin el formato original).
-- **Identidad y sesiones**: `V13` no existe ni se va a escribir. Lo que piden [[0009-identidad]] y [[0012-identidad-y-roles]] (`estado`, `sso_subject`, `usuarios_roles`, `sesiones_usuario`) se añade editando una migración existente, o queda fuera del piloto.
+- **Identidad y sesiones**: `V13` no existe ni se va a escribir. Lo que piden [[0009-identidad]] y [[0012-identidad-y-roles]] (`estado`, `sso_subject`, `usuarios_roles`, `sesiones_usuario`) se añade al final de `V15` editada ([[0015-identidad-en-v15]]), no en una migración nueva.
 
 ## Qué queda del debate con 0010
 

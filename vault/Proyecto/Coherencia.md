@@ -9,7 +9,7 @@
 
 ## Veredicto
 
-La revisión del 16/11 encontró cuatro bloqueantes y nueve importantes. Hoy queda **un bloqueante** (B1, la identidad) y cinco importantes abiertos (I4-I8). Lo demás se cerró con decisiones (0004, 0005, 0007, 0009), con `V14`/`V15` o con el contrato. Lo que sobrevive no pide migraciones.
+La revisión del 16/11 encontró cuatro bloqueantes y nueve importantes. Hoy **no queda ningún bloqueante** y cinco importantes abiertos (I4-I8): B1 se cerró el 23/11 con [[0015-identidad-en-v15]]. Lo demás se cerró con decisiones (0004, 0005, 0007, 0009), con `V14`/`V15` o con el contrato. Lo que sobrevive no pide migraciones nuevas.
 
 ## Resuelto
 
@@ -18,6 +18,7 @@ La revisión del 16/11 encontró cuatro bloqueantes y nueve importantes. Hoy que
 | 16/11 | **A-15 ya no usa `nivel_riesgo`.** La doble firma se dispara con `rgpd_especial = true` (art. 9-10 RGPD). Con el seed actual, `nivel_riesgo = alto` incluía DNI, nombre, dirección e IBAN, así que todo expediente acababa en `pendiente_visto_bueno` y la regla dejaba de ser excepcional. | `docs/reglas/aprobacion.md` §7, `docs/api/endpoints.md` §9, [[0005-reglas-usuarios-y-aprobacion]] regla 6 |
 | 16/11 | **La decisión del PDF final pasa de 0006 a 0007**: había dos 0006 en la bóveda y una era de Presidio. | [[0007-generacion-pdf-final]] |
 | 16/11 | **El stack del backend no estaba escrito en ningún sitio**: solo se deducía de las dependencias del PDF. Queda en Propuesta, con Python + FastAPI como recomendación y C# como alternativa evaluada. **Aceptada el 20/11 y reabierta el mismo día**: el ETL sale del backend y cae el argumento de un solo lenguaje; [[0014-stack-backend-c-sharp-java-python]] compara C#, Java y Python | [[0008-stack-backend]] |
+| 23/11 | **B1 cerrado en `V15`**: el SQL de la identidad (dos tablas, cinco columnas y la retirada de `rol`/`activo`) se añade al final de `V15`; `V13` sigue sin escribirse y la BD sigue siendo `V1`-`V15` | [[0015-identidad-en-v15]] |
 | 19/11 | **README alineado con el contrato**: fuera `/user/register`, fuera la exportación a Word, árbol con `docs/api/`, `docs/reglas/` y `docs/export/`, migraciones `V1`-`V15` | `README.md` (H1, H2) |
 | 19/11 | **Arquitectura sin referencias muertas**: `er-diagram.md` (no existe) → `diagrama-bbdd-borrador.png`; «7 triggers» → 16 | `docs/architecture/README.md` (H4) |
 | 19/11 | **El semáforo por página y el original ya tienen ruta**: `GET /documents/{id}/pages` y `GET /documents/{id}/original` | `docs/api/endpoints.md` (B5) |
@@ -32,7 +33,7 @@ No se puede implementar el contrato tal cual. Ordenados por lo que cuesta descub
 
 | # | Qué no cuadra | Evidencia | Cómo se cierra | Quién |
 |---|---|---|---|---|
-| B1 | **No hay dónde guardar la autenticación.** Falta la contraseña, el estado, el `sso_subject` y los roles; `usuarios` solo tiene `rol` de un valor y `activo boolean`. El diseño de [[0012-identidad-y-roles]] pide `estado` y `sso_subject` en `usuarios`, `usuarios_roles` para los roles (decisión de @Marina, 18/11) y `sesiones_usuario`; `tokens_usuario` no se crea | `V1__create_usuarios.sql` vs `docs/api/endpoints.md` §1; [[0005-reglas-usuarios-y-aprobacion]] §7 | **Con la BD cerrada no habrá `V13`**: decidir si se implementa sobre `rol`/`activo` o queda fuera del piloto | @Rubén, @Marina |
+| B1 | **No hay dónde guardar la autenticación.** Falta la contraseña, el estado, el `sso_subject` y los roles; `usuarios` solo tiene `rol` de un valor y `activo boolean`. El diseño de [[0012-identidad-y-roles]] pide `estado` y `sso_subject` en `usuarios`, `usuarios_roles` para los roles (decisión de @Marina, 18/11) y `sesiones_usuario`; `tokens_usuario` no se crea | `V1__create_usuarios.sql` vs `docs/api/endpoints.md` §1; [[0005-reglas-usuarios-y-aprobacion]] §7 | **Resuelto (2026-11-23)**: [[0015-identidad-en-v15]] manda el SQL de 0012 al final de `V15` editada, sin `V13` ni `V16`. Queda implementarlo | @Rubén, @Marina |
 | B2 | **Dos sistemas de identidad.** La propuesta exige SSO Office 365; el contrato implementaba contraseñas locales con invitación por email, y no hay proveedor de correo decidido. Desde el 18/11 el contrato ya tiene las dos rutas SSO propuestas, las de contraseña marcadas como camino de desarrollo y la invitación y el reset retirados | [[Propuesta ICAT]] vs `docs/api/endpoints.md` §1 | **Resuelto (2026-11-20)**: 0009 aceptada (SSO + admin local solo de desarrollo, cuentas locales como alternativa). Queda el registro OIDC en el ICAT | @Rubén |
 | B3 | **`bloques_layout` ya existe** (`V14`), pero `anotaciones_entidad` no tiene `bloque_id`: sus offsets van sobre el texto completo de la versión | `docs/api/endpoints.md` §3-4 vs `V6__create_anotaciones_entidad.sql` | **Resuelto (19/11)**: el contrato cuenta los offsets sobre `contenido_texto` y ya no devuelve `bloque_id`. Sin cambios de BD | @Rubén |
 | B4 | **La cola de revisión no cabe en el modelo**: `revisiones.revisor_id` es `NOT NULL` y `estado` no admite `en_cola`; faltaban `asignado_a`, `asignado_en`, `fecha_limite` y `aviso_24h_enviado_en` | `V7__create_revisiones.sql` vs `docs/reglas/aprobacion.md` §10 | **Resuelto (17/11)**: `V15` renombra a `asignado_a`, lo deja nulo y añade `en_cola`. `fecha_limite` y `aviso_24h` existen pero **A-20 está retirada (18/11)** y se quedan sin uso | @Marina |
@@ -93,7 +94,7 @@ Detalle menor pero elocuente: en la maqueta el «escaneo» es HTML, no una image
 ## Cómo se cierra
 
 0. **Stack** (H9): **reabierto** (20/11): [[0014-stack-backend-c-sharp-java-python]] decide entre C#, Java y Python. @Rubén.
-1. **Identidad** (B1): es lo único que sigue abierto. @Rubén ya votó 0009 (SSO + admin local) y 0008 está reabierta; faltan @Kevin y @Alex en 0012. Mientras no se cierre, el alta de usuarios se queda fuera del piloto; no habrá `V13`.
+1. **Identidad** (B1): **Resuelto (23/11)** con [[0015-identidad-en-v15]]: el SQL de 0012 va al final de `V15` editada, sin abrir migración. Queda implementarlo y los votos de @Kevin y @Alex en 0012; el alta de usuarios ya no está fuera del piloto.
 2. **Defectos que piden decisión**: E-33 (`regla_categorias` frente a `reglas_anonimizacion.configuracion`), E-38 (mapa de seudónimos), E-39 (licencia de PyMuPDF), E-44 (retención y acción por defecto en el documento RGPD). Los demás están en el [[Registro de errores]].
 3. **Maqueta** (I4, I8): el botón «Exportar PDF» de la revisión sigue activo antes de aprobar, y hay que decidir si la demo va con una o dos personas.
 

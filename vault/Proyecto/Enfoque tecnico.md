@@ -131,8 +131,8 @@ Cada promesa del backend tiene su prueba; si no la tiene, no es una promesa:
 |---|---|---|
 | ~~[[0008-stack-backend]]~~ **Reabierta (20/11)**: [[0014-stack-backend-c-sharp-java-python]] compara C#, Java y Python | — | — |
 | [[0009-identidad]]: SSO sin gestión de cuentas, admin local solo en desarrollo | @Kevin, @Marina, @Alex + registro OIDC del ICAT (1-2 semanas de terceros) | El login real y la primera ruta con permisos |
-| Modelo de datos ([[0010-modelo-de-datos]]): `usuarios_roles` (tabla N:M, decisión de @Marina) y sin `tokens_usuario` | @Marina | La migración `V13` |
-| Sesión propia en `sesiones_usuario` ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | `V13`: la otra tabla nueva |
+| Modelo de datos ([[0010-modelo-de-datos]]): `usuarios_roles` (tabla N:M, decisión de @Marina) y sin `tokens_usuario` | @Marina | Editar `V15` ([[0015-identidad-en-v15]]) |
+| Sesión propia en `sesiones_usuario` ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | `V15`: la otra tabla nueva ([[0015-identidad-en-v15]]) |
 | Dueño del hash del PDF (B8) | @Rubén | El export idempotente |
 | OCR síncrono o por página (I5) | sin dueño | La forma de las rutas de OCR |
 | Frontera fina con el ETL (§2) | @Rubén y @Yaser | Quién escribe bloques y anotaciones |
