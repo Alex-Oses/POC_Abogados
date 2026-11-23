@@ -43,7 +43,9 @@ Se incrusta el raster original y se tapan las entidades con cajas opacas, dibuja
 - **Fidelidad:** se conserva la maquetación, no el aspecto. Sellos, firmas manuscritas y ruido del escaneo no se reproducen.
 - **Modelo de datos:** no se toca. `versiones_documento.ruta_pdf` y `metadatos_proceso` ya existen; `hash_export` se guarda en `metadatos_proceso->>'hash_export'`.
 - **Geometría:** depende de que el OCR devuelva cajas. PaddleOCR-VL por Ollama con el prompt `OCR:` devuelve solo texto hoy; el export funciona en modo secuencial y gana la retícula original cuando el layout esté disponible.
-- **Dependencias:** `fastapi`, `uvicorn`, `psycopg`, `reportlab`. Nada de PyMuPDF (AGPL).
+- **Responsable:** @Rubén implementa el backend Python, el proceso de exportación y ReportLab. @Alex mantiene el OCR que puede aportar bloques y geometría.
+- **Dependencias:** `fastapi`, `uvicorn`, `psycopg`, `reportlab`, `pypdf`. Nada de PyMuPDF (AGPL).
+- **Ejecución:** síncrona dentro de `POST /documents/{id}/export`; no vuelve a llamar al OCR ni a Presidio. Si se mide una cola necesaria, se introduce después sin cambiar la forma de los datos ni el propietario del export.
 - **Pruebas obligatorias:** no fuga del texto original, presencia del texto sustituido, determinismo del hash, bloqueo con anotaciones pendientes.
 - Depende de [[0004-anonimizacion-antes-o-despues-de-revision]]: el flujo asume que se conserva el original y se anonimiza antes de la revisión.
 - Fuera de alcance: Word, PDF/A y firma electrónica.

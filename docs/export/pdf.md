@@ -1,13 +1,16 @@
 # PDF final — reconstrucción desde la estructura
 
-**Estado:** propuesta (16/11/2026), pendiente de implementar.
+**Estado:** aceptado (23/11/2026), pendiente de implementar.
 **Contrato:** `docs/api/endpoints.md` (`POST /documents/{id}/export` y `POST /transform/build`).
 **Reglas:** `docs/reglas/aprobacion.md` (A-16 a A-19).
 **Decisión:** [0007](../../vault/Decisiones/0007-generacion-pdf-final.md).
+**Responsable:** @Rubén.
 
 ## 1. Alcance
 
-Generar el PDF definitivo de una versión aprobada a partir de dos cosas que ya existen: el texto anonimizado y la estructura de la maquetación. No hace OCR, no anonimiza y no decide nada: solo compone.
+Generar el PDF definitivo de una versión aprobada a partir de tres cosas que ya existen: el texto de revisión, los bloques de layout y las decisiones humanas sobre cada entidad. La generación no vuelve a ejecutar OCR ni Presidio y no decide qué entidad se mantiene o sustituye.
+
+La implementación vive en el backend Python, junto a FastAPI y los servicios de dominio. ReportLab recibe datos ya validados por el servicio de exportación y escribe únicamente el PDF reconstruido.
 
 Fuera de alcance: exportación a Word, PDF/A, firma electrónica y el modo imagen (ver decisión 0007).
 
@@ -99,7 +102,7 @@ En modo secuencial el PDF es un documento nuevo bien maquetado, no una réplica 
 
 El texto lo da el OCR; la geometría no tiene por qué venir del mismo sitio. Por orden de coste:
 
-1. **El propio PDF subido, si tiene capa de texto.** `PyMuPDF` (`page.get_text("dict")`) devuelve bloques, líneas y palabras con su caja, su tamaño de fuente y su origen, sin OCR y en milisegundos. Cubre el caso normal de un despacho: PDF generados por Word o por un escáner con OCR. La caja es la del original, que es justo lo que se quiere para reconstruir.
+1. **El propio PDF subido, si tiene capa de texto.** `pypdf` (BSD) extrae texto y cajas disponibles sin OCR. Si una versión no expone cajas suficientes, se degrada al modo secuencial. Se descarta `PyMuPDF` para evitar una dependencia AGPL en el producto.
 2. **Un modelo de layout, si es un escaneo sin capa.** El pipeline completo de PaddleOCR/PP-Structure (no el GGUF de Ollama) devuelve `label` y `coordinate` por bloque; `docling` (MIT) es la alternativa si el primero no encaja en el servidor. Cuesta una pasada más por página.
 3. **Nada.** Modo `secuencial`, que ya está diseñado.
 
@@ -150,10 +153,10 @@ Los reemplazos se aplican de mayor a menor `inicio_offset` para que los índices
 ## 7. Dependencias
 
 ```
-fastapi, uvicorn, psycopg, reportlab
+fastapi, uvicorn, psycopg, reportlab, pypdf
 ```
 
-Cuatro, todas con licencia permisiva (MIT/BSD). Nada de PyMuPDF (AGPL): obligaría a abrir el código del producto. Las fuentes Noto Serif y Noto Sans (OFL) se incrustan como subconjunto; reportlab lo hace solo.
+Todas con licencia permisiva (MIT/BSD). `pypdf` aporta geometría de capa de texto con licencia BSD; no se usa PyMuPDF (AGPL). Las fuentes Noto Serif y Noto Sans (OFL) se incrustan como subconjunto; ReportLab lo hace solo.
 
 ## 8. Rendimiento
 

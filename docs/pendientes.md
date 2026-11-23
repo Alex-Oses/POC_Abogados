@@ -33,7 +33,7 @@ Con SSO, `password_hash` queda **solo** para el admin de desarrollo y la invitac
 
 **La salida acordada (17/11).** No se elige una fuente de geometría: se decide **por documento**, en este orden y quedándose con la primera que funcione.
 
-1. **Capa de texto del PDF subido** (PyMuPDF `page.get_text("dict")`): caja, tamaño y origen reales, sin OCR y en milisegundos.
+1. **Capa de texto del PDF subido** (`pypdf`): caja y origen disponibles, sin OCR y sin licencia AGPL.
 2. **Modelo de layout** (pipeline completo de PaddleOCR/PP-Structure, o `docling`): una pasada más por página.
 3. **Modo secuencial**: mismo orden y jerarquía, sin posiciones.
 
@@ -76,10 +76,10 @@ Los once puntos revisados, las cinco preguntas contestadas y el orden están en 
 |---|---|---|
 | [0009](../vault/Decisiones/0009-identidad.md) identidad | **Aceptada (20/11)**; falta el registro OIDC del ICAT | el alta de usuarios: el SQL va al final de `V15` editada ([0015](../vault/Decisiones/0015-identidad-en-v15.md)) |
 | [0015](../vault/Decisiones/0015-identidad-en-v15.md) identidad en V15 | **Aceptada (23/11)**; falta implementar | editar `V15`, `views.sql`, `triggers.sql` y el diccionario de datos |
-| [0008](../vault/Decisiones/0008-stack-backend.md) stack | **Reabierta (20/11)**: la decide @Rubén | [0014](../vault/Decisiones/0014-stack-backend-c-sharp-java-python.md): C#, Java o Python |
+| [0008](../vault/Decisiones/0008-stack-backend.md) stack | **Resuelta (23/11)**: Python aceptado por @Rubén | [0014](../vault/Decisiones/0014-stack-backend-c-sharp-java-python.md): Python; C#/Java como alternativas |
 | [0005](../vault/Decisiones/0005-reglas-usuarios-y-aprobacion.md) reglas de usuarios y aprobación | @Rubén | estados, cola de revisión, reglas (V15) |
 | [0007](../vault/Decisiones/0007-generacion-pdf-final.md) PDF final | @Rubén | `bloques_layout` y el export |
-| [0006](../vault/Decisiones/0006-presidio-anonimizacion-local.md) Presidio | @Alex | acciones de anonimización (I1) |
+| [0006](../vault/Decisiones/0006-presidio-anonimizacion-local.md) Presidio | @Rubén | acciones de anonimización (I1) |
 | [0002](../vault/Decisiones/0002-postgresql.md) PostgreSQL + Flyway | equipo | ya se da por hecho en todo el repo |
 
 ## 5. Riesgos, por orden de lo que cuesta descubrir tarde

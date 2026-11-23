@@ -1,16 +1,16 @@
-# 0014 · Stack del backend (reabierto): C#, Java o Python
+# 0014 · Stack del backend: Python aceptado, C# y Java como alternativas
 
-- **Estado**: Propuesta
+- **Estado**: Aceptada (2026-11-23, @Rubén)
 - **Fecha**: 2026-11-20
 - **Autor**: @ia-opencode-ruben
 - **Se decide con**: @Rubén (backend), @Marina (BD), @Kevin (despliegue), @Alex (frontend y OCR), @Yaser (ETL)
-- **Votos**: @Rubén (backend), 2026-11-23: **C#**. Python no le convence para un proyecto serio y lo ve mejor que Java para este proyecto. Faltan @Marina, @Kevin, @Alex y @Yaser para el visto bueno, que llega por Teams y no por la bóveda.
+- **Votos**: @Rubén (backend), 2026-11-23: **Python 3.12 + FastAPI**. El motivo principal es mantener todo el backend técnico en un único stack: API, Presidio y generación del PDF. C# y Java siguen documentados como alternativas si el backend se separa del servicio de Presidio.
 
 ## Contexto
 
-[[0008-stack-backend]] se cerró el 20/11 con **Python 3.12 + FastAPI** por un motivo que ya no se sostiene: las tres piezas caras (OCR, Presidio y composición del PDF) son Python, así que un solo lenguaje evitaba un segundo runtime y un contrato interno.
+[[0008-stack-backend]] se cerró el 20/11 con **Python 3.12 + FastAPI** por un motivo que ya no se sostiene: las tres piezas caras (OCR, Presidio y composición del PDF) se suponía que compartían una única frontera técnica. Tras la aclaración del equipo, las responsabilidades quedan separadas: @Alex implementa PaddleOCR-VL, @Rubén Presidio y el PDF final, y @Yaser el recorrido y la orquestación del dato sin implementar los motores.
 
-Ese motivo ha cambiado. La frontera del [[Enfoque tecnico]] §2 deja el **ETL fuera del backend**: PaddleOCR-VL y Presidio son de @Yaser y se consumen por HTTP. El backend queda como lo que el contrato pide: 40 rutas REST y JSON, permisos, transacciones y auditoría sobre PostgreSQL. No comparte una línea de código con el ETL, así que **no gana nada por estar en su mismo lenguaje**.
+Ese motivo ha cambiado. La frontera del [[Enfoque tecnico]] §2 deja el OCR fuera del backend: PaddleOCR-VL lo implementa @Alex y se consume por HTTP. Presidio es responsabilidad técnica de @Rubén y también puede aislarse en un servicio Python. El backend queda como lo que el contrato pide: 40 rutas REST y JSON, permisos, transacciones y auditoría sobre PostgreSQL.
 
 Condición que hace barato reabrir: no hay ni una línea de backend escrita. Cambiar hoy cuesta una decisión; cambiar en enero cuesta un backend.
 
@@ -61,28 +61,36 @@ Los criterios que pone @Rubén, por orden de peso:
 | PostgreSQL 14+ y Flyway | Sigue siendo el dueño del esquema; el backend solo lee y escribe SQL parametrizado |
 | El contrato de 40 rutas | Es HTTP y JSON; no depende del lenguaje                                            |
 | Docker                  | Las tres tienen imagen oficial y multi-stage                                       |
-| La frontera con el ETL  | HTTP; el backend no importa Presidio ni PaddleOCR                                  |
+| La frontera con el OCR  | HTTP; PaddleOCR-VL lo implementa y mide @Alex                                      |
+| La frontera con Presidio | HTTP a un servicio Python aislado si el API es C#, Java o .NET; PDF y reglas las implementa @Rubén |
 | El frontend             | Sin decidir. Con C# abre Blazor; con Java, Angular; con Python, lo que sea         |
 
 ## Los contenedores
 
-Pregunta de @Rubén: ¿el ETL es un contenedor, o el OCR y Presidio van por su cuenta? Sin decidir, y no lo decide el backend. Lo que sí se puede afirmar:
+Arquitectura aceptada:
 
-- El backend **solo necesita una URL** del ETL. Da igual si detrás hay un contenedor o tres.
-- Lo razonable, por recursos, son **cuatro o cinco**: `db`, `api`, `etl`, `ocr` (con GPU) y `anonymizer` (CPU). OCR y Presidio no comparten ni GPU ni ciclo de vida.
-- Si @Yaser prefiere un solo contenedor `etl` con PaddleOCR y Presidio dentro, el backend no cambia. Ese detalle se cierra en la frontera del [[Enfoque tecnico]] §2, no aquí.
+- El backend Python contiene API, Presidio y composición del PDF.
+- PaddleOCR-VL sigue separado como servicio de @Alex, con GPU.
+- PostgreSQL se despliega como servicio propio.
+- @Yaser decide la orquestación entre el backend y el OCR; no implementa los motores.
+- C# solo volvería a tener ventaja si Presidio se separa en un servicio independiente y se mantiene fuera del backend.
+
+### Valoración C# como alternativa
+
+C# sería ventajoso **si Presidio queda fuera del backend como un servicio independiente**. Conserva tipado fuerte, buen rendimiento de I/O, Npgsql/Dapper maduro y poco código ajeno al contrato. En ese escenario, C# gestiona la API y delega la detección de datos personales al servicio Python de Presidio.
+
+Python sigue siendo la elección para el POC: con Presidio dentro del mismo stack, evita el salto C#↔Python, la serialización HTTP de las propuestas de anonimización y un contenedor adicional. Java no aporta una ventaja equivalente para Presidio y añade más complejidad operativa.
 
 ## Decisión
 
-**Propuesta de @ia-opencode-ruben: C# con ASP.NET Core Minimal APIs**, `Npgsql` + `Dapper` y SQL explícito. Motivo en una frase: es el que cumple los seis criterios con menos piezas que mantener, y el que mejor encaja con «pocas librerías, código legible y el compilador ayudando».
+**Python 3.12 + FastAPI**, `psycopg` 3, Pydantic y SQL explícito. Motivo: la API, Presidio y el PDF comparten un único runtime y lenguaje. Se simplifica el desarrollo, el despliegue y el paso de datos entre OCR revisado, detección y sustitución.
 
-Java es la alternativa seria si el criterio que manda es «lo que el ICAT ya conoce» o si @Kevin prefiere un despliegue JVM. Python solo se queda si se prefiere no rehacer [[Estructura del backend (Python)]] y aceptar el tipado opcional a cambio de cero trabajo.
+C# queda como alternativa seria si Presidio se separa del backend y se mantiene como servicio independiente. Java queda como alternativa para entornos donde el ICAT ya exige Spring/JVM.
 
-**La decide @Rubén**; esta nota no la cierra sola.
+La decisión la acepta @Rubén el 23/11/2026. C# y Java no se eliminan de la documentación: sirven de referencia si cambia la frontera técnica.
 
 ## Consecuencias
 
-- **Si C# o Java**: se usa tal cual [[Estructura del backend (CSharp)]] o [[Estructura del backend (Java)]], ya escritas. Se mantienen las carpetas y la frontera; cambian ficheros, extensiones y los dos o tres helpers. [[0013-consultas-sql-o-sqlalchemy-core]] ya está cerrada en SQL directo: `Npgsql` + `Dapper` en C#, `JdbcClient` en Java.
-- La decisión no la cierra el documento: [[Estructura del backend (Python)]], [[Estructura del backend (CSharp)]] y [[Estructura del backend (Java)]] son la misma propuesta en tres lenguajes, para comparar el código que habría que escribir.
-- **Si Python**: no se toca nada, y 0008 vuelve a estar vigente sin más.
-- El coste de decidir mal se paga en enero, no hoy: no hay código.
+- **Python**: implementación vigente basada en [[Estructura del backend (Python)]]. SQL directo con `psycopg` y `.sql`, sin ORM.
+- **C# o Java**: solo se retomarán si cambia el entorno o si Presidio se separa del backend. Sus estructuras siguen disponibles en [[Estructura del backend (CSharp)]] y [[Estructura del backend (Java)]].
+- C# tiene más ventaja que Java si Presidio pasa a ser un servicio independiente, porque Npgsql/Dapper son ligeros y Minimal APIs reduce la superficie del API.

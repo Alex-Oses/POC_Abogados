@@ -1,13 +1,13 @@
 # Enfoque técnico del backend
 
 - **Para**: entrega del viernes 27/11/2026 (ver [[Equipo]])
-- **Estado**: **propuesta** · 17/11/2026
+- **Estado**: **aceptado para el backend** · stack Python · 23/11/2026
 - **Autor**: @ia-opencode-ruben
 - **Qué es**: cómo se construye y por qué el **backend** (la API que sostiene el contrato). No cubre la arquitectura del sistema ni el ETL: eso lo lleva @Yaser y se documenta aparte. El detalle de cada ruta está en [`docs/api/endpoints.md`](../../docs/api/endpoints.md), las reglas en [`docs/reglas/`](../../docs/reglas/) y el modelo de datos lo cierra @Marina en [[Modelo de datos]].
 
 ## 1. Alcance
 
-El backend es el servicio que **expone las 40 rutas del contrato, guarda el estado y decide quién puede hacer qué**. No hace OCR, ni anonimización, ni compone el PDF: pide esas transformaciones, espera el resultado y lo persiste con sus permisos y su rastro.
+El backend es el servicio que **expone las 40 rutas del contrato, guarda el estado y decide quién puede hacer qué**. PaddleOCR-VL lo implementa @Alex fuera del backend. @Rubén implementa Presidio y la composición del PDF, y el backend los coordina, persiste sus resultados y aplica permisos y auditoría.
 
 Esa frontera no es burocracia. Si el backend hiciera el OCR, una subida tendría la API bloqueada dos minutos por documento y cualquier fallo de la GPU tumbaría también la consulta de un expediente ya aprobado.
 
@@ -15,8 +15,9 @@ Esa frontera no es burocracia. Si el backend hiciera el OCR, una subida tendría
 
 | Quién | Qué es suyo |
 |---|---|
-| **Backend** (@Rubén) | Contrato HTTP, sesiones y permisos, máquina de estados del documento, transacciones, auditoría, encolado de lo largo, idempotencia del export, forma de los errores |
-| **ETL** (@Yaser) | Recorrido del dato: extracción y OCR, layout, anonimización, composición del PDF, semáforo de calidad y sus métricas |
+| **Backend** (@Rubén) | Contrato HTTP, sesiones y permisos, máquina de estados del documento, transacciones, auditoría, encolado, idempotencia del export, forma de los errores, Presidio y composición del PDF |
+| **OCR** (@Alex) | PaddleOCR-VL, extracción de texto y layout, semáforo de calidad y sus métricas |
+| **ETL** (@Yaser) | Recorrido y orquestación del dato entre el API, el OCR y los servicios de anonimización/export; sin implementar motores técnicos |
 | **Base de datos** (@Marina) | Esquema, migraciones y lo que se guarda de cada paso |
 
 Lo que cruza la frontera son **datos** (fichero, estructura, anotaciones), nunca estado: el ETL no escribe en las tablas del contrato ni decide si un documento se puede exportar. Se conectan por las rutas `/transform/*`, `/anonymize` y `/export`, que el backend expone y delega.
@@ -29,11 +30,11 @@ Puntos a cerrar con @Yaser antes de escribir código (no los decido yo):
 
 ## 3. Stack
 
-**Reabierto el 20/11**: [[0014-stack-backend-c-sharp-java-python]] compara C#, Java y Python. La razón principal de 0008 (un solo lenguaje con el OCR y Presidio) deja de valer porque el ETL queda fuera del backend (§2). Mientras 0014 no se cierre, aquí se describe la opción Python, que es la que está escrita en [[Estructura del backend (Python)]]; las de [[Estructura del backend (CSharp)]] y [[Estructura del backend (Java)]] ya están escritas para comparar. Cómo se escriben las consultas se cerró el 23/11: **SQL directo** con el driver y un mapeador fino ([[0013-consultas-sql-o-sqlalchemy-core]]).
+**Cerrado el 23/11**: [[0014-stack-backend-c-sharp-java-python]] acepta **Python 3.12 + FastAPI**. El motivo es mantener el backend, Presidio y la generación del PDF en un único stack. C# y Java quedan como estructuras de referencia; C# sería ventajoso si Presidio se separa posteriormente como servicio independiente. Las consultas usan **SQL directo** con el driver y un mapeador fino ([[0013-consultas-sql-o-sqlalchemy-core]]).
 
 | Por qué (opción Python) | Qué se descartó |
 |---|---|
-| Las tres piezas caras ya son Python (OCR, Presidio, PDF): un runtime, un CI y sin contrato interno HTTP. El cuello de botella es la GPU, no el lenguaje | **C# + ASP.NET Core**: pedía un sidecar Python para Presidio y el PDF. Con el ETL fuera, ese coste desaparece y queda solo «otro runtime» |
+| Presidio y el PDF pueden compartir el mismo runtime Python en el trabajo de @Rubén | **C# + ASP.NET Core**: preserva un tipo fuerte en la API, pero Presidio exige un servicio Python separado por HTTP |
 | SQL explícito: el modelo usa `JSONB`, particiones, índices parciales y consultas de informe | **ORM**: estorba más de lo que ahorra en ese modelo |
 | Un solo despliegue | **Microservicios**: un Colegio, un servidor y una persona en backend |
 
@@ -86,7 +87,22 @@ Es donde el backend justifica su existencia:
 | Sin dudas, sin export | Una anotación sin decisión devuelve error, nunca un PDF |
 | Nada se borra | Anulación y reapertura son estados; el original cifrado se conserva ([[0004-anonimizacion-antes-o-despues-de-revision]], Aceptada) |
 
-Dueño del hash del PDF (B8) sigue abierto: `documentos` o `versiones_documento`. Hasta que se cierre, el export no se implementa.
+### 6.1 Generación del PDF final
+
+La implementación pertenece al backend Python y a @Rubén. El endpoint `POST /documents/{id}/export`:
+
+1. Comprueba el estado `aprobado` o `exportado`, el permiso del usuario y que no quede ninguna anotación sin decisión.
+2. Carga en una sola consulta la versión aprobada, `bloques_layout`, anotaciones y metadatos necesarios.
+3. Aplica las sustituciones a cada bloque según `decision_revisor`, normaliza el layout y selecciona el modo `layout` o `secuencial`.
+4. Renderiza un lienzo nuevo con ReportLab: sin píxeles del original, sin capa de texto oculta y sin metadatos de escaneo.
+5. Calcula el SHA-256, escribe el fichero y guarda el hash en `metadatos_proceso->>'hash_export'`.
+6. Actualiza `ruta_pdf`, `exportado_en` y `estado = 'exportado'` en la misma operación que la auditoría.
+
+La segunda llamada a exportar sirve el fichero existente si su hash coincide y no vuelve a renderizar. Si el texto, el rango o el bloque están desincronizados, devuelve `409` y no escribe un PDF parcial.
+
+El OCR puede aportar geometría, Presidio puede aportar propuestas y el backend aplica las decisiones humanas. Ninguno compone el PDF: esa responsabilidad termina en `app/services/export.py` y su render de ReportLab.
+
+El hash del PDF pertenece a la versión en `versiones_documento.metadatos_proceso->>'hash_export'`; `documentos` solo conserva `exportado_en` (B8 resuelto).
 
 ## 7. Lo que tarda
 
@@ -129,11 +145,10 @@ Cada promesa del backend tiene su prueba; si no la tiene, no es una promesa:
 
 | Abierto | Quién | Qué bloquea |
 |---|---|---|
-| ~~[[0008-stack-backend]]~~ **Reabierta (20/11)**: [[0014-stack-backend-c-sharp-java-python]] compara C#, Java y Python | — | — |
+| ~~[[0008-stack-backend]]~~ **Resuelta (23/11)**: [[0014-stack-backend-c-sharp-java-python]] acepta Python; C#/Java quedan como alternativas | — | — |
 | [[0009-identidad]]: SSO sin gestión de cuentas, admin local solo en desarrollo | @Kevin, @Marina, @Alex + registro OIDC del ICAT (1-2 semanas de terceros) | El login real y la primera ruta con permisos |
 | Modelo de datos ([[0010-modelo-de-datos]]): `usuarios_roles` (tabla N:M, decisión de @Marina) y sin `tokens_usuario` | @Marina | Editar `V15` ([[0015-identidad-en-v15]]) |
 | Sesión propia en `sesiones_usuario` ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | `V15`: la otra tabla nueva ([[0015-identidad-en-v15]]) |
-| Dueño del hash del PDF (B8) | @Rubén | El export idempotente |
 | OCR síncrono o por página (I5) | sin dueño | La forma de las rutas de OCR |
 | Frontera fina con el ETL (§2) | @Rubén y @Yaser | Quién escribe bloques y anotaciones |
 

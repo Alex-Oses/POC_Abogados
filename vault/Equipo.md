@@ -5,8 +5,9 @@
 | Backend | @Rubén |
 | Frontend | @Alex |
 | OCR | @Alex |
+| Presidio y PDF final | @Rubén |
 | Base de datos | @Marina |
-| ETL (recorrido del dato) | @Yaser |
+| ETL (recorrido y orquestación del dato) | @Yaser |
 | DevOps | @Kevin |
 | Testing | Todos, en rueda |
 
