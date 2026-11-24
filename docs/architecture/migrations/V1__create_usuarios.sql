@@ -11,4 +11,4 @@ CREATE TABLE usuarios (
 );
 
 COMMENT ON TABLE usuarios IS 'Personal del sistema: transcriptores, revisores, admins';
-COMMENT ON COLUMN usuarios.rol IS 'transcriptor=corrige OCR, revisor=valida anonimización, admin=gestiona usuarios/reglas, supervisor=métricas';
+COMMENT ON COLUMN usuarios.rol IS 'Columna histórica; V15 la sustituye por usuarios_roles (transcriptor, revisor, admin)';

@@ -12,10 +12,31 @@
 | id | uuid | NO | PK | Identificador único |
 | email | varchar(255) | NO | UK | Email corporativo (login) |
 | nombre_completo | varchar(200) | NO | | Nombre + apellidos |
-| rol | varchar(50) | NO | | transcriptor / revisor / admin / supervisor |
-| activo | boolean | NO | | Baja lógica (no borrado) |
+| estado | varchar(20) | NO | | activo / bloqueado / baja |
+| motivo_baja | text | SÍ | | Motivo de la baja lógica |
+| eliminado_en | timestamptz | SÍ | | Fecha de baja lógica |
+| sso_subject | text | SÍ, UK | | Identificador `sub` del proveedor OIDC del ICAT |
+| password_hash | text | SÍ | | Solo admin local de desarrollo; nulo con SSO |
 | creado_en | timestamptz | NO | | Alta en sistema |
 | actualizado_en | timestamptz | NO | | Última modificación perfil |
+
+## usuarios_roles
+| Campo | Tipo | Nulos | Clave | Descripción |
+|-------|------|-------|-------|-------------|
+| usuario_id | uuid | NO | PK, FK→usuarios | Usuario al que pertenece el rol |
+| rol | varchar(50) | NO | PK | transcriptor / revisor / admin |
+
+## sesiones_usuario
+| Campo | Tipo | Nulos | Clave | Descripción |
+|-------|------|-------|-------|-------------|
+| id | uuid | NO | PK | Identificador de sesión |
+| usuario_id | uuid | NO | FK→usuarios | Usuario de la sesión |
+| token_hash | text | NO | UK | Hash del token opaco; nunca el token |
+| creado_en | timestamptz | NO | | Inicio de sesión |
+| expira_en | timestamptz | NO | | Caducidad absoluta o de renovación |
+| revocado_en | timestamptz | SÍ | | Logout, cambio de roles, bloqueo o baja |
+| ip | inet | SÍ | | IP de origen, si está disponible |
+| user_agent | text | SÍ | | Agente del cliente |
 
 ---
 
@@ -38,7 +59,7 @@
 |-------|------|-------|-------|-------------|
 | id | uuid | NO | PK | Identificador |
 | nombre_original | varchar(500) | NO | | Nombre archivo subido |
-| hash_sha256 | char(64) | NO | UK | SHA-256 binario (dedup) |
+| hash_sha256 | char(64) | NO | | SHA-256 binario; único por creador mientras el documento no esté eliminado |
 | mime_type | varchar(100) | NO | | application/pdf, image/png, image/jpeg... |
 | tamano_bytes | bigint | NO | | Tamaño en bytes |
 | ruta_almacenamiento | varchar(1000) | NO | | Ruta S3/MinIO/FS |

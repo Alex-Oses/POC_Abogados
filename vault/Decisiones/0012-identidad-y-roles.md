@@ -1,10 +1,10 @@
 # 0012 · Identidad y roles: SSO, tres roles y roles múltiples
 
-- **Estado**: Propuesta
+- **Estado**: Aceptada (2026-11-24, @Rubén)
 - **Fecha**: 2026-11-18
 - **Autor**: @ia-opencode-ruben (a petición de @Rubén)
 - **Se decide con**: @Rubén (backend), @Marina (BD, decide el modelo), @Kevin (despliegue), @Alex (frontend/OCR)
-- **Votos**: @Rubén (backend), 2026-11-18: **SSO sin gestión de cuentas, tres roles, roles múltiples y sesión propia en `sesiones_usuario`**. @Marina (BD, decide el modelo), 2026-11-18: **los roles van en tabla `usuarios_roles` (N:M), no en columna**; el resto de la propuesta, sin cambios. @Rubén (backend), 2026-11-20: **confirma la tabla `usuarios_roles` de @Marina y no ve problema en el `JOIN`/`EXISTS` de `v_metricas_revisor` ni en el trigger de revisor**. Faltan @Kevin y @Alex.
+- **Votos**: @Rubén (backend), 2026-11-18: **SSO sin gestión de cuentas, tres roles, roles múltiples y sesión propia en `sesiones_usuario`**. @Marina (BD, decide el modelo), 2026-11-18: **los roles van en tabla `usuarios_roles` (N:M), no en columna**; el resto de la propuesta, sin cambios. @Rubén (backend), 2026-11-20: **confirma la tabla `usuarios_roles` de @Marina y no ve problema en el `JOIN`/`EXISTS` de `v_metricas_revisor` ni en el trigger de revisor**. @Rubén (backend), 2026-11-24: **acepta el modelo completo**. Faltan @Kevin y @Alex para dejar constancia de conformidad, no para bloquear la decisión.
 
 ## Contexto
 
@@ -166,6 +166,6 @@ AND NOT EXISTS (
 
 - Decidido: **B**, sesión propia en `sesiones_usuario` (18/11). U-16 a U-20 siguen vigentes.
 - Decidido: **roles en tabla `usuarios_roles`** (@Marina, 18/11).
-- Votos de @Kevin y @Alex a este documento y a [[0009-identidad]]. El modelo de @Marina y la confirmación de @Rubén sobre `usuarios_roles` ya están en la cabecera.
+- Votos de @Kevin y @Alex a este documento y a [[0009-identidad]]: quedan como conformidad del equipo por Teams, no como condición para aplicar el modelo aceptado.
 - Que @Marina acepte el resto del cambio de modelo (`estado`, `sso_subject`, sin `tokens_usuario`): el SQL de la sección «Para @Marina» va al final de `V15` ([[0015-identidad-en-v15]]).
 - Pedir al ICAT el registro de la aplicación OIDC.

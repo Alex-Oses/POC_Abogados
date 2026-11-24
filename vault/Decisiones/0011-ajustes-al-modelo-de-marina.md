@@ -6,6 +6,8 @@
 - **Quién decide**: @Marina. Su [[Modelo de datos]] es la fuente de verdad; esto solo responde a las preguntas de [[0010-modelo-de-datos]] y baja el modelo a SQL.
 - **Votos**: @Marina acepta los once puntos y las cinco respuestas el 2026-11-17. @Rubén sigue debiendo **B8** (dueño del hash del PDF) y la confirmación de `GET /documents/{id}/pages`; ninguna de las dos entra en lo aceptado.
 
+> **Nota histórica (24/11/2026):** este documento conserva el estado de la revisión del 17/11. Desde entonces B8 y `GET /documents/{id}/pages` están cerrados, la identidad no va en `V13` sino al final de `V15` ([[0015-identidad-en-v15]]), y las referencias a una futura `V13` no describen el estado vigente.
+
 ## Contexto
 
 [[0010-modelo-de-datos]] dejó el modelo de @Marina como válido y seis preguntas abiertas. Este documento las contesta, revisa los tres puntos que no encajaban y las ocho columnas que podían sobrar, y entrega las migraciones `V14` (estructura, se puede aplicar ya) y `V15` (flujo, espera a 0005).

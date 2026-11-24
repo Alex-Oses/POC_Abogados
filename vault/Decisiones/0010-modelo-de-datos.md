@@ -5,6 +5,8 @@
 - **Autor**: @ia-opencode-ruben
 - **Quién decide**: @Marina. La base de datos es suya y su modelo ([[Modelo de datos]]) manda; esto es una entrada para su decisión, no una alternativa.
 
+> **Documento histórico:** esta propuesta fue sustituida por [[0011-ajustes-al-modelo-de-marina]]. Sus repartos en `V13`/`V14`/`V15` y sus preguntas abiertas no son el estado actual; la fuente vigente es [[Modelo de datos]] junto con [[0015-identidad-en-v15]].
+
 ## Contexto
 
 El contrato y las reglas describen cosas que el esquema no tiene: autenticación con sesiones, bloques de layout con `bbox`, cola de revisión, semáforo por página y un hash del PDF. Son los bloqueantes B1, B3, B4, B5 y B8 de [[Coherencia]], y el detalle está en [`docs/pendientes.md`](../../docs/pendientes.md) §3.

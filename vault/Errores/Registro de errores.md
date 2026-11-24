@@ -67,7 +67,7 @@
 | E-44 | P2 | El documento RGPD describe otro sistema: acción por defecto y borrado físico | `rgpd-considerations.md:11-13,48` vs `V15:151-153` | abierto |
 | E-45 | P2 | La maqueta promete borrar la imagen y la capa de texto de un PDF reconstruido | `maqueta/index.html:155-156,187-188`; `docs/maqueta.md` §3.7 | **corregido** (20/11) |
 | E-46 | P2 | La documentación sigue mandando arreglos a `V13`/`V16`, que ya no existirán | `usuarios.md:98-101`; `pendientes.md:77,99`; `Modelo de datos.md:245,252` | **corregido** (20/11) |
-| E-47 | P2 | La cabecera de `V15` describe un estado anterior: 0005 sin aceptar y B8 con migración | `V15:4-5,30,32` | abierto |
+| E-47 | P2 | La cabecera de `V15` describe un estado anterior: 0005 sin aceptar y B8 con migración | `V15:4-5,30,32` | corregido (24/11) |
 | E-48 | P2 | El README dice que las reglas están «cerradas y auditadas» y varias siguen en propuesta o en pausa | `README.md:18` vs `reglas-de-negocio.md` | **corregido** (20/11) |
 | E-49 | P2 | U-12 retirada dice que la ruta de recuperación «sigue existiendo»; el contrato la retiró | `reglas-de-negocio.md:193` vs `endpoints.md` §1 | **corregido** (20/11) |
 | E-50 | P2 | [[Modelo de datos]] da por abiertos B5 y B8 y dice que `preservar_formato_pdf = false` contradice 0007 | `Modelo de datos.md:245,248-249` | **corregido** (20/11) |
@@ -374,9 +374,9 @@
 
 ### E-39 · `pdf.md` no debe mezclar licencias
 
-- **Evidencia.** `docs/export/pdf.md:102` propone «`PyMuPDF` (`page.get_text("dict")`)» como primera fuente de geometría. `:156` dice: «Nada de PyMuPDF (AGPL): obligaría a abrir el código del producto».
+- **Evidencia histórica.** La versión anterior de `docs/export/pdf.md` proponía «`PyMuPDF` (`page.get_text("dict")`)» y a la vez lo prohibía por AGPL.
 - **Impacto.** La fuente de cajas que el documento considera preferida está bajo la licencia que el propio documento descarta. Si el Colegio no acepta AGPL, la rama 1 del algoritmo no se puede usar, y con ella se cae el caso normal (PDF con capa de texto).
-- **Arreglo.** Decidir la licencia antes de implementar; se elige `pypdf` con licencia BSD y se descarta PyMuPDF. Si no hay cajas suficientes, el export usa el modo secuencial.
+- **Arreglo aplicado (23/11).** Se usa `pypdf` con licencia BSD y se descarta PyMuPDF. Si no hay cajas suficientes, el export usa el modo secuencial.
 - **Estado.** corregido (23/11).
 
 ### E-40 · `pdf.md` atribuye la reconstrucción a la decisión 0006
@@ -433,7 +433,7 @@
 - **Evidencia.** `V15:4` dice «Depende de 0005 ... no aplicar antes de que se acepte»; 0005 está **Aceptada** desde el 19/11. `V15:5` dice que el hash del PDF «tendrá su migración»; B8 se cerró el 19/11 con el hash en `metadatos_proceso` y sin migración. `:32` sigue diciendo «pendiente de B8». `:30` describe `cerrado_en` como «cierre o reapertura», pero A-19 dice que lo escribe el export.
 - **Impacto.** Un lector que despliegue por orden cree que V15 depende de una decisión no aceptada y que falta una migración que nunca llegará. El comentario de `cerrado_en` contradice la regla.
 - **Arreglo.** Actualizar los cuatro comentarios; el SQL no cambia.
-- **Estado.** abierto.
+- **Estado.** corregido (24/11): cabecera, comentarios de `documentos`, dependencia de 0005 y estado de B8 actualizados en `V15`.
 
 ### E-48 · El README dice que las reglas están «cerradas y auditadas»
 

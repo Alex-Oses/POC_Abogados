@@ -1,22 +1,22 @@
-# Lo que falta antes de escribir el modelo
+# Lo que queda del modelo y la integración
 
-- **Estado:** abierto · 17/11/2026
+- **Estado:** actualizado · 24/11/2026
 - **Autor:** @ia-opencode-ruben
-- **Para qué:** el contrato y las reglas ya describen autenticación, bloques de layout, cola de revisión y export; el esquema real (`docs/architecture/migrations/`) todavía no. Esto es lo que hay que **decidir o migrar** antes de escribir backend: identidad, geometría del PDF y todo lo que cambia en la base de datos.
+- **Para qué:** el contrato, las reglas y el esquema ya describen autenticación, bloques de layout, cola de revisión y export; aquí queda solo lo que falta validar o pedir a terceros.
 - **Qué no es:** no decide nada. Los bloqueantes se citan por su ID de [Coherencia](../vault/Proyecto/Coherencia.md) y las decisiones por su número; aquí solo se agrupa lo que hoy no se puede implementar.
-- **Verificado el 19/11/2026** contra las migraciones `V1`-`V15`, `docs/api/endpoints.md`, `docs/reglas/` y las decisiones 0001-0012. **La BD es definitiva: no se planean migraciones nuevas**, así que lo que queda se arregla en el contrato o en las reglas.
+- **Verificado el 24/11/2026** contra las migraciones `V1`-`V15`, `docs/api/endpoints.md`, `docs/reglas/` y las decisiones vigentes. **La BD sigue siendo `V1`-`V15`: no se abre `V13` ni `V16`.**
 
 ## 1. Identidad y sesiones (B1, B2 · [0009](../vault/Decisiones/0009-identidad.md))
 
-**Dónde estamos.** `V1__create_usuarios.sql` tiene `email`, `nombre_completo`, `rol`, `activo`. El contrato pide SSO, login local solo del admin de desarrollo, tres sesiones simultáneas y una cuenta con estados (`activo | bloqueado | baja`). `docs/reglas/usuarios.md` §7 ya escribió la lista; el modelo no la tiene.
+**Dónde estamos.** `V15__flujo_revision_y_export.sql` ya añade `usuarios_roles`, `estado`, `sso_subject`, `password_hash` y `sesiones_usuario`; vista, trigger y diccionario están alineados. Falta validar la recreación de la base de desarrollo desde cero.
 
-**Qué falta decidir.** [0009](../vault/Decisiones/0009-identidad.md) está **aceptada (20/11)**: SSO del ICAT + admin local solo de desarrollo, con cuentas locales como alternativa. Queda una dependencia externa que no vota nadie del equipo: **el ICAT tiene que registrar la aplicación OIDC** (redirect URI, secreto, grupos). Son 1-2 semanas de terceros; si no llegan, el piloto arranca con cuentas locales y no cierra la puerta al SSO.
+**Qué falta.** [0009](../vault/Decisiones/0009-identidad.md) está **aceptada (20/11)**: SSO del ICAT + admin local solo de desarrollo. Queda una dependencia externa: **el ICAT tiene que registrar la aplicación OIDC** (redirect URI, secreto, grupos). Son 1-2 semanas de terceros; mientras tanto, el piloto puede arrancar con el admin local de desarrollo.
 
 **Qué arrastra a la BD**
 
 | Tabla | Qué se crea o cambia | Lo pide |
 |---|---|---|
-| `usuarios` | Tabla `usuarios_roles (usuario_id, rol)` con `CHECK` de tres valores y FK a `usuarios` (decisión de @Marina, 18/11); `estado` sustituye a `activo`; `nombre` y `apellidos` separados; `password_hash` (nulo si SSO), `intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `motivo_baja` y `sso_subject` (UNIQUE) si hay SSO | U-01, U-04, U-08, contrato §1-2, 0009, 0012 |
+| `usuarios` | `usuarios_roles (usuario_id, rol)` con `CHECK` de tres valores y FK; `estado` sustituye a `activo`; `password_hash` (solo admin local de desarrollo), `motivo_baja` y `sso_subject` (UNIQUE) | U-01, U-04, U-08, contrato §1-2, 0009, 0012 |
 | `tokens_usuario` (nueva) | **no se crea**: U-10 a U-15 retiradas (18/11) y la contraseña del admin de desarrollo viene de variable de entorno (U-21) | — |
 | `sesiones_usuario` (nueva) | `usuario_id`, `token_hash`, `creado_en`, `expira_en`, `revocado_en`, `ip`, `user_agent`; tope de 3 con desalojo de la más antigua. Una de las **dos tablas nuevas** con `usuarios_roles` (opción B, 18/11) | U-16 a U-20, contrato §1, 0012 |
 | `idx_usuarios_rol_activo` | se cae con `rol`/`activo`; entran `(estado)` e `idx_usuarios_roles_rol` | B1, 0012 |
@@ -75,7 +75,7 @@ Los once puntos revisados, las cinco preguntas contestadas y el orden están en 
 | Decisión | Quién falta | Desbloquea |
 |---|---|---|
 | [0009](../vault/Decisiones/0009-identidad.md) identidad | **Aceptada (20/11)**; falta el registro OIDC del ICAT | el alta de usuarios: el SQL va al final de `V15` editada ([0015](../vault/Decisiones/0015-identidad-en-v15.md)) |
-| [0015](../vault/Decisiones/0015-identidad-en-v15.md) identidad en V15 | **Aceptada (23/11)**; falta implementar | editar `V15`, `views.sql`, `triggers.sql` y el diccionario de datos |
+| [0015](../vault/Decisiones/0015-identidad-en-v15.md) identidad en V15 | **Aceptada (24/11)**; falta validar desde cero | recrear la base de desarrollo y ejecutar las comprobaciones de vista, trigger y diccionario |
 | [0008](../vault/Decisiones/0008-stack-backend.md) stack | **Resuelta (23/11)**: Python aceptado por @Rubén | [0014](../vault/Decisiones/0014-stack-backend-c-sharp-java-python.md): Python; C#/Java como alternativas |
 | [0005](../vault/Decisiones/0005-reglas-usuarios-y-aprobacion.md) reglas de usuarios y aprobación | @Rubén | estados, cola de revisión, reglas (V15) |
 | [0007](../vault/Decisiones/0007-generacion-pdf-final.md) PDF final | @Rubén | `bloques_layout` y el export |

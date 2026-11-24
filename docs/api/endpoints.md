@@ -46,7 +46,7 @@
 
 ## Roles
 
-`transcriptor` (T), `revisor` (R), `admin` (A). Un usuario puede tener **varios roles**; el permiso es la unión. **El rol `supervisor` se elimina** y sus funciones pasan al revisor ([[0012-identidad-y-roles]], propuesta).
+`transcriptor` (T), `revisor` (R), `admin` (A). Un usuario puede tener **varios roles**; el permiso es la unión. **El rol `supervisor` se elimina** y sus funciones pasan al revisor ([[0012-identidad-y-roles]], aceptada).
 
 Los roles se releen de la base de datos en cada petición: un token no arrastra los roles con los que se emitió. Las rutas marcadas `público` son las únicas que no exigen `Authorization`.
 

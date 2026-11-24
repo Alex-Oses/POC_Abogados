@@ -133,7 +133,12 @@ SELECT
 FROM usuarios u
 LEFT JOIN revisiones r ON r.asignado_a = u.id
 LEFT JOIN anotaciones_entidad ae ON ae.revisado_por = u.id
-WHERE u.rol = 'revisor' AND u.activo = true
+WHERE EXISTS (
+    SELECT 1
+    FROM usuarios_roles ur
+    WHERE ur.usuario_id = u.id
+      AND ur.rol = 'revisor'
+) AND u.estado = 'activo'
 GROUP BY u.id, u.nombre_completo, u.email
 ORDER BY revisiones_totales DESC;
 
