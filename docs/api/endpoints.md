@@ -160,7 +160,7 @@ Autenticado. Cambia la contraseña y revoca todas las sesiones del usuario, incl
 
 Listado paginado. `estado` filtra por `activo|bloqueado|baja`; `roles` acepta un rol y devuelve quien lo tenga (la unión de roles decide el permiso, no un rol único).
 
-`200` → `{ "items": [ { "id", "email", "nombre", "apellidos", "roles", "estado", "ultimo_acceso" } ], "page", "limit", "total" }`.
+`200` → `{ "items": [ { "id", "email", "nombre", "apellidos", "roles", "estado" } ], "page", "limit", "total" }`.
 
 No hay alta: la ficha nace en el primer acceso por SSO, sin roles (U-05). Los roles y el estado se cambian con `PATCH`, y la cuenta del admin de desarrollo se siembra por variable de entorno (U-21).
 
@@ -251,7 +251,7 @@ Lista documentos. El transcriptor ve solo los suyos; el revisor ve todos. Excluy
     "id": "uuid",
     "numero_version": 2,
     "tipo_version": "ocr_texto",
-    "confianza_promedio": 0.973,
+    "confianza_layout_promedio": 0.973,
     "metadatos_proceso": { "pipeline_version": "v1.6" }
   }
 }
@@ -295,7 +295,7 @@ Errores: `404` si el documento o el fichero no existen, `410` si el original ya 
 
 ### `GET /documents/{id}/versions`
 
-`200` → `{ "items": [ { "numero_version", "tipo_version", "motor_ocr", "confianza_promedio", "creado_en" } ] }`.
+`200` → `{ "items": [ { "numero_version", "tipo_version", "motor_ocr", "confianza_layout_promedio", "creado_en" } ] }`.
 
 ### `GET /documents/{id}/versions/{numero_version}`
 

@@ -11,6 +11,7 @@
 ## Siguiente
 
 - Validar desde cero `V15` con `flyway clean` + `migrate` y comprobar vista, trigger y diccionario ([[0015-identidad-en-v15]]).
+- Alineación con el modelo ER definitivo: `V15` añade nombres/apellidos, email case-insensitive, sesión deslizante, campos de versión, relaciones de reglas y fechas de categorías. E-51 queda bloqueado porque los `bbox_*` legacy de `anotaciones_entidad` requieren decidir si se conservan o se eliminan con plan de datos.
 - Pedir al ICAT el registro OIDC: cliente, secreto, `redirect_uri` y scopes. Sin eso no hay callback real, aunque el contrato ya esté escrito.
 
 ## Bloqueos / preguntas

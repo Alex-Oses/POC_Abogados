@@ -53,10 +53,10 @@
 | E-30 | P2 | `horas_media_estado` mide antigüedad, no tiempo en el estado | `views.sql:150,156-165` | abierto |
 | E-31 | P1 | `versiones_documento.es_actual` no existe y el contrato lo usa para la versión vigente | `endpoints.md:210,428` vs `V4` | **corregido** (20/11) |
 | E-32 | P1 | `pipeline_version` y `confianza_layout_promedio` no existen; la tabla solo tiene `confianza_promedio` | `endpoints.md:254-255,298` vs `V4:12` | **corregido** (20/11) |
-| E-33 | P1 | `regla_categorias` no existe: `/rules` no puede guardar categorías | `endpoints.md:88-90,609` | abierto |
-| E-34 | P1 | Identidad y sesiones: faltan las columnas y tablas que usan el contrato y U-04/U-05/U-08 | `V1` vs `endpoints.md:143,163,176`; `Modelo de datos.md:233-237` | abierto |
+| E-33 | P1 | `regla_categorias` no existe: `/rules` no puede guardar categorías | `endpoints.md:88-90,609` | corregido (24/11) |
+| E-34 | P1 | Identidad y sesiones: faltan las columnas y tablas que usan el contrato y U-04/U-05/U-08 | `V1` vs `endpoints.md:143,163,176`; `Modelo de datos.md:233-237` | corregido (24/11) |
 | E-35 | P1 | `paginas_documento.estado` vale `revisar/ilegible`, pero el contrato devuelve `aviso/error` | `endpoints.md:270,278` vs `V14:20-21` | **corregido** (20/11) |
-| E-36 | P1 | La vista de métricas y el trigger de revisor asumen un rol único, no `usuarios_roles` | `views.sql:136`, `triggers.sql:134-136` vs 0012 | bloqueado (0012) |
+| E-36 | P1 | La vista de métricas y el trigger de revisor asumen un rol único, no `usuarios_roles` | `views.sql:136`, `triggers.sql:134-136` vs 0012 | corregido (24/11) |
 | E-37 | P1 | El export se dice idempotente sobre `exportado`, pero el mismo endpoint responde `409` si no está `aprobado` | `endpoints.md:472,474`; `pdf.md:148` | **corregido** (20/11) |
 | E-38 | P1 | Se prometen seudónimos coherentes sin tabla ni mapa que los sostenga | `Modelo de datos.md:250`; `maqueta/index.html:156,188` | abierto |
 | E-39 | P2 | `pdf.md` prohíbe PyMuPDF por AGPL y a la vez lo elige para leer la geometría | `pdf.md:102,156` | corregido (23/11): se elige `pypdf` BSD |
@@ -71,6 +71,7 @@
 | E-48 | P2 | El README dice que las reglas están «cerradas y auditadas» y varias siguen en propuesta o en pausa | `README.md:18` vs `reglas-de-negocio.md` | **corregido** (20/11) |
 | E-49 | P2 | U-12 retirada dice que la ruta de recuperación «sigue existiendo»; el contrato la retiró | `reglas-de-negocio.md:193` vs `endpoints.md` §1 | **corregido** (20/11) |
 | E-50 | P2 | [[Modelo de datos]] da por abiertos B5 y B8 y dice que `preservar_formato_pdf = false` contradice 0007 | `Modelo de datos.md:245,248-249` | **corregido** (20/11) |
+| E-51 | P2 | `anotaciones_entidad` conserva `pagina_numero` y `bbox_*`, que no aparecen en el modelo ER vigente | `V6__create_anotaciones_entidad.sql` vs `Modelo de datos.md:147-165,247` | bloqueado: requiere decidir si se conservan como respaldo o se eliminan con plan de datos |
 
 ---
 
@@ -270,21 +271,21 @@
 - **Evidencia.** `V5:5-6`: `codigo VARCHAR(50) NOT NULL UNIQUE` y `version INT NOT NULL DEFAULT 1`. Con `codigo` único no puede haber dos filas de la misma regla, así que nunca habrá una versión 2 de `RGPD_ES`.
 - **Impacto.** Se pierde el histórico de reglas, que es justo lo que se quiere para auditoría: al cambiar una regla se sobreescribe. Además `creado_por` y `version` dan a entender lo contrario.
 - **Arreglo.** `UNIQUE (codigo, version)` más un único parcial `WHERE activa` para que solo haya una activa por código. Es lo que hace la copia de `Documents/Advocats`.
-- **Estado.** abierto.
+- **Estado.** corregido (24/11): `V15` sustituye el único global por `(codigo, version)` y añade el único parcial de la versión activa.
 
 ### E-27 · El email distingue mayúsculas
 
 - **Evidencia.** `V1:5`: `email VARCHAR(255) NOT NULL UNIQUE`. `Marina@icat.cat` y `marina@icat.cat` son dos cuentas distintas.
 - **Impacto.** Duplicados de cuenta y, con SSO, un usuario que entra con otra caja y no ve sus documentos.
 - **Arreglo.** `UNIQUE (lower(email))` o `CITEXT`. Encaja con el arreglo de identidad: mejor cerrarlo allí, editando la migración que se toque, que en un parche suelto.
-- **Estado.** abierto.
+- **Estado.** corregido (24/11): `V15` elimina el único sensible a mayúsculas y crea `uq_usuarios_email_lower`.
 
 ### E-28 · `V15` cita un único de `V7` que no existe
 
 - **Evidencia.** `V15:87-88` dice: «El único de V7 era `(version_id, numero_intento)` y no lo implementaba». En `V7__create_revisiones.sql` no hay ningún `UNIQUE` ni `CONSTRAINT`: solo la PK y las FK.
 - **Impacto.** Nada impide repetir `numero_intento` en la misma versión. Y el comentario hace creer que existe una red que no está.
 - **Arreglo.** Añadir `UNIQUE (version_id, numero_intento)` editando `V7`, y corregir el comentario.
-- **Estado.** abierto.
+- **Estado.** corregido (24/11): `V15` crea `uq_revisiones_version_intento`.
 
 ### E-29 · El orden de ejecución que dice `views.sql` es falso
 
@@ -328,21 +329,21 @@
 - **Evidencia.** `docs/api/endpoints.md:254-255` y `:298` devuelven `pipeline_version` y `confianza_layout_promedio`. `V4__create_versiones_documento.sql:12` solo tiene `confianza_promedio`; `pipeline_version` no aparece en ninguna migración.
 - **Impacto.** Dos respuestas del contrato no se pueden servir desde el esquema. O se inventan en el backend o el cliente recibe campos distintos de los documentados.
 - **Arreglo.** Devolver `confianza_promedio` y guardar la versión del pipeline en `metadatos_proceso` (que ya es JSONB), o añadir las columnas editando `V4`.
-- **Estado.** corregido (20/11): el contrato devuelve `confianza_promedio` y `pipeline_version` va en `metadatos_proceso`.
+- **Estado.** corregido (24/11): `V15` crea `pipeline_version` y `confianza_layout_promedio`, y el contrato usa los nombres del modelo ER.
 
 ### E-33 · `regla_categorias` no existe
 
 - **Evidencia.** `docs/api/endpoints.md:88-90` declara que `/rules` escribe en `reglas_anonimizacion` y `regla_categorias`, y `:609` repite la tabla. No hay ninguna migración que la cree; `[[Modelo de datos]]:246` lo reconoce: «no existen en `V1`-`V15`. Necesitan migración».
 - **Impacto.** `POST /rules` y `PATCH /rules/{id}` no pueden guardar la lista de categorías de una regla. Si el backend usa `configuracion` JSONB, el contrato sigue prometiendo una tabla que no está.
 - **Arreglo.** Usar `reglas_anonimizacion.configuracion` (ya guarda categorías y acciones) y quitar `regla_categorias` del contrato, o crear la tabla editando `V5`; no hay `V16`.
-- **Estado.** abierto.
+- **Estado.** corregido (24/11): `V15` crea `regla_categorias` con PK compuesta y FKs.
 
 ### E-34 · Identidad y sesiones: faltan columnas y tablas que el contrato ya usa
 
-- **Evidencia.** `V1__create_usuarios.sql` solo tiene `email`, `nombre_completo`, `rol` y `activo`. El contrato devuelve `nombre`, `apellidos`, `roles`, `estado` y `ultimo_acceso` (`endpoints.md:143,163`), escribe `eliminado_en` al dar de baja (`:176`) y usa `sesiones_usuario` (`:77` y todo §1). `[[Modelo de datos]]:233-237` añade `usuarios_roles`, `estado`, `sso_subject`, `eliminado_en` y `sesiones_usuario`; ninguna está en `V1`-`V15`.
+- **Evidencia histórica.** Antes de editar `V15`, `V1__create_usuarios.sql` solo tenía `email`, `nombre_completo`, `rol` y `activo`. El contrato devuelve `nombre`, `apellidos`, `roles` y `estado` (`endpoints.md:143,163`), escribe `eliminado_en` al dar de baja (`:176`) y usa `sesiones_usuario` (`:77` y todo §1).
 - **Impacto.** Es B1 con nombres y apellidos: el alta por SSO, el estado de la cuenta, la baja, el tope de tres sesiones y la revocación no se pueden implementar sobre el esquema definitivo.
-- **Arreglo.** Decidir si el piloto cabe en `rol`/`activo` (y recortar el contrato) o si se edita `V1` para añadir lo mínimo; no habrá `V13`. La decisión es de 0009/0012.
-- **Estado.** abierto.
+- **Arreglo aplicado (24/11).** `V15` añade la identidad completa sin abrir `V13`, y adapta nombres, email y sesión al modelo ER.
+- **Estado.** corregido (24/11): `V15` añade `usuarios_roles`, `sesiones_usuario`, `nombre`, `apellidos`, `estado`, `sso_subject`, `password_hash`, `motivo_baja` y `eliminado_en`; además ajusta la sesión a `ip_origen` y `ultimo_uso_en`.
 
 ### E-35 · `paginas_documento.estado`: el contrato y la BD usan vocabularios distintos
 
@@ -356,7 +357,7 @@
 - **Evidencia.** `views.sql:136`: `WHERE u.rol = 'revisor' AND u.activo = true`. `triggers.sql:134-136`: rechaza al asignado si `(SELECT rol FROM usuarios WHERE id = NEW.asignado_a) <> 'revisor'`. 0012 y U-01 ponen los roles en `usuarios_roles (usuario_id, rol)` (N:M) y eliminan `usuarios.rol`; U-04 sustituye `activo` por `estado`.
 - **Impacto.** Un admin que también revisa desaparece de `v_metricas_revisor` y no puede ser asignado por el trigger. Si 0012 se acepta y `rol` desaparece, la vista y el trigger dejan de funcionar.
 - **Arreglo.** `EXISTS (SELECT 1 FROM usuarios_roles ur WHERE ur.usuario_id = u.id AND ur.rol = 'revisor')` y `estado = 'activo'` en la vista; el trigger, la misma comprobación. Va con 0012.
-- **Estado.** bloqueado (0012).
+- **Estado.** corregido (24/11): vista y trigger consultan `usuarios_roles` y `usuarios.estado`.
 
 ### E-37 · El export no puede ser idempotente y responder `409` a la vez
 
@@ -456,6 +457,13 @@
 - **Arreglo.** Actualizar las tres viñetas; dejar solo lo que siga abierto (seudónimos, retención).
 - **Estado.** corregido (20/11): las viñetas de [[Modelo de datos]] ya no contradicen al contrato ni a `V15`.
 
+### E-51 · `anotaciones_entidad` conserva geometría legacy fuera del ER vigente
+
+- **Evidencia.** `V6` conserva `pagina_numero` y `bbox_x/y/ancho/alto`, pero el modelo vigente relaciona la anotación con `bloques_layout` mediante `bloque_id` y deja esos campos fuera de la entidad.
+- **Impacto.** El esquema tiene dos fuentes potenciales de geometría. El backend debe usar `bloque_id` y no leer los campos legacy; eliminarlos ahora podría destruir datos si ya se cargaron.
+- **Bloqueo.** @Marina debe decidir si se conservan como respaldo o se eliminan con un plan de datos. No se toca el modelo ER.
+- **Estado.** bloqueado.
+
 ---
 
 ## Descartados
@@ -471,7 +479,6 @@ Falsos positivos comprobados. Se dejan aquí para no volver a reportarlos.
 
 ## Lo que no cubre
 
-- **Nada está ejecutado en un motor.** Sin PostgreSQL local y con Docker caído, E-01, E-03, E-16 y E-17 son lectura, no prueba. En cuanto haya motor, se aplican las migraciones y este registro se actualiza con el resultado.
+- **Nada está ejecutado en un motor.** Sin PostgreSQL local y con Docker ausente, E-01, E-03, E-16, E-17 y la nueva `V15` son lectura, no prueba. En cuanto haya motor, se aplican las migraciones y este registro se actualiza con el resultado.
 - **No se ha auditado el rendimiento con datos.** Las observaciones de E-22, E-23 y E-30 son de diseño; no hay medidas.
-- **El contrato cita tablas y columnas que no existen** (`sesiones_usuario`, `regla_categorias`, `es_actual`, `pipeline_version`): eso ya no es una nota al margen, son E-31 a E-34. La BD es definitiva y no hay `V13`/`V16`.
 - **La maqueta no se ha probado en navegador** y de `docs/api/endpoints.md` solo se ha contrastado el modelo de tablas, no ruta por ruta.

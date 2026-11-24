@@ -71,6 +71,9 @@ UPDATE revisiones r
 
 ALTER TABLE revisiones ALTER COLUMN documento_id SET NOT NULL;
 
+ALTER TABLE revisiones
+    ADD CONSTRAINT uq_revisiones_version_intento UNIQUE (version_id, numero_intento);
+
 -- La FK compuesta garantiza que `documento_id` es el de verdad el de la versión:
 -- sin esto, el índice de A-04 podría vigilar un documento que no toca.
 ALTER TABLE versiones_documento
@@ -208,10 +211,60 @@ CREATE TABLE sesiones_usuario (
     token_hash  TEXT NOT NULL UNIQUE,
     creado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
     expira_en   TIMESTAMPTZ NOT NULL,
+    ultimo_uso_en TIMESTAMPTZ NOT NULL DEFAULT now(),
     revocado_en TIMESTAMPTZ,
-    ip          INET,
+    ip_origen   INET,
     user_agent  TEXT
 );
 
 CREATE INDEX idx_sesiones_usuario_usuario
     ON sesiones_usuario (usuario_id, creado_en DESC);
+
+-- ---------------------------------------------------------------------------
+-- 7. Campos y relaciones que forman parte del modelo entidad-relación vigente
+-- ---------------------------------------------------------------------------
+ALTER TABLE usuarios RENAME COLUMN nombre_completo TO nombre;
+ALTER TABLE usuarios ADD COLUMN apellidos VARCHAR(200) NOT NULL DEFAULT '';
+ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_email_key;
+CREATE UNIQUE INDEX uq_usuarios_email_lower ON usuarios (lower(email));
+
+ALTER TABLE versiones_documento
+    RENAME COLUMN confianza_promedio TO confianza_layout_promedio;
+ALTER TABLE versiones_documento
+    ADD COLUMN pipeline_version VARCHAR(100),
+    ADD COLUMN regla_id UUID REFERENCES reglas_anonimizacion(id) ON DELETE SET NULL,
+    ADD COLUMN es_actual BOOLEAN NOT NULL DEFAULT false;
+WITH ultimas AS (
+    SELECT id, ROW_NUMBER() OVER (PARTITION BY documento_id ORDER BY numero_version DESC) AS posicion
+    FROM versiones_documento
+)
+UPDATE versiones_documento v
+   SET es_actual = true
+  FROM ultimas u
+ WHERE v.id = u.id
+   AND u.posicion = 1;
+CREATE UNIQUE INDEX uq_versiones_documento_actual
+    ON versiones_documento (documento_id)
+    WHERE es_actual;
+
+ALTER TABLE anotaciones_entidad
+    ADD COLUMN regla_id UUID REFERENCES reglas_anonimizacion(id) ON DELETE SET NULL;
+
+ALTER TABLE categorias_sensibles
+    ADD COLUMN creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ADD COLUMN actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+
+ALTER TABLE reglas_anonimizacion
+    DROP CONSTRAINT IF EXISTS reglas_anonimizacion_codigo_key;
+CREATE UNIQUE INDEX uq_reglas_codigo_version
+    ON reglas_anonimizacion (codigo, version);
+CREATE UNIQUE INDEX uq_reglas_codigo_activa
+    ON reglas_anonimizacion (codigo)
+    WHERE activa;
+
+CREATE TABLE regla_categorias (
+    regla_id     UUID NOT NULL REFERENCES reglas_anonimizacion(id) ON DELETE CASCADE,
+    categoria_id UUID NOT NULL REFERENCES categorias_sensibles(id) ON DELETE CASCADE,
+    configuracion JSONB NOT NULL DEFAULT '{}',
+    PRIMARY KEY (regla_id, categoria_id)
+);

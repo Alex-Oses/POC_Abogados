@@ -1,6 +1,6 @@
 -- views.sql
 -- Vistas listas para consumo por API (Backend/Frontend)
--- Ejecutar DESPUÉS de V10__create_indexes.sql
+-- Ejecutar DESPUÉS de V15__flujo_revision_y_export.sql y de los índices.
 
 -- ============================================================
 -- 1. Documento con su versión actual + métricas rápidas
@@ -17,7 +17,7 @@ SELECT
     d.creado_en                   AS documento_creado_en,
     d.creado_por                  AS documento_creado_por,
     u.email                       AS creado_por_email,
-    -- Versión actual (la más alta)
+    -- Versión actual marcada en el modelo ER
     vd.id                         AS version_id,
     vd.numero_version,
     vd.tipo_version,
@@ -26,7 +26,7 @@ SELECT
     vd.ruta_pdf,
     vd.motor_ocr,
     vd.modelo_ia,
-    vd.confianza_promedio,
+    vd.confianza_layout_promedio,
     vd.metadatos_proceso,
     vd.creado_en                  AS version_creado_en,
     -- Conteos para UI
@@ -44,6 +44,7 @@ JOIN LATERAL (
     SELECT *
     FROM versiones_documento vd2
     WHERE vd2.documento_id = d.id
+      AND vd2.es_actual
     ORDER BY vd2.numero_version DESC
     LIMIT 1
 ) vd ON true
@@ -112,7 +113,7 @@ COMMENT ON VIEW v_entidades_pendientes_revision IS 'Cola priorizada para el revi
 CREATE OR REPLACE VIEW v_metricas_revisor AS
 SELECT
     u.id                          AS revisor_id,
-    u.nombre_completo             AS revisor_nombre,
+    concat_ws(' ', u.nombre, u.apellidos) AS revisor_nombre,
     u.email                       AS revisor_email,
     COUNT(DISTINCT r.id)          AS revisiones_totales,
     COUNT(DISTINCT r.id) FILTER (WHERE r.estado = 'aprobado') AS revisiones_aprobadas,
@@ -139,7 +140,7 @@ WHERE EXISTS (
     WHERE ur.usuario_id = u.id
       AND ur.rol = 'revisor'
 ) AND u.estado = 'activo'
-GROUP BY u.id, u.nombre_completo, u.email
+GROUP BY u.id, u.nombre, u.apellidos, u.email
 ORDER BY revisiones_totales DESC;
 
 COMMENT ON VIEW v_metricas_revisor IS 'KPIs por revisor: volumen, velocidad, calidad (para dashboard supervisor)';

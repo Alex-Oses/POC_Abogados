@@ -11,7 +11,8 @@
 |-------|------|-------|-------|-------------|
 | id | uuid | NO | PK | Identificador único |
 | email | varchar(255) | NO | UK | Email corporativo (login) |
-| nombre_completo | varchar(200) | NO | | Nombre + apellidos |
+| nombre | varchar(200) | NO | | Nombre |
+| apellidos | varchar(200) | NO | | Apellidos |
 | estado | varchar(20) | NO | | activo / bloqueado / baja |
 | motivo_baja | text | SÍ | | Motivo de la baja lógica |
 | eliminado_en | timestamptz | SÍ | | Fecha de baja lógica |
@@ -34,8 +35,9 @@
 | token_hash | text | NO | UK | Hash del token opaco; nunca el token |
 | creado_en | timestamptz | NO | | Inicio de sesión |
 | expira_en | timestamptz | NO | | Caducidad absoluta o de renovación |
+| ultimo_uso_en | timestamptz | NO | | Último uso; permite renovación deslizante hasta el tope duro |
 | revocado_en | timestamptz | SÍ | | Logout, cambio de roles, bloqueo o baja |
-| ip | inet | SÍ | | IP de origen, si está disponible |
+| ip_origen | inet | SÍ | | IP de origen, si está disponible |
 | user_agent | text | SÍ | | Agente del cliente |
 
 ---
@@ -51,6 +53,9 @@
 | nivel_riesgo | varchar(20) | NO | | alto / medio / bajo |
 | rgpd_especial | boolean | NO | | TRUE = Art. 9 RGPD (salud, genéticos, etc.) |
 | activa | boolean | NO | | Baja lógica catálogo |
+| prioridad | int | NO | | Orden cuando se solapan categorías |
+| creado_en | timestamptz | NO | | Alta del catálogo |
+| actualizado_en | timestamptz | NO | | Última modificación |
 
 ---
 
@@ -83,8 +88,11 @@
 | ruta_pdf | varchar(1000) | SÍ | | PDF renderizado de esta versión |
 | motor_ocr | varchar(50) | SÍ | | tesseract / paddleocr / azure / google |
 | modelo_ia | varchar(100) | SÍ | | presidio-es / spacy-es-lg / custom-ner-v1 |
-| confianza_promedio | decimal(4,3) | SÍ | | Media confianza entidades (0-1) |
+| pipeline_version | varchar(100) | SÍ | | Versión del pipeline OCR/layout |
+| confianza_layout_promedio | decimal(4,3) | SÍ | | Media de confianza del layout (0-1) |
 | metadatos_proceso | jsonb | NO | | {tiempo_ms, params, warnings, tokens} |
+| regla_id | uuid | SÍ | FK→reglas_anonimizacion | Regla aplicada |
+| es_actual | boolean | NO | | Una sola versión actual por documento |
 | creado_por | uuid | SÍ | FK→usuarios | NULL si automático |
 | creado_en | timestamptz | NO | | Timestamp creación versión |
 
@@ -94,7 +102,7 @@
 | Campo | Tipo | Nulos | Clave | Descripción |
 |-------|------|-------|-------|-------------|
 | id | uuid | NO | PK | Identificador |
-| codigo | varchar(50) | NO | UK | RGPD_ES / LOPD / CAT_CIVIL / PENAL_MENORES |
+| codigo | varchar(50) | NO | UK por versión | RGPD_ES / LOPD / CAT_CIVIL / PENAL_MENORES |
 | nombre | varchar(200) | NO | | Nombre legible |
 | descripcion | text | SÍ | | Qué cubre la regla |
 | configuracion | jsonb | NO | | Ver estructura abajo |
@@ -103,6 +111,13 @@
 | creado_por | uuid | SÍ | FK→usuarios | Admin que crea |
 | creado_en | timestamptz | NO | | |
 | actualizado_en | timestamptz | NO | | |
+
+## regla_categorias
+| Campo | Tipo | Nulos | Clave | Descripción |
+|-------|------|-------|-------|-------------|
+| regla_id | uuid | NO | PK, FK→reglas_anonimizacion | Regla |
+| categoria_id | uuid | NO | PK, FK→categorias_sensibles | Categoría incluida |
+| configuracion | jsonb | NO | | Acción, umbral y excepciones del par |
 
 **Estructura `configuracion` (JSONB):**
 ```json
@@ -117,3 +132,9 @@
   "pseudonimizado_prefijo": "[ENTIDAD_",
   "pseudonimizado_sufijo": "]"
 }
+
+## anotaciones_entidad (campos de relación)
+| Campo | Tipo | Nulos | Clave | Descripción |
+|-------|------|-------|-------|-------------|
+| regla_id | uuid | SÍ | FK→reglas_anonimizacion | Regla que produjo la anotación |
+| bloque_id | uuid | SÍ | FK→bloques_layout | Bloque cuyo contenido contiene los offsets |
