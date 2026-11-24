@@ -14,7 +14,7 @@ Resto:
 - [x] Stack del backend decidido: **Python 3.12 + FastAPI** · único stack para API, Presidio y PDF · C#/Java quedan como alternativas · [[0014-stack-backend-c-sharp-java-python]] · @Rubén
 - [ ] Implementar la identidad en `V15` editada: dos tablas, cinco columnas y la retirada de `rol`/`activo`, más vista, trigger y diccionario, manteniendo intacto el modelo lógico-relacional · [[0015-identidad-en-v15]] · @Rubén @Marina
 - [ ] Aceptar el modelo de roles: tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`** (decisión de @Marina, 18/11) · [[0012-identidad-y-roles]] · @Kevin @Alex
-- [ ] Completar el callback SSO del contrato con el registro OIDC del ICAT (ya hay dos rutas propuestas) · @Rubén @Kevin
+- [ ] Cerrar el registro OIDC del ICAT: `GET /auth/sso/login` y `GET /auth/sso/callback` ya están redactados como propuesta; solo falta que el ICAT entregue el registro · @Rubén @Kevin
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Rubén
 
 - [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
@@ -32,7 +32,7 @@ Resto:
 
 - [x] PDF final decidido: reconstrucción desde estructura con ReportLab, modo layout/secuencial, hash en la versión e idempotencia; responsabilidad de @Rubén · [[0007-generacion-pdf-final]] · 23/11/2026
 - [x] Consultas decididas (23/11, @Rubén): **SQL directo** con el driver y un mapeador fino (`psycopg` + `.sql`, o `Npgsql` + `Dapper` si 0014 cae en C#); sin SQLAlchemy y sin declarar el esquema · [[0013-consultas-sql-o-sqlalchemy-core]] · @Rubén
-- [x] Identidad resuelta (23/11, @Rubén): el SQL de [[0012-identidad-y-roles]] va al final de `V15` editada, sin `V13` ni `V16`; B1 resuelto en [[Coherencia]] · [[0015-identidad-en-v15]] · @Rubén
+- [x] Identidad decidida (23/11, @Rubén): el SQL de [[0012-identidad-y-roles]] va al final de `V15` editada, sin `V13` ni `V16`; B1 decidido en [[Coherencia]] y `V15` pendiente de editar · [[0015-identidad-en-v15]] · @Rubén
 - [x] Identidad decidida (20/11, @Rubén): SSO del ICAT sin gestión de cuentas y admin local solo de desarrollo · [[0009-identidad]] · @Rubén
 - [x] Roles confirmados (20/11, @Rubén): tabla `usuarios_roles (N:M)` de @Marina, sin pegas al `JOIN`/`EXISTS` de `v_metricas_revisor` ni al trigger de revisor · [[0012-identidad-y-roles]] · @Rubén
 

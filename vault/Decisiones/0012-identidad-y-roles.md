@@ -166,6 +166,6 @@ AND NOT EXISTS (
 
 - Decidido: **B**, sesión propia en `sesiones_usuario` (18/11). U-16 a U-20 siguen vigentes.
 - Decidido: **roles en tabla `usuarios_roles`** (@Marina, 18/11).
-- Votos de @Kevin y @Alex a este documento y a [[0009-identidad]]; falta que @Rubén confirme el cambio de los roles a tabla.
+- Votos de @Kevin y @Alex a este documento y a [[0009-identidad]]. El modelo de @Marina y la confirmación de @Rubén sobre `usuarios_roles` ya están en la cabecera.
 - Que @Marina acepte el resto del cambio de modelo (`estado`, `sso_subject`, sin `tokens_usuario`): el SQL de la sección «Para @Marina» va al final de `V15` ([[0015-identidad-en-v15]]).
 - Pedir al ICAT el registro de la aplicación OIDC.
