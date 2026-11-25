@@ -31,6 +31,8 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
 .tile{border:1px solid var(--line);border-radius:6px;padding:8px;font-size:12px;text-align:center;background:#fff;min-height:84px}
 .tile .pg{height:30px;margin:0 auto 6px;width:24px;background:repeating-linear-gradient(#ddd 0 2px,#fff 2px 5px);border:1px solid #ccc}
 .tile.run{border-color:var(--p)}
+.spinner{width:20px;height:20px;border:2px solid var(--line);border-top-color:var(--p);border-radius:50%;margin:0 auto 8px;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .tile.ok{border-color:var(--ok);background:var(--ok-bg)}
 .doc-s{font-size:12px;color:var(--m)}
 .result-card{margin-top:12px;padding:14px 18px}
@@ -159,11 +161,14 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
                 tile.id = 'tile' + n;
                 const pg = document.createElement('div');
                 pg.className = 'pg';
+                const spin = document.createElement('div');
+                spin.className = 'spinner';
+                spin.hidden = true;
                 const label = document.createElement('div');
                 label.textContent = 'Página ' + n;
                 const time = document.createElement('span');
                 time.className = 'doc-s';
-                tile.append(pg, label, time);
+                tile.append(pg, spin, label, time);
                 tiles.appendChild(tile);
             }
             markRunning(1);
@@ -187,7 +192,11 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
 
     function markRunning(n) {
         const tile = document.getElementById('tile' + n);
-        if (tile) tile.classList.add('run');
+        if (!tile) return;
+        tile.classList.add('run');
+        tile.setAttribute('aria-busy', 'true');
+        tile.querySelector('.pg').hidden = true;
+        tile.querySelector('.spinner').hidden = false;
     }
 
     function markDone(ev) {
@@ -195,6 +204,9 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
         if (!tile) return;
         tile.classList.remove('run');
         tile.classList.add('ok');
+        tile.removeAttribute('aria-busy');
+        tile.querySelector('.pg').hidden = false;
+        tile.querySelector('.spinner').hidden = true;
         tile.lastElementChild.textContent = ev.time + ' s';
     }
 
