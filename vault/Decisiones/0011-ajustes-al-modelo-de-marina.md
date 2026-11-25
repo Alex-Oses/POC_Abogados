@@ -48,7 +48,7 @@ Sobre el punto 10: el renombrado es `ALTER TABLE revisiones RENAME COLUMN reviso
 
 ## Las cinco preguntas abiertas de 0010
 
-**1. Geometría.** Se queda como está: **píxeles de la página renderizada** y `pagina_ancho`/`pagina_alto` en el propio bloque. Con `forma = quad|poly` se usa `puntos`, en las **mismas unidades** y con el mismo tamaño de página; el `bbox` se guarda siempre porque es el que sirve para filtrar por zona y para el `hit-test` del visor. No se normaliza a 0-1: PaddleOCR-VL devuelve `coordinate` en píxeles, normalizar pierde precisión y obliga a recalcular si cambia el dpi del render. Precisión: `DECIMAL(10,2)`, que es 0,01 px.
+**1. Geometría.** Se queda como está: **píxeles de la página renderizada** y `pagina_ancho`/`pagina_alto` en el propio bloque. Con `forma = quad|poly` se usa `puntos`, en las **mismas unidades** y con el mismo tamaño de página; el `bbox` se guarda siempre porque es el que sirve para filtrar por zona y para el `hit-test` del visor. No se normaliza a 0-1: el detector de layout devuelve `coordinate` en píxeles y normalizar pierde precisión. Corrección (25/11): PaddleOCR-VL 1.6 solo devuelve texto; esas coordenadas vienen de la capa del PDF o de un detector aparte. Precisión: `DECIMAL(10,2)`, que es 0,01 px.
 
 **2. `revisiones`.** `asignado_a` es «quien la tiene» (A-05/A-06) y `revisor_id` sobra: «quien la cerró» ya está en `auditoria` (`REVISION_APROBADA`/`REVISION_RECHAZADA` con `usuario_id`) y en `versiones_documento.creado_por` de la versión que crea el cierre. A-04 se implementa con `documento_id` + índice parcial único sobre `en_cola`/`en_proceso`.
 

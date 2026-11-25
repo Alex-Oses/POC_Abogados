@@ -74,6 +74,7 @@ CREATE OR REPLACE VIEW v_entidades_pendientes_revision AS
 SELECT
     ae.id                         AS anotacion_id,
     ae.version_id,
+    ae.bloque_id,
     vd.documento_id,
     d.nombre_original             AS documento_nombre,
     d.estado                      AS documento_estado,
@@ -88,12 +89,12 @@ SELECT
     ae.texto_sustitucion,
     ae.confianza_deteccion,
     ae.motor_deteccion,
-    ae.pagina_numero,
-    ae.bbox_x, ae.bbox_y, ae.bbox_ancho, ae.bbox_alto,
+    bl.pagina_numero,
     ae.creado_en                  AS detectado_en,
-    -- Contexto para UI (snippet alrededor)
-    SUBSTRING(vd.contenido_texto FROM GREATEST(1, ae.inicio_offset - 80) FOR 200) AS contexto_texto
+    -- Contexto para UI (snippet alrededor, dentro del bloque)
+    SUBSTRING(bl.contenido FROM GREATEST(1, ae.inicio_offset - 80) FOR 200) AS contexto_texto
 FROM anotaciones_entidad ae
+JOIN bloques_layout bl ON bl.id = ae.bloque_id
 JOIN versiones_documento vd ON vd.id = ae.version_id
 JOIN documentos d ON d.id = vd.documento_id
 JOIN categorias_sensibles cs ON cs.id = ae.categoria_id
@@ -180,6 +181,7 @@ CREATE OR REPLACE VIEW v_entidad_detalle_diff AS
 SELECT
     ae.id,
     ae.version_id,
+    ae.bloque_id,
     ae.categoria_id,
     cs.codigo AS categoria_codigo,
     cs.nombre AS categoria_nombre,
@@ -194,19 +196,11 @@ SELECT
     ae.revisado_en,
     ae.decision_revisor,
     ae.observaciones_revisor,
-    -- Versión original (tipo_version='ocr_texto') para comparar
-    v_orig.contenido_texto AS texto_original_completo,
-    v_orig.numero_version AS version_ocr_numero
+    -- Texto del bloque sobre el que cuentan los offsets (B3)
+    bl.contenido AS texto_bloque,
+    bl.pagina_numero
 FROM anotaciones_entidad ae
 JOIN categorias_sensibles cs ON cs.id = ae.categoria_id
-JOIN versiones_documento vd ON vd.id = ae.version_id
-JOIN LATERAL (
-    SELECT contenido_texto, numero_version
-    FROM versiones_documento v2
-    WHERE v2.documento_id = vd.documento_id
-      AND v2.tipo_version = 'ocr_texto'
-    ORDER BY v2.numero_version DESC
-    LIMIT 1
-) v_orig ON true;
+JOIN bloques_layout bl ON bl.id = ae.bloque_id;
 
-COMMENT ON VIEW v_entidad_detalle_diff IS 'Para componente UI diff: muestra entidad con texto OCR original completo';
+COMMENT ON VIEW v_entidad_detalle_diff IS 'Para componente UI diff: entidad y texto del bloque sobre el que cuentan sus offsets';

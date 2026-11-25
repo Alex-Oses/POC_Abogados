@@ -83,16 +83,16 @@
 | documento_id | uuid | NO | FK | Documento padre |
 | numero_version | int | NO | | 1,2,3... secuencial por documento |
 | tipo_version | varchar(30) | NO | | original / ocr_texto / anonimizado_ia / revisado_humano / final_aprobado |
-| contenido_texto | text | SÍ | | Texto plano (OCR o resultado) |
-| contenido_html | text | SÍ | | Texto con markup entidades para diff UI |
+| contenido_texto | text | SÍ | | Texto de origen leído por OCR/layout; nunca lleva aplicadas las sustituciones |
+| contenido_html | text | SÍ | | Markup de revisión sobre el mismo texto de origen; tampoco materializa sustituciones |
 | ruta_pdf | varchar(1000) | SÍ | | PDF renderizado de esta versión |
 | motor_ocr | varchar(50) | SÍ | | tesseract / paddleocr / azure / google |
 | modelo_ia | varchar(100) | SÍ | | presidio-es / spacy-es-lg / custom-ner-v1 |
 | pipeline_version | varchar(100) | SÍ | | Versión del pipeline OCR/layout |
 | confianza_layout_promedio | decimal(4,3) | SÍ | | Media de confianza del layout (0-1) |
-| metadatos_proceso | jsonb | NO | | {tiempo_ms, params, warnings, tokens} |
+| metadatos_proceso | jsonb | NO | | {tiempo_ms, params, warnings, tokens, estructura_path, hash_export} |
 | regla_id | uuid | SÍ | FK→reglas_anonimizacion | Regla aplicada |
-| es_actual | boolean | NO | | Una sola versión actual por documento |
+| es_actual | boolean | NO | | Una sola versión actual por documento; la mantiene `trg_version_auto_number` |
 | creado_por | uuid | SÍ | FK→usuarios | NULL si automático |
 | creado_en | timestamptz | NO | | Timestamp creación versión |
 
@@ -137,4 +137,6 @@
 | Campo | Tipo | Nulos | Clave | Descripción |
 |-------|------|-------|-------|-------------|
 | regla_id | uuid | SÍ | FK→reglas_anonimizacion | Regla que produjo la anotación |
-| bloque_id | uuid | SÍ | FK→bloques_layout | Bloque cuyo contenido contiene los offsets |
+| bloque_id | uuid | SÍ | FK compuesta→bloques_layout | Bloque cuyo `contenido` contiene los offsets; debe ser de la misma `version_id` |
+
+`inicio_offset` y `fin_offset` cuentan caracteres sobre `bloques_layout.contenido` del bloque enlazado, no sobre `versiones_documento.contenido_texto`. Una anotación sin `bloque_id` no se puede pintar en el PDF: el export la rechaza.

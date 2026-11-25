@@ -8,7 +8,7 @@
 
 El expediente se cierra con `POST /documents/{id}/export` (regla A-16 de [docs/reglas/aprobacion.md](../../docs/reglas/aprobacion.md)). Falta decidir **qué se guarda del original y cómo se reconstruye el PDF final**, con tres restricciones del proyecto:
 
-- El 95 % del corpus son escaneos procesados con PaddleOCR-VL 1.6 sobre Ollama, que devuelve **cajas por bloque** con `label`, `coordinate` y `orden_lectura`. No hay coordenadas por palabra ni estilos.
+- El 95 % del corpus son escaneos procesados con PaddleOCR-VL 1.6 sobre Ollama, que **devuelve solo texto**, sin coordenadas. Las cajas, si existen, vienen de la capa de texto del PDF original (`pypdf`) o de un detector de layout aparte (PP-Structure/`docling`) ejecutado al ingerir; si no hay ninguna, se usa un bloque sintético por página. No hay coordenadas por palabra ni estilos.
 - El PDF es lo único que sale del despacho: no puede contener texto recuperable del original.
 - El export tiene que consumir poco tiempo y recursos; no puede volver a pasar por OCR.
 
@@ -42,7 +42,7 @@ Se incrusta el raster original y se tapan las entidades con cajas opacas, dibuja
 - **Coste:** estructura 2-5 ms/página, render 3-8 ms/página; 100 páginas en menos de 1,5 s y sin GPU, frente a ~2 min de OCR.
 - **Fidelidad:** se conserva la maquetación, no el aspecto. Sellos, firmas manuscritas y ruido del escaneo no se reproducen.
 - **Modelo de datos:** no se toca. `versiones_documento.ruta_pdf` y `metadatos_proceso` ya existen; `hash_export` se guarda en `metadatos_proceso->>'hash_export'`.
-- **Geometría:** depende de que el OCR devuelva cajas. PaddleOCR-VL por Ollama con el prompt `OCR:` devuelve solo texto hoy; el export funciona en modo secuencial y gana la retícula original cuando el layout esté disponible.
+- **Geometría:** PaddleOCR-VL 1.6 solo devuelve texto. Las cajas se obtienen al principio, de la capa de texto del PDF o de un detector de layout aparte; si no hay, se crea un bloque sintético por página y el export funciona en modo `secuencial`, ganando la retícula original cuando el layout esté disponible. Corregido el 25/11/2026: la versión anterior decía que el OCR devolvía cajas.
 - **Responsable:** @Rubén implementa el backend Python, el proceso de exportación y ReportLab. @Alex mantiene el OCR que puede aportar bloques y geometría.
 - **Dependencias:** `fastapi`, `uvicorn`, `psycopg`, `reportlab`, `pypdf`. Nada de PyMuPDF (AGPL).
 - **Ejecución:** síncrona dentro de `POST /documents/{id}/export`; no vuelve a llamar al OCR ni a Presidio. Si se mide una cola necesaria, se introduce después sin cambiar la forma de los datos ni el propietario del export.

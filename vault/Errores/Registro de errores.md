@@ -4,6 +4,7 @@
 - **Autor:** @ia-opencode-maga369
 - **Creado:** 20/11/2026
 - **Actualizado:** 20/11/2026, tercera pasada: contrato contra `V1`-`V15`, export, RGPD y maqueta. Arreglados E-31, E-32, E-35, E-37, E-40, E-41, E-45, E-46, E-48, E-49 y E-50
+- **Actualizado (25/11/2026):** cerrados E-21, E-25 y E-52; offsets por bloque y correcciones del diseño del PDF final.
 - **Alcance:** los 41 ficheros versionados del repo (`README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/api/`, `docs/architecture/`, `docs/reglas/`, `docs/export/`, `docs/presidio.md`, `vault/`, `maqueta/`, `scripts/`) y, leídos enteros, las 14 migraciones (`V1`–`V12`, `V14`, `V15`), `views.sql`, `triggers.sql` y `partitioning.sql`.
 - **Para qué:** una sola lista de defectos, con evidencia, impacto y estado, para no reabrirlos ni volver a reportar lo descartado.
 - **Qué no es:** no sustituye al [[Tablero]] ni a [[Coherencia]]. Aquí van defectos comprobables; allí, decisiones y bloqueantes.
@@ -41,11 +42,11 @@
 | E-18 | P1 | La cola ordena por `nivel_riesgo DESC`, y como es texto pone «alto» el último | `views.sql:102` | abierto |
 | E-19 | P1 | Tres `JOIN` internos esconden documentos en las vistas | `views.sql:42,43-49,197-204` | abierto |
 | E-20 | P1 | `entidades_confirmadas` no conoce las acciones nuevas de V15 | `views.sql:53` | abierto |
-| E-21 | P1 | V15 dice que los offsets van por bloque; el contrato cerrado y las vistas, por texto completo | `V15:103-109`, `views.sql:94` | abierto |
+| E-21 | P1 | V15 dice que los offsets van por bloque; el contrato cerrado y las vistas, por texto completo | `V15:103-109`, `views.sql:94` | corregido (25/11): offsets por bloque; contrato, vistas y comentarios alineados |
 | E-22 | P2 | `MAX(numero_version) + 1` sin bloqueo: dos versiones simultáneas chocan con el único | `V4:6,20`, `triggers.sql:92-107` | abierto |
 | E-23 | P1 | La cadena de hashes se bifurca con dos inserciones simultáneas | `triggers.sql:55-87` | abierto |
 | E-24 | P1 | La auditoría atribuye el cambio de estado a quien subió el documento | `triggers.sql:225-228` | abierto |
-| E-25 | P1 | `anotaciones_entidad.bloque_id` puede apuntar a un bloque de otra versión | `V15:105-106` | abierto |
+| E-25 | P1 | `anotaciones_entidad.bloque_id` puede apuntar a un bloque de otra versión | `V15:105-106` | corregido (25/11): FK compuesta `(bloque_id, version_id)` |
 | E-26 | P2 | `reglas_anonimizacion.codigo UNIQUE` deja la columna `version` sin sentido | `V5:5-6` | abierto |
 | E-27 | P2 | `usuarios.email UNIQUE` distingue mayúsculas: `Ana@` y `ana@` son dos cuentas | `V1:5` | abierto |
 | E-28 | P2 | `V15` da por existente un único `(version_id, numero_intento)` que `V7` no creó | `V15:87-88`, `V7` | abierto |
@@ -72,6 +73,7 @@
 | E-49 | P2 | U-12 retirada dice que la ruta de recuperación «sigue existiendo»; el contrato la retiró | `reglas-de-negocio.md:193` vs `endpoints.md` §1 | **corregido** (20/11) |
 | E-50 | P2 | [[Modelo de datos]] da por abiertos B5 y B8 y dice que `preservar_formato_pdf = false` contradice 0007 | `Modelo de datos.md:245,248-249` | **corregido** (20/11) |
 | E-51 | P2 | `anotaciones_entidad` conserva `pagina_numero` y `bbox_*`, que no aparecen en el modelo ER vigente | `V6__create_anotaciones_entidad.sql` vs `Modelo de datos.md:147-165,247` | bloqueado: requiere decidir si se conservan como respaldo o se eliminan con plan de datos |
+| E-52 | P1 | El diseño del PDF final tenía lagunas: geometría, semántica del texto, `falso_negativo`, sobrescritura, concurrencia y offsets | `pdf.md`, 0007, `endpoints.md` §5-6 | corregido (25/11) |
 
 ---
 
@@ -185,12 +187,11 @@
 - **Arreglo.** `accion_aplicada <> 'pendiente_revision'` en vez de enumerar, que además no vuelve a romperse si el `CHECK` cambia.
 - **Estado.** abierto.
 
-### E-21 · V15 y el contrato no coinciden en dónde cuentan los offsets
+### E-21 · Offsets: el contrato y las vistas contaban sobre el texto completo
 
-- **Evidencia.** `V15:103-109` añade `bloque_id` y documenta que `inicio_offset` y `fin_offset` son índices «dentro de `bloques_layout.contenido`, no del texto completo». El contrato cerrado el 19/11 dice lo contrario: «los offsets son índices de carácter dentro de `versiones_documento.contenido_texto`: la anotación no apunta a un bloque de layout» (`docs/api/endpoints.md`, B3). Y `views.sql:94` corta el snippet de `vd.contenido_texto`, o sea que implementa la versión del contrato.
-- **Impacto.** Dos bases de offsets en el mismo repo. Si alguien implementa según V15, los offsets apuntan a otro sitio y el snippet del revisor sale mal. Además, `bloque_id` queda como columna sin uso.
-- **Arreglo.** Como la BD se declara definitiva, lo barato es alinear V15 con el contrato: corregir los dos `COMMENT ON COLUMN` y decidir si `bloque_id` se queda (documentado como «sin uso») o se retira antes de desplegar.
-- **Estado.** abierto.
+- **Evidencia histórica.** `V15:103-109` documentaba los offsets dentro de `bloques_layout.contenido`; el contrato de 19/11 decía `contenido_texto` y `views.sql` cortaba el snippet de la versión completa.
+- **Arreglo aplicado (25/11).** Se adopta la base del modelo ER: `inicio_offset` y `fin_offset` cuentan sobre `bloques_layout.contenido` del bloque `bloque_id`. Contrato, diccionario, vistas, `pdf.md` y `pendientes.md` quedan alineados. Una anotación sin bloque no se exporta.
+- **Estado.** corregido (25/11).
 
 ### E-24 · La auditoría atribuye los cambios de estado a quien subió el documento
 
@@ -205,12 +206,12 @@
 - **Arreglo.** O se añade `actualizado_por` a `documentos` y se rellena desde la aplicación, o el trigger saca el usuario de la revisión (`revisiones.asignado_a` de la versión afectada) cuando exista. Es una decisión de modelo, no un cambio de una línea: va con 0012.
 - **Estado.** abierto.
 
-### E-25 · Una anotación puede apuntar a un bloque de otra versión
+### E-25 · Una anotación podía apuntar a un bloque de otra versión
 
-- **Evidencia.** `V15:105-106` añade `anotaciones_entidad.bloque_id UUID REFERENCES bloques_layout(id)`, FK simple. La anotación ya tiene `version_id`, y nada obliga a que el bloque sea de esa versión.
-- **Impacto.** Un `bloque_id` cruzado deja offsets que no corresponden al texto de la anotación. La base lo acepta.
-- **Arreglo.** El mismo patrón que V15 usa para `revisiones`: `UNIQUE (id, version_id)` en `bloques_layout` y FK compuesta `(bloque_id, version_id)`.
-- **Estado.** abierto.
+- **Evidencia histórica.** `V15:105-106` añadía `anotaciones_entidad.bloque_id` con FK simple a `bloques_layout(id)`; nada obligaba a que el bloque fuera de la misma versión.
+- **Impacto.** Un `bloque_id` cruzado dejaba offsets que no corresponden al texto de la anotación. La base lo aceptaba.
+- **Arreglo aplicado (25/11).** `V15` añade `UNIQUE (id, version_id)` en `bloques_layout` y la FK compuesta `(bloque_id, version_id)` en `anotaciones_entidad`.
+- **Estado.** corregido (25/11).
 
 ---
 
@@ -463,6 +464,12 @@
 - **Impacto.** El esquema tiene dos fuentes potenciales de geometría. El backend debe usar `bloque_id` y no leer los campos legacy; eliminarlos ahora podría destruir datos si ya se cargaron.
 - **Bloqueo.** @Marina debe decidir si se conservan como respaldo o se eliminan con un plan de datos. No se toca el modelo ER.
 - **Estado.** bloqueado.
+
+### E-52 · El diseño del PDF final tenía lagunas que impedían implementarlo
+
+- **Evidencia.** `pdf.md` y 0007 se contradecían sobre si PaddleOCR-VL devuelve cajas; no estaba definido si `final_aprobado` guarda texto sustituido o de origen; `falso_negativo` podía dejar visible el dato; el export podía sobrescribir un PDF ya exportado; no había bloqueo ni escritura atómica; la vida de `estructura.json` no estaba definida; tablas, Unicode y offsets no tenían regla; `es_actual` no se mantenía al insertar versiones.
+- **Arreglo aplicado (25/11).** Se fija que PaddleOCR-VL 1.6 solo devuelve texto y que la geometría viene de la capa del PDF, de un detector de layout o de un bloque sintético por página. El texto de la versión es siempre el de origen y las sustituciones se aplican solo al generar salidas. `falso_negativo` exige `texto_sustitucion`. El export bloquea la fila, escribe de forma atómica, valida el hash y nunca regenera una versión exportada. La estructura se construye de forma perezosa y es regenerable. Se añaden reglas de tablas, Unicode NFC y offsets por bloque. `trg_version_auto_number` mantiene `es_actual`.
+- **Estado.** corregido (25/11).
 
 ---
 

@@ -75,7 +75,7 @@ La toma es un `UPDATE ... WHERE estado = 'en_cola'` de una sola sentencia. Si do
 
 ## 5. Revisión por anotaciones
 
-**Regla A-09 — no se aprueba con anotaciones pendientes (decidido).** Para cerrar en `aprobado`, toda anotación de la versión debe tener `decision_revisor` distinto de nulo. Si queda alguna, `422` con la lista de `anotacion_id` pendientes.
+**Regla A-09 — no se aprueba con anotaciones pendientes (decidido).** Para cerrar en `aprobado`, toda anotación de la versión debe tener `decision_revisor` distinto de nulo y un `bloque_id` válido. Si queda alguna, `422` con la lista de `anotacion_id` pendientes. El export vuelve a comprobarlo antes de escribir el PDF.
 
 No hay casilla de «revisado el resto»: es exactamente la clase de atajo que convierte una revisión en un trámite. Si negocio la pide, se implementa como campo explícito `revisado_resto` del cierre y se firma en `auditoria`, nunca como un «aprobar igualmente».
 
@@ -114,7 +114,7 @@ El visto bueno no es una segunda revisión: quien firma no re-anota, solo firma 
 
 **Regla A-17 — solo se exporta lo aprobado (decidido, 19/11).** `409` en cualquier otro estado, incluido `pendiente_visto_bueno`.
 
-**Regla A-18 — lo exportado es inmutable.** El hash SHA-256 del PDF se guarda **en la versión exportada**: `versiones_documento.metadatos_proceso->>'hash_export'`; la fecha, en `documentos.exportado_en`. La versión es la que se convierte en PDF, así que es ella la dueña del hash y `documentos` solo guarda su estado. Si el documento se reabre, la versión anterior conserva su hash y el PDF nuevo nace en otra versión. Sobrescribir el PDF de un expediente cerrado es exactamente lo que una auditoría no perdona.
+**Regla A-18 — lo exportado es inmutable.** El hash SHA-256 del PDF se guarda **en la versión exportada**: `versiones_documento.metadatos_proceso->>'hash_export'`; la fecha, en `documentos.exportado_en`. La versión es la que se convierte en PDF, así que es ella la dueña del hash y `documentos` solo guarda su estado. Si el documento se reabre, la versión anterior conserva su hash y el PDF nuevo nace en otra versión. Sobrescribir el PDF de un expediente cerrado es exactamente lo que una auditoría no perdona. Si el fichero falta o el hash no cuadra, el export responde `500` y se restaura de copia: nunca se regenera sobre la misma versión.
 
 **Regla A-19 — aprobar congela.** Tras `aprobado` no se crean versiones nuevas salvo reapertura explícita de un revisor, que **exige `comentario`**: crea una versión `anonimizado_ia` y una revisión nueva en `en_cola` con `numero_intento + 1`, y devuelve el documento a `en_revision`. Queda en `auditoria` quién reabrió y por qué. `cerrado_en` lo escribe el export, no la reapertura.
 

@@ -29,20 +29,20 @@ Con SSO, `password_hash` queda **solo** para el admin de desarrollo y la invitac
 
 **Decidido.** El PDF final se **reconstruye**: lienzo nuevo y texto nuevo, sin un píxel del escaneo. No es estética, es que el PDF es lo único que sale del despacho y no puede llevar capa oculta, metadatos ni una zona sin censurar. Se acepta la contrapartida: sellos, firmas manuscritas y textura no se reproducen.
 
-**El hueco.** `bloques_layout` ya existe en `V14`, pero las anotaciones guardan offsets sobre el texto completo y su propio `bbox`; el contrato ya se ha alineado con eso (no hay `bloque_id`). Y el OCR actual —PaddleOCR-VL por Ollama, prompt `OCR:`— devuelve **texto sin coordenadas**: hoy nada puede rellenar el `bbox` que pide la API.
+**El hueco (corregido el 25/11).** `bloques_layout` ya existe en `V14` y `V15` añade `anotaciones_entidad.bloque_id` con FK compuesta por versión: los offsets se cuentan sobre `bloques_layout.contenido`, no sobre el texto completo. PaddleOCR-VL 1.6 devuelve **texto sin coordenadas**; la geometría se obtiene al principio, de la capa de texto del PDF o de un detector de layout. Si no hay ninguna, se crea un bloque sintético por página para que existan offsets y el render secuencial funcione.
 
 **La salida acordada (17/11).** No se elige una fuente de geometría: se decide **por documento**, en este orden y quedándose con la primera que funcione.
 
 1. **Capa de texto del PDF subido** (`pypdf`): caja y origen disponibles, sin OCR y sin licencia AGPL.
 2. **Modelo de layout** (pipeline completo de PaddleOCR/PP-Structure, o `docling`): una pasada más por página.
-3. **Modo secuencial**: mismo orden y jerarquía, sin posiciones.
+3. **Modo secuencial**: mismo orden y jerarquía, sin posiciones; el texto se guarda en un bloque sintético por página.
 
 Lo aplicado queda en `origen_geometria` para que el render sea reproducible.
 
 **Lo que falta antes de implementar:**
 
 1. **Medir el corpus real**: qué proporción de los documentos del Colegio llega como PDF con texto. Sin ese dato no se sabe si la rama 2 se paga.
-2. ~~Crear `bloques_layout`~~: hecho en `V14`; los offsets se cuentan sobre `contenido_texto`.
+2. ~~Crear `bloques_layout`~~: hecho en `V14`; los offsets se cuentan sobre `bloques_layout.contenido` de cada bloque.
 3. **Decidir si el OCR es asíncrono por página** (I5). Las «dos lecturas» ya están decididas (A-24) y cuestan el doble de OCR (~1.375 pág/h en vez de 2.750).
 4. ~~Semáforo por página (B5)~~: `paginas_documento` ya tiene lector (`GET /documents/{id}/pages`).
 
@@ -55,7 +55,7 @@ Lo aplicado queda en `origen_geometria` para que el render sea reproducible.
 | `usuarios` | se añade al final de `V15` editada ([[0015-identidad-en-v15]]): fuera `rol`/`activo`; entran `estado`, `sso_subject`, `password_hash`, `motivo_baja` y `eliminado_en` | B1 | [[0015-identidad-en-v15]] |
 | `sesiones_usuario` | tabla nueva al final de `V15` editada, con `token_hash` y `expira_en` ([[0015-identidad-en-v15]]) | B1, U-16 a U-20 | 0012, [[0015-identidad-en-v15]] |
 | `documentos` | `hash_export` no existe: el hash vive en `versiones_documento.metadatos_proceso->>'hash_export'` (B8 cerrado 19/11) | B8 | 0007 |
-| `anotaciones_entidad` | sin `bloque_id`: el contrato ya cuenta los offsets sobre `contenido_texto` y usa el `bbox` de la detección | B3 | — |
+| `anotaciones_entidad` | `bloque_id` con FK compuesta por versión en `V15`; los offsets se cuentan sobre `bloques_layout.contenido`. Queda E-51: los `bbox_*` legacy no se usan | B3, E-21 | — |
 | `seudonimos` | no existe: la maqueta no puede prometer «taula de pseudònims xifrada i separada» | I2 | — |
 | `reglas_anonimizacion` | `accion_por_defecto` sigue en `tachado`; las reglas no deben prometer otro defecto | I1 | 0005 |
 | `configuracion_sistema` (seed) | motores OCR en cloud, `preservar_formato_pdf = true` y el timeout de 60 min siguen sembrados | H6 | — |

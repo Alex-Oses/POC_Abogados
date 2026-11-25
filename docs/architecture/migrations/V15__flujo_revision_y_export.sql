@@ -103,13 +103,25 @@ ALTER INDEX idx_revisiones_revisor_estado RENAME TO idx_revisiones_asignado_esta
 
 -- ---------------------------------------------------------------------------
 -- 3. anotaciones: una sola base de offsets (B3) y las acciones de I1
---    Los offsets son índices dentro de bloques_layout.contenido (contrato §5).
+--    Los offsets son índices dentro de bloques_layout.contenido, no del
+--    texto completo de la versión. Es la base que usa el export.
 -- ---------------------------------------------------------------------------
 ALTER TABLE anotaciones_entidad
-    ADD COLUMN bloque_id UUID REFERENCES bloques_layout(id) ON DELETE CASCADE;
+    ADD COLUMN bloque_id UUID;
 
 COMMENT ON COLUMN anotaciones_entidad.bloque_id IS 'Bloque sobre cuyo `contenido` cuentan inicio_offset y fin_offset (contrato §5)';
 COMMENT ON COLUMN anotaciones_entidad.inicio_offset IS 'Índice de carácter dentro de bloques_layout.contenido, no del texto completo';
+
+-- E-25: el bloque debe pertenecer a la misma versión que la anotación.
+ALTER TABLE bloques_layout
+    ADD CONSTRAINT uq_bloques_layout_id_version UNIQUE (id, version_id);
+
+ALTER TABLE anotaciones_entidad
+    ADD CONSTRAINT fk_anotaciones_bloque_version
+    FOREIGN KEY (bloque_id, version_id)
+    REFERENCES bloques_layout (id, version_id)
+    ON DELETE CASCADE;
+
 COMMENT ON COLUMN anotaciones_entidad.accion_aplicada IS 'censurar|censurar con etiqueta|iniciales|pseudonimizado|eliminado|mantenido|tachado(uso interno)|pendiente_revision';
 
 ALTER TABLE anotaciones_entidad DROP CONSTRAINT anotaciones_entidad_accion_aplicada_check;

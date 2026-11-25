@@ -98,6 +98,14 @@ BEGIN
         FROM versiones_documento
         WHERE documento_id = NEW.documento_id;
     END IF;
+
+    -- Modelo ER: la versión insertada pasa a ser la vigente (es_actual).
+    UPDATE versiones_documento
+       SET es_actual = false
+     WHERE documento_id = NEW.documento_id
+       AND es_actual;
+    NEW.es_actual := true;
+
     RETURN NEW;
 END;
 $$;
