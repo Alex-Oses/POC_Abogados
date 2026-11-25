@@ -13,11 +13,11 @@
 
 | ID | Regla | Estado |
 |---|---|---|
-| U-01 | Varios roles por usuario | propuesta (0012) |
+| U-01 | Varios roles por usuario | aceptada (0012) |
 | U-02 | El permiso se comprueba en el servidor | cerrada |
 | U-03 | Propiedad del recurso (solo transcriptor puro) | cerrada |
 | U-04 | El estado de la cuenta es explícito | cerrada |
-| U-05 | Alta por SSO | propuesta (0009/0012) |
+| U-05 | Alta por SSO | aceptada (0009/0012) |
 | U-06 | El primer admin se siembra | cerrada |
 | U-08 | La baja no borra | cerrada |
 | U-09 | Cambio de roles con efecto inmediato | cerrada |
@@ -59,7 +59,7 @@
 
 ## Usuarios
 
-**U-01 · Varios roles por usuario** *(propuesta, 0012)*
+**U-01 · Varios roles por usuario** *(aceptada, 0012)*
 Los roles viven en `usuarios_roles (usuario_id, rol)` (N:M) y el permiso es la **unión**. Hay tres roles: `transcriptor`, `revisor` y `admin`. El `supervisor` se elimina y sus funciones pasan al revisor.
 
 **U-02 · El permiso se comprueba en el servidor, siempre.**
@@ -71,7 +71,7 @@ Quien tiene **únicamente** el rol de transcriptor solo ve y opera sobre documen
 **U-04 · El estado de la cuenta es explícito.**
 `usuarios.estado` sustituye al booleano `activo`: `activo`, `bloqueado` o `baja`. Con un booleano no se distingue «invitado» de «bloqueado» y la auditoría no puede explicar por qué alguien no entra.
 
-**U-05 · Alta por SSO** *(propuesta, 0009/0012)*
+**U-05 · Alta por SSO** *(aceptada, 0009/0012)*
 No hay autoregistro, ni invitación, ni contraseñas de usuario. El primer acceso con SSO crea la ficha en `activo` y **sin roles**; un admin le asigna los suyos y hasta entonces no ve documentos.
 
 **U-06 · El primer admin se siembra.**

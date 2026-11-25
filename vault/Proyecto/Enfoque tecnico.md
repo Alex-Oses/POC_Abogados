@@ -100,7 +100,7 @@ La implementación pertenece al backend Python y a @Rubén. El endpoint `POST /d
 
 La segunda llamada a exportar sirve el fichero existente si su hash coincide y no vuelve a renderizar. Si el texto, el rango o el bloque están desincronizados, devuelve `409` y no escribe un PDF parcial.
 
-El OCR puede aportar geometría, Presidio puede aportar propuestas y el backend aplica las decisiones humanas. Ninguno compone el PDF: esa responsabilidad termina en `app/services/export.py` y su render de ReportLab.
+El OCR puede aportar geometría y Presidio puede aportar propuestas; ninguno compone el PDF. El backend aplica las decisiones humanas y compone el PDF en `app/services/export.py` con ReportLab.
 
 El hash del PDF pertenece a la versión en `versiones_documento.metadatos_proceso->>'hash_export'`; `documentos` solo conserva `exportado_en` (B8 resuelto).
 
@@ -146,9 +146,8 @@ Cada promesa del backend tiene su prueba; si no la tiene, no es una promesa:
 | Abierto | Quién | Qué bloquea |
 |---|---|---|
 | ~~[[0008-stack-backend]]~~ **Resuelta (23/11)**: [[0014-stack-backend-c-sharp-java-python]] acepta Python; C#/Java quedan como alternativas | — | — |
-| [[0009-identidad]]: SSO sin gestión de cuentas, admin local solo en desarrollo | @Kevin, @Marina, @Alex + registro OIDC del ICAT (1-2 semanas de terceros) | El login real y la primera ruta con permisos |
-| Modelo de datos ([[0010-modelo-de-datos]]): `usuarios_roles` (tabla N:M, decisión de @Marina) y sin `tokens_usuario` | @Marina | Editar `V15` ([[0015-identidad-en-v15]]) |
-| Sesión propia en `sesiones_usuario` ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | `V15`: la otra tabla nueva ([[0015-identidad-en-v15]]) |
+| Registro OIDC del ICAT para [[0009-identidad]] | @Rubén, @Kevin + ICAT (1-2 semanas de terceros) | El login real; las rutas y el flujo ya están redactados |
+| Implementar identidad y sesiones de [[0012-identidad-y-roles]] | @Rubén, @Marina | Editar `V15`, vista, trigger y diccionario ([[0015-identidad-en-v15]]) |
 | OCR síncrono o por página (I5) | sin dueño | La forma de las rutas de OCR |
 | Frontera fina con el ETL (§2) | @Rubén y @Yaser | Quién escribe bloques y anotaciones |
 

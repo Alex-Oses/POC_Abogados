@@ -1,8 +1,8 @@
 -- V15 · Flujo de revisión y export
 -- Base: el modelo de @Marina (vault/Proyecto/Modelo de datos.md), que manda.
 -- Cierra B4 y B7 de vault/Proyecto/Coherencia.md y baja A-04, A-05, A-15, A-19, A-20 y A-23.
--- Depende de 0005 (reglas de usuarios y aprobación): no aplicar antes de que se acepte.
--- El hash del PDF (B8) NO entra aquí: sigue abierto y tendrá su migración (ver 0011).
+-- 0005 está aceptada. B8 se resolvió sin migración: el hash vive en
+-- versiones_documento.metadatos_proceso->>'hash_export'.
 -- No borra datos: `revisiones.revisor_id` se renombra a `asignado_a`, no se tira.
 
 -- ---------------------------------------------------------------------------
@@ -26,10 +26,10 @@ ALTER TABLE documentos
     ADD COLUMN clave_cifrado       VARCHAR(100);
 
 COMMENT ON COLUMN documentos.requiere_visto_bueno IS 'A-15: se calcula al cerrar la revisión y se persiste; no se recalcula después';
-COMMENT ON COLUMN documentos.visto_bueno_por IS 'A-15: supervisor que firmó POST /documents/{id}/sign-off';
-COMMENT ON COLUMN documentos.cerrado_en IS 'A-19: cierre o reapertura del expediente (lo escribe el export, contrato §10)';
+COMMENT ON COLUMN documentos.visto_bueno_por IS 'A-15: revisor que firmó POST /documents/{id}/sign-off';
+COMMENT ON COLUMN documentos.cerrado_en IS 'A-19: cierre del expediente; lo escribe el export (contrato §10)';
 COMMENT ON COLUMN documentos.eliminado_en IS 'Borrado lógico de DELETE /documents/{id}; no borra versiones ni auditoría';
-COMMENT ON COLUMN documentos.exportado_en IS 'A-18: fecha del PDF definitivo (idempotente con el hash, pendiente de B8)';
+COMMENT ON COLUMN documentos.exportado_en IS 'A-18: fecha del PDF definitivo; el hash idempotente vive en la versión';
 COMMENT ON COLUMN documentos.clave_cifrado IS '0004: identificador de la clave con la que se cifró el original; nunca el material de la clave';
 
 -- `hash_sha256` deja de ser único global: dos personas pueden subir el mismo PDF.
@@ -71,6 +71,9 @@ UPDATE revisiones r
 
 ALTER TABLE revisiones ALTER COLUMN documento_id SET NOT NULL;
 
+ALTER TABLE revisiones
+    ADD CONSTRAINT uq_revisiones_version_intento UNIQUE (version_id, numero_intento);
+
 -- La FK compuesta garantiza que `documento_id` es el de verdad el de la versión:
 -- sin esto, el índice de A-04 podría vigilar un documento que no toca.
 ALTER TABLE versiones_documento
@@ -100,13 +103,25 @@ ALTER INDEX idx_revisiones_revisor_estado RENAME TO idx_revisiones_asignado_esta
 
 -- ---------------------------------------------------------------------------
 -- 3. anotaciones: una sola base de offsets (B3) y las acciones de I1
---    Los offsets son índices dentro de bloques_layout.contenido (contrato §5).
+--    Los offsets son índices dentro de bloques_layout.contenido, no del
+--    texto completo de la versión. Es la base que usa el export.
 -- ---------------------------------------------------------------------------
 ALTER TABLE anotaciones_entidad
-    ADD COLUMN bloque_id UUID REFERENCES bloques_layout(id) ON DELETE CASCADE;
+    ADD COLUMN bloque_id UUID;
 
 COMMENT ON COLUMN anotaciones_entidad.bloque_id IS 'Bloque sobre cuyo `contenido` cuentan inicio_offset y fin_offset (contrato §5)';
 COMMENT ON COLUMN anotaciones_entidad.inicio_offset IS 'Índice de carácter dentro de bloques_layout.contenido, no del texto completo';
+
+-- E-25: el bloque debe pertenecer a la misma versión que la anotación.
+ALTER TABLE bloques_layout
+    ADD CONSTRAINT uq_bloques_layout_id_version UNIQUE (id, version_id);
+
+ALTER TABLE anotaciones_entidad
+    ADD CONSTRAINT fk_anotaciones_bloque_version
+    FOREIGN KEY (bloque_id, version_id)
+    REFERENCES bloques_layout (id, version_id)
+    ON DELETE CASCADE;
+
 COMMENT ON COLUMN anotaciones_entidad.accion_aplicada IS 'censurar|censurar con etiqueta|iniciales|pseudonimizado|eliminado|mantenido|tachado(uso interno)|pendiente_revision';
 
 ALTER TABLE anotaciones_entidad DROP CONSTRAINT anotaciones_entidad_accion_aplicada_check;
@@ -171,3 +186,97 @@ INSERT INTO configuracion_sistema (clave, valor, descripcion) VALUES
      '{"lunes_a_viernes": "09:00-18:00", "festivos": []}',
      'A-20: horario laboral y festivos ISO (YYYY-MM-DD). Vacío = no se descuenta ningún festivo')
 ON CONFLICT (clave) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 6. Identidad y sesiones (0012, 0015; B1)
+--     La BD mantiene V1..V15: la identidad se añade al final de V15.
+--     Se sueltan las dependencias de rol/activo antes de retirar columnas.
+-- ---------------------------------------------------------------------------
+DROP VIEW IF EXISTS v_metricas_revisor;
+DROP TRIGGER IF EXISTS trg_revision_validar_revisor ON revisiones;
+DROP FUNCTION IF EXISTS trg_revision_validar_revisor();
+
+ALTER TABLE usuarios DROP COLUMN rol;
+
+CREATE TABLE usuarios_roles (
+    usuario_id UUID NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,
+    rol        VARCHAR(50) NOT NULL CHECK (rol IN ('transcriptor', 'revisor', 'admin')),
+    PRIMARY KEY (usuario_id, rol)
+);
+
+ALTER TABLE usuarios DROP COLUMN activo;
+ALTER TABLE usuarios
+    ADD COLUMN estado       VARCHAR(20) NOT NULL DEFAULT 'activo'
+        CHECK (estado IN ('activo', 'bloqueado', 'baja')),
+    ADD COLUMN motivo_baja  TEXT,
+    ADD COLUMN eliminado_en TIMESTAMPTZ,
+    ADD COLUMN sso_subject  TEXT UNIQUE,
+    ADD COLUMN password_hash TEXT;
+
+DROP INDEX IF EXISTS idx_usuarios_rol_activo;
+CREATE INDEX idx_usuarios_estado ON usuarios (estado);
+CREATE INDEX idx_usuarios_roles_rol ON usuarios_roles (rol);
+
+CREATE TABLE sesiones_usuario (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id  UUID NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,
+    token_hash  TEXT NOT NULL UNIQUE,
+    creado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expira_en   TIMESTAMPTZ NOT NULL,
+    ultimo_uso_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    revocado_en TIMESTAMPTZ,
+    ip_origen   INET,
+    user_agent  TEXT
+);
+
+CREATE INDEX idx_sesiones_usuario_usuario
+    ON sesiones_usuario (usuario_id, creado_en DESC);
+
+-- ---------------------------------------------------------------------------
+-- 7. Campos y relaciones que forman parte del modelo entidad-relación vigente
+-- ---------------------------------------------------------------------------
+ALTER TABLE usuarios RENAME COLUMN nombre_completo TO nombre;
+ALTER TABLE usuarios ADD COLUMN apellidos VARCHAR(200) NOT NULL DEFAULT '';
+ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_email_key;
+CREATE UNIQUE INDEX uq_usuarios_email_lower ON usuarios (lower(email));
+
+ALTER TABLE versiones_documento
+    RENAME COLUMN confianza_promedio TO confianza_layout_promedio;
+ALTER TABLE versiones_documento
+    ADD COLUMN pipeline_version VARCHAR(100),
+    ADD COLUMN regla_id UUID REFERENCES reglas_anonimizacion(id) ON DELETE SET NULL,
+    ADD COLUMN es_actual BOOLEAN NOT NULL DEFAULT false;
+WITH ultimas AS (
+    SELECT id, ROW_NUMBER() OVER (PARTITION BY documento_id ORDER BY numero_version DESC) AS posicion
+    FROM versiones_documento
+)
+UPDATE versiones_documento v
+   SET es_actual = true
+  FROM ultimas u
+ WHERE v.id = u.id
+   AND u.posicion = 1;
+CREATE UNIQUE INDEX uq_versiones_documento_actual
+    ON versiones_documento (documento_id)
+    WHERE es_actual;
+
+ALTER TABLE anotaciones_entidad
+    ADD COLUMN regla_id UUID REFERENCES reglas_anonimizacion(id) ON DELETE SET NULL;
+
+ALTER TABLE categorias_sensibles
+    ADD COLUMN creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ADD COLUMN actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+
+ALTER TABLE reglas_anonimizacion
+    DROP CONSTRAINT IF EXISTS reglas_anonimizacion_codigo_key;
+CREATE UNIQUE INDEX uq_reglas_codigo_version
+    ON reglas_anonimizacion (codigo, version);
+CREATE UNIQUE INDEX uq_reglas_codigo_activa
+    ON reglas_anonimizacion (codigo)
+    WHERE activa;
+
+CREATE TABLE regla_categorias (
+    regla_id     UUID NOT NULL REFERENCES reglas_anonimizacion(id) ON DELETE CASCADE,
+    categoria_id UUID NOT NULL REFERENCES categorias_sensibles(id) ON DELETE CASCADE,
+    configuracion JSONB NOT NULL DEFAULT '{}',
+    PRIMARY KEY (regla_id, categoria_id)
+);

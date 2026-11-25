@@ -46,7 +46,7 @@
 
 ## Roles
 
-`transcriptor` (T), `revisor` (R), `admin` (A). Un usuario puede tener **varios roles**; el permiso es la unión. **El rol `supervisor` se elimina** y sus funciones pasan al revisor ([[0012-identidad-y-roles]], propuesta).
+`transcriptor` (T), `revisor` (R), `admin` (A). Un usuario puede tener **varios roles**; el permiso es la unión. **El rol `supervisor` se elimina** y sus funciones pasan al revisor ([[0012-identidad-y-roles]], aceptada).
 
 Los roles se releen de la base de datos en cada petición: un token no arrastra los roles con los que se emitió. Las rutas marcadas `público` son las únicas que no exigen `Authorization`.
 
@@ -160,7 +160,7 @@ Autenticado. Cambia la contraseña y revoca todas las sesiones del usuario, incl
 
 Listado paginado. `estado` filtra por `activo|bloqueado|baja`; `roles` acepta un rol y devuelve quien lo tenga (la unión de roles decide el permiso, no un rol único).
 
-`200` → `{ "items": [ { "id", "email", "nombre", "apellidos", "roles", "estado", "ultimo_acceso" } ], "page", "limit", "total" }`.
+`200` → `{ "items": [ { "id", "email", "nombre", "apellidos", "roles", "estado" } ], "page", "limit", "total" }`.
 
 No hay alta: la ficha nace en el primer acceso por SSO, sin roles (U-05). Los roles y el estado se cambian con `PATCH`, y la cuenta del admin de desarrollo se siembra por variable de entorno (U-21).
 
@@ -207,7 +207,7 @@ Errores: `400`, `413`, `415`. `422` si el OCR no produce texto.
 
 ### `POST /transform/plain-text`
 
-Texto de la versión vigente (la de mayor `numero_version`), sin formato.
+Texto de la versión vigente (la marcada con `es_actual`, que es la de mayor `numero_version`), sin formato. **Aplica las decisiones de las anotaciones**: el resultado nunca contiene el texto de origen de una entidad confirmada, modificada o marcada como falso negativo.
 
 ```json
 { "id": "uuid" }
@@ -219,7 +219,7 @@ Errores: `404` si el documento no existe.
 
 ### `POST /transform/build`
 
-PDF maquetado de la versión vigente. Es vista previa: **no** cierra el expediente ni marca `exportado`. Se compone desde la estructura guardada, sin píxeles del original ([docs/export/pdf.md](../export/pdf.md)).
+PDF maquetado de la versión vigente. Es vista previa: **no** cierra el expediente ni marca `exportado`. Se compone desde la estructura guardada, sin píxeles del original ([docs/export/pdf.md](../export/pdf.md)). Si la vigente es `final_aprobado`, se usan los bloques de la versión revisada.
 
 ```json
 { "id": "uuid" }
@@ -251,7 +251,7 @@ Lista documentos. El transcriptor ve solo los suyos; el revisor ve todos. Excluy
     "id": "uuid",
     "numero_version": 2,
     "tipo_version": "ocr_texto",
-    "confianza_promedio": 0.973,
+    "confianza_layout_promedio": 0.973,
     "metadatos_proceso": { "pipeline_version": "v1.6" }
   }
 }
@@ -295,15 +295,15 @@ Errores: `404` si el documento o el fichero no existen, `410` si el original ya 
 
 ### `GET /documents/{id}/versions`
 
-`200` → `{ "items": [ { "numero_version", "tipo_version", "motor_ocr", "confianza_promedio", "creado_en" } ] }`.
+`200` → `{ "items": [ { "numero_version", "tipo_version", "motor_ocr", "confianza_layout_promedio", "creado_en" } ] }`.
 
 ### `GET /documents/{id}/versions/{numero_version}`
 
-`200` → la versión completa, incluido `contenido_texto` y `contenido_html`.
+`200` → la versión completa, incluido `contenido_texto` y `contenido_html`. El texto es el **de origen** de la versión: las sustituciones no se materializan aquí, sino al generar el PDF o el texto plano. Si la versión es `final_aprobado`, la ruta exige rol revisor o admin.
 
 ### `GET /documents/{id}/versions/{numero_version}/blocks?page=`
 
-Lo que pinta el visor. Una entrada por fila de `bloques_layout`.
+Lo que pinta el visor. Una entrada por fila de `bloques_layout`. Si la versión es `final_aprobado`, los bloques son los de la versión revisada (`revisiones.version_id`): la final no los duplica.
 
 ```json
 {
@@ -336,7 +336,7 @@ Las coordenadas están en píxeles de la página renderizada. Para `forma = "qua
 
 Aplica una regla sobre la versión vigente y crea una versión `anonimizado_ia` con sus anotaciones.
 
-Es el paso que prepara la revisión: el documento pasa a `anonimizando` y, al terminar, a `en_revision` con `anonimizado_ia` como versión vigente ([aprobacion.md](../reglas/aprobacion.md), A-03). El original cifrado no se toca: lo que se anonimiza es la copia que revisa el revisor y la que se exporta.
+Es el paso que prepara la revisión: el documento pasa a `anonimizando` y, al terminar, a `en_revision` con `anonimizado_ia` como versión vigente ([aprobacion.md](../reglas/aprobacion.md), A-03). El original cifrado no se toca: lo que se anonimiza es la copia que revisa el revisor y la que se exporta. Cada anotación se ancla al bloque de layout donde aparece (`bloque_id`); los offsets se cuentan dentro de ese bloque.
 
 ```json
 { "regla_id": "uuid" }
@@ -348,9 +348,9 @@ Errores: `404` si el documento o la regla no existen, `409` si ya hay un proceso
 
 ### `GET /documents/{id}/annotations?version=&categoria=&pendientes=true`
 
-`200` → `{ "items": [ { "id", "categoria", "inicio_offset", "fin_offset", "texto_original", "pagina_numero", "accion_aplicada", "confianza_deteccion", "decision_revisor" } ] }`.
+`200` → `{ "items": [ { "id", "bloque_id", "categoria", "inicio_offset", "fin_offset", "texto_original", "pagina_numero", "accion_aplicada", "confianza_deteccion", "decision_revisor" } ] }`.
 
-Los offsets son índices de carácter dentro de `versiones_documento.contenido_texto`: la anotación no apunta a un bloque de layout. `pagina_numero` y `bbox` los rellena la detección, no el layout. `version` filtra por `version_id`, `categoria` por `categoria_id` y `pendientes=true` por `decision_revisor IS NULL` (A-09).
+Los offsets son índices de carácter dentro de `bloques_layout.contenido` del bloque `bloque_id`: **no** se cuentan sobre el texto completo de la versión. Una anotación sin `bloque_id` no se puede pintar en el PDF y el export la rechaza. `version` filtra por `version_id`, `categoria` por `categoria_id` y `pendientes=true` por `decision_revisor IS NULL` (A-09). `pagina_numero` se toma del bloque.
 
 ### `PATCH /annotations/{id}`
 
@@ -367,7 +367,7 @@ Decisión del revisor sobre una entidad detectada.
 
 `200`. Rellena `revisado_por` y `revisado_en`. Cada cambio se audita.
 
-Errores: `409` si la revisión de esa versión no está `en_proceso`: cerrada la revisión, la anotación es de solo lectura (A-11).
+Errores: `409` si la revisión de esa versión no está `en_proceso`: cerrada la revisión, la anotación es de solo lectura (A-11). `confirmado`, `modificado` y `falso_negativo` exigen `texto_sustitucion`: el export pinta esa sustitución y nunca deja visible el texto de origen.
 
 ---
 
@@ -465,13 +465,16 @@ Errores: `409` si el documento no está en `pendiente_visto_bueno`.
 
 ### `POST /documents/{id}/export`
 
-Cierra el expediente. Genera el PDF definitivo desde la versión aprobada (ya anonimizada), guarda el hash en la versión (`metadatos_proceso->>'hash_export'`) y `exportado_en` en el documento, y lo pasa a `exportado`.
+Cierra el expediente. Genera el PDF definitivo desde la versión revisada y sus decisiones aprobadas, guarda el hash en la versión (`metadatos_proceso->>'hash_export'`) y `exportado_en` en el documento, y lo pasa a `exportado`.
+
+- Solo desde `aprobado`. Si ya está `exportado` y existen `ruta_pdf` y `hash_export`, devuelve el mismo binario y el mismo hash, sin regenerar.
+- La versión exportada **no se regenera ni se sobrescribe** (A-18). Si el fichero falta o el hash no cuadra, responde `500 EXPORT_INTEGRITY` y se restaura desde copia; nunca se genera un PDF nuevo sobre la misma versión.
+- La primera exportación bloquea la fila del documento (`SELECT … FOR UPDATE`), escribe el PDF en un temporal y lo renombra de forma atómica antes de actualizar `ruta_pdf`, `metadatos_proceso` y el estado en la misma transacción.
+- Si alguna anotación queda sin `decision_revisor` o sin `bloque_id`, no hay PDF: `422`.
 
 `200` → binario, `Content-Type: application/pdf`, `Content-Disposition: attachment; filename="documento.pdf"` y cabecera `X-Document-Hash` con el SHA-256.
 
-Errores: `409` si el documento no está `aprobado` ni `exportado`.
-
-Un documento ya exportado (`exportado`, con `ruta_pdf` y hash guardados) devuelve el mismo PDF y el mismo hash: la operación es idempotente y no reescribe nada. Cómo se genera: [docs/export/pdf.md](../export/pdf.md).
+Errores: `409` si el documento no está `aprobado` ni `exportado`, `422` si hay anotaciones pendientes o sin bloque, `500` si el fichero exportado no supera la comprobación de integridad.
 
 ---
 

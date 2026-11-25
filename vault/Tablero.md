@@ -12,9 +12,9 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 Resto:
 - [ ] Revisar el [[Registro de errores]] y decidir qué se corrige antes del 27/11: 34 defectos abiertos, 4 de ellos en el SQL (E-01, E-03, E-16 y E-17)
 - [x] Stack del backend decidido: **Python 3.12 + FastAPI** · único stack para API, Presidio y PDF · C#/Java quedan como alternativas · [[0014-stack-backend-c-sharp-java-python]] · @Rubén
-- [ ] Implementar la identidad en `V15` editada: dos tablas, cinco columnas y la retirada de `rol`/`activo`, más vista, trigger y diccionario, manteniendo intacto el modelo lógico-relacional · [[0015-identidad-en-v15]] · @Rubén @Marina
-- [ ] Aceptar el modelo de roles: tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`** (decisión de @Marina, 18/11) · [[0012-identidad-y-roles]] · @Kevin @Alex
-- [ ] Completar el callback SSO del contrato con el registro OIDC del ICAT (ya hay dos rutas propuestas) · @Rubén @Kevin
+- [x] Identidad implementada (24/11): `V15`, `v_metricas_revisor`, trigger de revisor y diccionario alineados con [[0012-identidad-y-roles]], manteniendo intacto el modelo lógico-relacional · [[0015-identidad-en-v15]] · @Rubén
+- [x] Modelo de roles aceptado (24/11, @Rubén): tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`**; @Kevin y @Alex pueden dejar constancia por Teams · [[0012-identidad-y-roles]] · @Rubén
+- [ ] Cerrar el registro OIDC del ICAT: `GET /auth/sso/login` y `GET /auth/sso/callback` ya están redactados como propuesta; solo falta que el ICAT entregue el registro · @Rubén @Kevin
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Rubén
 
 - [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
@@ -32,12 +32,13 @@ Resto:
 
 - [x] PDF final decidido: reconstrucción desde estructura con ReportLab, modo layout/secuencial, hash en la versión e idempotencia; responsabilidad de @Rubén · [[0007-generacion-pdf-final]] · 23/11/2026
 - [x] Consultas decididas (23/11, @Rubén): **SQL directo** con el driver y un mapeador fino (`psycopg` + `.sql`, o `Npgsql` + `Dapper` si 0014 cae en C#); sin SQLAlchemy y sin declarar el esquema · [[0013-consultas-sql-o-sqlalchemy-core]] · @Rubén
-- [x] Identidad resuelta (23/11, @Rubén): el SQL de [[0012-identidad-y-roles]] va al final de `V15` editada, sin `V13` ni `V16`; B1 resuelto en [[Coherencia]] · [[0015-identidad-en-v15]] · @Rubén
+- [x] Identidad decidida (24/11, @Rubén): el SQL de [[0012-identidad-y-roles]] está al final de `V15` editada, sin `V13` ni `V16`; B1 resuelto en [[Coherencia]] · [[0015-identidad-en-v15]] · @Rubén
 - [x] Identidad decidida (20/11, @Rubén): SSO del ICAT sin gestión de cuentas y admin local solo de desarrollo · [[0009-identidad]] · @Rubén
 - [x] Roles confirmados (20/11, @Rubén): tabla `usuarios_roles (N:M)` de @Marina, sin pegas al `JOIN`/`EXISTS` de `v_metricas_revisor` ni al trigger de revisor · [[0012-identidad-y-roles]] · @Rubén
 
 - [x] B8 cerrado (19/11, @Rubén): el hash del PDF es **de la versión**, en `versiones_documento.metadatos_proceso->>'hash_export'`; `documentos` solo guarda `exportado_en`. Sin `V16` · [[Coherencia]]
-- [x] Contrato cerrado sin tocar la BD: `GET /documents/{id}/pages` y `GET /documents/{id}/original` (B5), offsets de anotaciones sobre `contenido_texto` (B3), `/reopen` acepta `aprobado` con motivo (A-19) y A-17/A-24 decididas · `docs/api/endpoints.md`, `docs/reglas/` · @ia-opencode-ruben
+- [x] Contrato cerrado sin tocar la BD: `GET /documents/{id}/pages` y `GET /documents/{id}/original` (B5), `/reopen` acepta `aprobado` con motivo (A-19) y A-17/A-24 decididas · `docs/api/endpoints.md`, `docs/reglas/` · @ia-opencode-ruben
+- [x] Offsets de anotación por bloque (25/11): `bloque_id` con FK compuesta, contrato, vistas y `pdf.md` alineados con el modelo ER · [[0015-identidad-en-v15]] · @ia-opencode-ruben
 - [x] `/assign` y `/sign-off` se quedan en el contrato, en pausa (decisión de @Rubén, 19/11)
 - [x] Doble transcripción (A-24) decidida: dos lecturas, diff en `metadatos_proceso` y avisos en `paginas_documento.avisos` · @Rubén
 - [x] Revisión de coherencia de API, backend, usuarios y aprobación contra las reglas y el modelo: `actualizado_en`, estado `eliminado`, `paginas_documento`, A-09/A-11 y `sesiones_usuario.expira_en` · `docs/api/endpoints.md`, `docs/reglas/`, [[Enfoque tecnico]], [[0012-identidad-y-roles]] · @ia-opencode-ruben
