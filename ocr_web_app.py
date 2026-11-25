@@ -14,9 +14,11 @@ import json
 import base64
 import time
 import os
+import re
 import sys
 import glob
-from flask import Flask, render_template, request, jsonify, Response, stream_with_context
+import uuid
+from flask import Flask, render_template, request, jsonify, Response, stream_with_context, send_file
 
 # Adding repo path for imports
 repo = r'C:\\Users\\alex.oses.ext\\work_icat\\repo'
@@ -30,6 +32,9 @@ URL = 'http://localhost:11434'
 # Directorio para imágenes temporales de páginas PDF
 TEST_PDF_IMAGES = os.path.join(repo, 'test_pdf_images_web')
 os.makedirs(TEST_PDF_IMAGES, exist_ok=True)
+# Páginas de la subida actual: se muestran en el navegador mientras se transcriben
+PAGES_DIR = os.path.join(TEST_PDF_IMAGES, 'pages')
+os.makedirs(PAGES_DIR, exist_ok=True)
 
 
 def ocr_single_img(img_path):
@@ -58,7 +63,7 @@ def ocr_single_img(img_path):
         return 0, f"Error: {str(e)}"
 
 
-def convert_pdf_to_images(pdf_path, max_pages=500):
+def convert_pdf_to_images(pdf_path, upload_id, max_pages=500):
     """Convierte páginas PDF a imágenes usando PyMuPDF."""
     try:
         import fitz
@@ -69,8 +74,8 @@ def convert_pdf_to_images(pdf_path, max_pages=500):
         for page_num in range(num_pages):
             page = doc[page_num]
             pix = page.get_pixmap()
-            img_name = f"page_{page_num+1}.png"
-            img_path = os.path.join(TEST_PDF_IMAGES, img_name)
+            img_name = f"{upload_id}_page_{page_num+1}.png"
+            img_path = os.path.join(PAGES_DIR, img_name)
             pix.save(img_path)
             image_paths.append(img_path)
         
@@ -89,8 +94,8 @@ def convert_pdf_to_images(pdf_path, max_pages=500):
                 font = ImageFont.load_default()
             draw.text((50, 50), f"Página {page_num+1}", fill=(0, 0, 0), font=font)
             draw.text((50, 100), "Contenido PDF simulado", fill=(0, 0, 0), font=font)
-            img_name = f"page_{page_num+1}.png"
-            img_path = os.path.join(TEST_PDF_IMAGES, img_name)
+            img_name = f"{upload_id}_page_{page_num+1}.png"
+            img_path = os.path.join(PAGES_DIR, img_name)
             img.save(img_path, quality=100)
             image_paths.append(img_path)
         return image_paths, max_pages
@@ -122,11 +127,18 @@ def ocr():
     # Guardar PDF temporalmente
     pdf_path = os.path.join(TEST_PDF_IMAGES, 'uploaded.pdf')
     pdf_file.save(pdf_path)
+    upload_id = uuid.uuid4().hex
 
     def generate():
         try:
-            image_paths, num_pages = convert_pdf_to_images(pdf_path)
-            yield json.dumps({'type': 'start', 'total_pages': num_pages}) + '\n'
+            # Las páginas de la subida anterior ya no hacen falta
+            for old in glob.glob(os.path.join(PAGES_DIR, '*.png')):
+                try:
+                    os.remove(old)
+                except OSError:
+                    pass
+            image_paths, num_pages = convert_pdf_to_images(pdf_path, upload_id)
+            yield json.dumps({'type': 'start', 'total_pages': num_pages, 'upload_id': upload_id}) + '\n'
             total_time = 0
             total_chars = 0
             for i, img_path in enumerate(image_paths):
@@ -139,7 +151,7 @@ def ocr():
                     'page': i + 1,
                     'time': round(t, 2),
                     'chars': chars,
-                    'text': text[:300] + ("..." if len(text) > 300 else "")
+                    'text': text
                 }) + '\n'
             avg_time = total_time / num_pages if num_pages > 0 else 0
             yield json.dumps({
@@ -152,14 +164,19 @@ def ocr():
             }) + '\n'
         except Exception as e:
             yield json.dumps({'type': 'error', 'error': str(e)}) + '\n'
-        finally:
-            for f in glob.glob(os.path.join(TEST_PDF_IMAGES, '*.png')):
-                try:
-                    os.remove(f)
-                except OSError:
-                    pass
 
     return Response(stream_with_context(generate()), mimetype='application/x-ndjson')
+
+
+@app.route('/page/<upload_id>/<int:page>.png')
+def page_image(upload_id, page):
+    """Imagen de una página de la subida actual, para verla junto al texto."""
+    if not re.fullmatch(r'[0-9a-f]{32}', upload_id):
+        return '', 404
+    path = os.path.join(PAGES_DIR, f'{upload_id}_page_{page}.png')
+    if not os.path.exists(path):
+        return '', 404
+    return send_file(path, mimetype='image/png')
 
 
 if __name__ == '__main__':

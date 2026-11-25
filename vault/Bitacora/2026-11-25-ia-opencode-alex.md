@@ -8,6 +8,9 @@
 - Corregidos un `forEach` sin cerrar que rompía el script entero y el volcado del texto OCR con `innerHTML`, que se comía los `<` y `&`.
 - Verificado de extremo a extremo con un PDF de 2 páginas: `start` → dos eventos `page` con el texto exacto → `done` (119 s). También los errores: fichero no PDF (400) y sin fichero (400).
 
+- **Página y transcripción en paralelo**: cada subida recibe un `upload_id` y sus páginas se guardan en `test_pdf_images_web/pages`; se sirven en `GET /page/<upload_id>/<n>.png`, así que a la izquierda se ve la página del PDF y a la derecha su transcripción. Los tiles navegan y el panel sigue automáticamente la página que se está transcribiendo; solo deja de seguir si el usuario pincha un tile.
+- El texto llega al terminar cada página, no carácter a carácter: Ollama responde de una vez y el OCR no da parciales útiles.
+
 ## Siguiente
 
 - Decidir si la demo se prueba también en el servidor Arm64 o solo en local.

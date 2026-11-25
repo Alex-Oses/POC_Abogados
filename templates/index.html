@@ -25,21 +25,26 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
 .drop{border:2px dashed var(--line);border-radius:8px;padding:28px 22px;text-align:center;color:var(--m);background:#fff;margin-bottom:16px;width:100%;display:block}
 .drop b{color:var(--p)}
 .drop.over{border-color:var(--p);background:var(--p-bg)}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin:16px 0}
 .kpi{padding:14px 18px}.kpi b{font-size:26px;font-weight:500;display:block}.kpi span{font-size:12px;color:var(--m)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:18px}
-.tile{border:1px solid var(--line);border-radius:6px;padding:8px;font-size:12px;text-align:center;background:#fff;min-height:84px}
+.tile{border:1px solid var(--line);border-radius:6px;padding:8px;font-size:12px;text-align:center;background:#fff;min-height:84px;cursor:pointer}
 .tile .pg{height:30px;margin:0 auto 6px;width:24px;background:repeating-linear-gradient(#ddd 0 2px,#fff 2px 5px);border:1px solid #ccc}
 .tile.run{border-color:var(--p)}
-.spinner{width:20px;height:20px;border:2px solid var(--line);border-top-color:var(--p);border-radius:50%;margin:0 auto 8px;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+.tile.sel{box-shadow:0 0 0 2px var(--p-bg);border-color:var(--p)}
 .tile.ok{border-color:var(--ok);background:var(--ok-bg)}
-.doc-s{font-size:12px;color:var(--m)}
-.result-card{margin-top:12px;padding:14px 18px}
+.spinner{width:20px;height:20px;border:2px solid var(--line);border-top-color:var(--p);border-radius:50%;margin:0 auto 8px;animation:spin .8s linear infinite}
+.spinner.sm{width:12px;height:12px;margin:0;display:inline-block;vertical-align:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.viewer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:16px}
+.scan{padding:12px;display:flex;align-items:flex-start;justify-content:center;background:#E9E7E3;max-height:72vh;overflow:auto}
+.scan img{max-width:100%;height:auto;display:block;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.text-pane{padding:14px 18px;max-height:72vh;overflow:auto}
 .rc-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
 .chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 10px;border-radius:12px;white-space:nowrap}
 .chip.ok{background:var(--ok-bg);color:var(--ok)}.chip.bad{background:var(--p-bg);color:var(--p)}
 .ocr-text{white-space:pre-wrap;font-size:14px}
+@media(max-width:900px){.viewer{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -59,6 +64,14 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
     <input type="file" id="pdfFile" accept=".pdf" hidden>
 
     <section id="resultsSection" hidden>
+        <div class="card" id="tilesCard" hidden><div class="tiles" id="tiles"></div></div>
+        <div class="viewer" id="viewer" hidden>
+            <div class="card scan"><img id="pageImg" alt=""></div>
+            <div class="card text-pane">
+                <div class="rc-head"><strong id="viewerTitle"></strong><span class="chip" id="viewerChip"></span></div>
+                <div class="ocr-text" id="viewerText"></div>
+            </div>
+        </div>
         <div class="kpis" id="kpis" hidden>
             <div class="card kpi"><b id="kPages">0</b><span>páginas</span></div>
             <div class="card kpi"><b id="kTime">0 s</b><span>tiempo total</span></div>
@@ -66,8 +79,6 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
             <div class="card kpi"><b id="kRate">0</b><span>páginas / hora</span></div>
             <div class="card kpi"><b id="kChars">0</b><span>caracteres</span></div>
         </div>
-        <div class="card" id="tilesCard" hidden><div class="tiles" id="tiles"></div></div>
-        <div id="resultCards"></div>
     </section>
 </main>
 <script>
@@ -79,9 +90,19 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
     const kpis = document.getElementById('kpis');
     const tilesCard = document.getElementById('tilesCard');
     const tiles = document.getElementById('tiles');
-    const resultCards = document.getElementById('resultCards');
+    const viewer = document.getElementById('viewer');
+    const pageImg = document.getElementById('pageImg');
+    const viewerTitle = document.getElementById('viewerTitle');
+    const viewerChip = document.getElementById('viewerChip');
+    const viewerText = document.getElementById('viewerText');
 
+    let uploadId = null;
     let totalPages = 0;
+    let selected = 0;
+    let autoFollow = true;
+    const pageState = {};   // n -> 'pending' | 'running' | 'done'
+    const pageText = {};    // n -> texto completo
+    const pageInfo = {};    // n -> {time, chars}
 
     dropZone.addEventListener('click', () => pdfFile.click());
     pdfFile.addEventListener('change', e => handleFile(e.target.files[0]));
@@ -112,15 +133,20 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
             return;
         }
 
-        // Reiniciar la vista
         pageTitle.textContent = 'Transcribiendo · ' + file.name;
         pageSub.textContent = 'Modelo local PaddleOCR-VL · puede tardar cerca de un minuto por página.';
         resultsSection.hidden = false;
         kpis.hidden = true;
         tilesCard.hidden = true;
+        viewer.hidden = true;
         tiles.replaceChildren();
-        resultCards.replaceChildren();
+        uploadId = null;
         totalPages = 0;
+        selected = 0;
+        autoFollow = true;
+        for (const k of Object.keys(pageState)) delete pageState[k];
+        for (const k of Object.keys(pageText)) delete pageText[k];
+        for (const k of Object.keys(pageInfo)) delete pageInfo[k];
 
         const formData = new FormData();
         formData.append('pdf', file);
@@ -152,13 +178,18 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
 
     function handleEvent(ev) {
         if (ev.type === 'start') {
+            uploadId = ev.upload_id;
             totalPages = ev.total_pages;
             pageSub.textContent = `${ev.total_pages} página(s) · modelo local PaddleOCR-VL · puede tardar cerca de un minuto por página.`;
             tilesCard.hidden = false;
+            viewer.hidden = false;
             for (let n = 1; n <= ev.total_pages; n++) {
+                pageState[n] = 'pending';
                 const tile = document.createElement('div');
                 tile.className = 'tile';
                 tile.id = 'tile' + n;
+                tile.dataset.page = n;
+                tile.tabIndex = 0;
                 const pg = document.createElement('div');
                 pg.className = 'pg';
                 const spin = document.createElement('div');
@@ -169,13 +200,26 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
                 const time = document.createElement('span');
                 time.className = 'doc-s';
                 tile.append(pg, spin, label, time);
+                tile.addEventListener('click', () => { autoFollow = false; selectPage(n); });
+                tile.addEventListener('keydown', e => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); autoFollow = false; selectPage(n); }
+                });
                 tiles.appendChild(tile);
             }
+            pageState[1] = 'running';
             markRunning(1);
+            selectPage(1);
         } else if (ev.type === 'page') {
-            markDone(ev);
-            addResultCard(ev);
-            markRunning(ev.page + 1);
+            pageState[ev.page] = 'done';
+            pageText[ev.page] = ev.text;
+            pageInfo[ev.page] = { time: ev.time, chars: ev.chars };
+            markDone(ev.page);
+            if (selected === ev.page) renderViewer();
+            if (ev.page < totalPages) {
+                pageState[ev.page + 1] = 'running';
+                markRunning(ev.page + 1);
+                if (autoFollow) selectPage(ev.page + 1);
+            }
         } else if (ev.type === 'done') {
             pageTitle.textContent = 'Transcripción acabada';
             pageSub.textContent = `${ev.total_pages} página(s) en ${ev.total_time} s · media ${ev.avg_time_per_page} s por página`;
@@ -190,6 +234,35 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
         }
     }
 
+    function selectPage(n) {
+        if (!uploadId || n < 1 || n > totalPages) return;
+        selected = n;
+        for (const tile of tiles.children) tile.classList.toggle('sel', Number(tile.dataset.page) === n);
+        pageImg.src = `/page/${uploadId}/${n}.png`;
+        pageImg.alt = `Página ${n} del PDF`;
+        viewerTitle.textContent = 'Página ' + n;
+        renderViewer();
+    }
+
+    function renderViewer() {
+        const n = selected, state = pageState[n];
+        if (state === 'done') {
+            viewerChip.className = 'chip ok';
+            viewerChip.textContent = `${pageInfo[n].time} s · ${pageInfo[n].chars} caracteres`;
+            viewerText.textContent = pageText[n] || '(el modelo no ha detectado texto)';
+        } else if (state === 'running') {
+            const spin = document.createElement('span');
+            spin.className = 'spinner sm';
+            viewerChip.className = 'chip';
+            viewerChip.replaceChildren(spin, ' transcribiendo…');
+            viewerText.textContent = 'Esperando a que el modelo termine esta página…';
+        } else {
+            viewerChip.className = 'chip';
+            viewerChip.textContent = 'en cola';
+            viewerText.textContent = 'Todavía no transcrita.';
+        }
+    }
+
     function markRunning(n) {
         const tile = document.getElementById('tile' + n);
         if (!tile) return;
@@ -199,37 +272,15 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
         tile.querySelector('.spinner').hidden = false;
     }
 
-    function markDone(ev) {
-        const tile = document.getElementById('tile' + ev.page);
+    function markDone(n) {
+        const tile = document.getElementById('tile' + n);
         if (!tile) return;
         tile.classList.remove('run');
         tile.classList.add('ok');
         tile.removeAttribute('aria-busy');
         tile.querySelector('.pg').hidden = false;
         tile.querySelector('.spinner').hidden = true;
-        tile.lastElementChild.textContent = ev.time + ' s';
-    }
-
-    function addResultCard(result) {
-        const card = document.createElement('div');
-        card.className = 'card result-card';
-
-        const head = document.createElement('div');
-        head.className = 'rc-head';
-        const title = document.createElement('strong');
-        title.textContent = 'Página ' + result.page;
-        const chip = document.createElement('span');
-        chip.className = 'chip ' + (result.chars > 0 ? 'ok' : 'bad');
-        chip.textContent = `${result.time} s · ${result.chars} caracteres`;
-        head.append(title, chip);
-
-        // textContent: el texto del OCR puede contener < o & y rompería innerHTML
-        const text = document.createElement('div');
-        text.className = 'ocr-text';
-        text.textContent = result.text;
-
-        card.append(head, text);
-        resultCards.appendChild(card);
+        tile.lastElementChild.textContent = pageInfo[n].time + ' s';
     }
 </script>
 </body>
