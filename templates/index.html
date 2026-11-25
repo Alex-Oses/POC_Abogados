@@ -1,375 +1,130 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OCR PaddleOCR-VL 1.6 - Mini App</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-            background: #f5f7fa;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .upload-section {
-            background: #ffffff;
-            border-radius: 8px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border: 2px dashed #ccc;
-            transition: border-color 0.3s;
-        }
-
-        .upload-section:hover {
-            border-color: #4a90e2;
-        }
-
-        .upload-section.dragover {
-            border-color: #4a90e2;
-            background: #f0f7ff;
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background: #4a90e2;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            margin: 10px 5px 0 0;
-            transition: background 0.3s;
-        }
-
-        .btn:hover {
-            background: #357abd;
-        }
-
-        .btn:disabled {
-            background: #aabbcc;
-            cursor: not-allowed;
-        }
-
-        .btn:focus {
-            outline: 2px solid #fff;
-            outline-offset: 2px;
-        }
-
-        .drop-zone {
-            padding: 20px;
-            text-align: center;
-            color: #666;
-            transition: all 0.3s;
-        }
-
-        .drop-zone.dragover {
-            border-color: #4a90e2;
-            background: #e8f0f7;
-        }
-
-        .preview-area {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-            margin: 20px 0;
-            min-height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #888;
-        }
-
-        .results-section {
-            background: #ffffff;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-top: 20px;
-            display: none;
-        }
-
-        .results-section.visible {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .result-card {
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #eee;
-            border-radius: 4px;
-            background: #fafafa;
-        }
-
-        .result-card:last-child {
-            margin-bottom: 0;
-        }
-
-        .page-info {
-            font-size: 14px;
-            color: #555;
-            margin-bottom: 10px;
-        }
-
-        .page-info strong {
-            color: #333;
-        }
-
-        .ocr-text {
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-            margin-top: 10px;
-            white-space: pre-wrap;
-            font-size: 13px;
-            min-height: 80px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .stats {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 20px 0;
-            font-size: 14px;
-        }
-
-        .stat-item {
-            margin-bottom: 8px;
-        }
-
-        .stat-item strong {
-            color: #4a90e2;
-        }
-
-        .status {
-            padding: 8px 15px;
-            border-radius: 4px;
-            margin: 10px 0;
-            font-size: 14px;
-        }
-
-        .status.ready { background: #d4edda; color: #155724; }
-        .status.processing { background: #fff3cd; color: #856404; }
-        .status.complete { background: #d4edda; color: #155724; }
-        .status.error { background: #f8d7da; color: #721c24; }
-
-        progress {
-            width: 100%;
-            margin: 10px 0;
-        }
-
-        .progress-container {
-            background: #e9ecef;
-            border-radius: 4px;
-            height: 8px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: #4a90e2;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 10px;
-            }
-            h1 {
-                font-size: 20px;
-            }
-            .btn {
-                width: 100%;
-                margin: 5px 0;
-            }
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ICAT · Transcripción de documentos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--p:#B2051B;--p-bg:#FBEDEF;--t:#212121;--m:#5E5E5E;--bg:#F6F5F3;--line:#E2DFDA;--ok:#1F7A3A;--ok-bg:#E6F4EA;--w:#8A5A00;--w-bg:#FFF4D6;--f:#0B5CAD}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 Roboto,Arial,sans-serif;color:var(--t);background:var(--bg)}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--f);outline-offset:2px}
+header{background:#fff;border-bottom:2px solid var(--p);display:flex;align-items:center;gap:32px;padding:10px 28px}
+.logo{line-height:1.1}.logo b{font:400 26px Georgia,serif;color:#6B6B6B;letter-spacing:1px}.logo b i{font-style:normal;color:var(--p)}
+.logo small{display:block;font-size:11px;color:var(--m)}
+.sp{flex:1}
+.user{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--m)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--p);color:#fff;display:grid;place-items:center;font-weight:700;font-size:11px}
+main{max-width:1280px;margin:0 auto;padding:24px 28px 80px}
+h1{font-size:22px;font-weight:500;margin:0 0 4px}
+.sub{color:var(--m);font-size:13px;margin:0 0 20px}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px}
+.drop{border:2px dashed var(--line);border-radius:8px;padding:28px 22px;text-align:center;color:var(--m);background:#fff;margin-bottom:16px;width:100%;display:block}
+.drop b{color:var(--p)}
+.drop.over{border-color:var(--p);background:var(--p-bg)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:16px}
+.kpi{padding:14px 18px}.kpi b{font-size:26px;font-weight:500;display:block}.kpi span{font-size:12px;color:var(--m)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:18px}
+.tile{border:1px solid var(--line);border-radius:6px;padding:8px;font-size:12px;text-align:center;background:#fff;min-height:84px}
+.tile .pg{height:30px;margin:0 auto 6px;width:24px;background:repeating-linear-gradient(#ddd 0 2px,#fff 2px 5px);border:1px solid #ccc}
+.tile.run{border-color:var(--p)}
+.tile.ok{border-color:var(--ok);background:var(--ok-bg)}
+.doc-s{font-size:12px;color:var(--m)}
+.result-card{margin-top:12px;padding:14px 18px}
+.rc-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 10px;border-radius:12px;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}.chip.bad{background:var(--p-bg);color:var(--p)}
+.ocr-text{white-space:pre-wrap;font-size:14px}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>📄 OCR PaddleOCR-VL 1.6</h1>
-        
-        <div class="upload-section" id="uploadSection">
-            <p>Arrastra y suelta un archivo PDF aquí</p>
-            <input type="file" class="file-input" id="pdfFile" accept=".pdf">
-            <button class="btn" id="btnBrowse">Seleccionar PDF</button>
+<header>
+    <div class="logo"><b>ICA<i>T</i></b><small>Il·lustre Col·legi de l'Advocacia de Tarragona</small></div>
+    <span class="sp"></span>
+    <div class="user">Demo · PaddleOCR-VL 1.6 <span class="avatar" aria-hidden="true">OCR</span></div>
+</header>
+<main>
+    <h1 id="pageTitle">Transcripción de documentos escaneados</h1>
+    <p class="sub" id="pageSub">Sube un PDF y el modelo local lo transcribe página a página. Nada sale del servidor del Col·legi.</p>
+
+    <button class="drop" id="dropZone" type="button">
+        <b>Arrastra aquí tu PDF</b><br>
+        o haz clic para seleccionarlo · máximo 50 MB
+    </button>
+    <input type="file" id="pdfFile" accept=".pdf" hidden>
+
+    <section id="resultsSection" hidden>
+        <div class="kpis" id="kpis" hidden>
+            <div class="card kpi"><b id="kPages">0</b><span>páginas</span></div>
+            <div class="card kpi"><b id="kTime">0 s</b><span>tiempo total</span></div>
+            <div class="card kpi"><b id="kAvg">0 s</b><span>media por página</span></div>
+            <div class="card kpi"><b id="kRate">0</b><span>páginas / hora</span></div>
+            <div class="card kpi"><b id="kChars">0</b><span>caracteres</span></div>
         </div>
+        <div class="card" id="tilesCard" hidden><div class="tiles" id="tiles"></div></div>
+        <div id="resultCards"></div>
+    </section>
+</main>
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const pdfFile = document.getElementById('pdfFile');
+    const pageTitle = document.getElementById('pageTitle');
+    const pageSub = document.getElementById('pageSub');
+    const resultsSection = document.getElementById('resultsSection');
+    const kpis = document.getElementById('kpis');
+    const tilesCard = document.getElementById('tilesCard');
+    const tiles = document.getElementById('tiles');
+    const resultCards = document.getElementById('resultCards');
 
-        <div class="drop-zone" id="dropZone">
-            <p>O suelta el PDF aquí</p>
-            <p style="font-size: 12px; margin-top: 5px;">Formatos aceptados: .pdf (cualquier número de páginas)</p>
-        </div>
+    let totalPages = 0;
 
-        <div class="preview-area" id="previewArea">
-            <span>Vista previa del contenido se mostrará aquí</span>
-        </div>
+    dropZone.addEventListener('click', () => pdfFile.click());
+    pdfFile.addEventListener('change', e => handleFile(e.target.files[0]));
 
-        <!-- Barra de progreso en tiempo real -->
-        <div class="progress-container" id="progressBar">
-            <div class="progress-bar" id="progressBarFill"></div>
-        </div>
-        <div id="progressText">0 / 0 páginas (0%)</div>
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(name =>
+        dropZone.addEventListener(name, e => { e.preventDefault(); e.stopPropagation(); }));
+    ['dragenter', 'dragover'].forEach(name =>
+        dropZone.addEventListener(name, () => dropZone.classList.add('over')));
+    ['dragleave', 'drop'].forEach(name =>
+        dropZone.addEventListener(name, () => dropZone.classList.remove('over')));
+    dropZone.addEventListener('drop', e => {
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
 
-        <div class="results-section" id="resultsSection">
-            <h3>📊 Resultados de la Transcripción</h3>
-            
-            <div class="stats" id="stats">
-                <div class="stat-item">
-                    <strong>Páginas procesadas:</strong> <span id="pagesCount">0</span>
-                </div>
-                <div class="stat-item">
-                    <strong>Tiempo total:</strong> <span id="totalTime">0</span> s
-                </div>
-                <div class="stat-item">
-                    <strong>Promedio por página:</strong> <span id="avgTime">0</span> s
-                </div>
-                <div class="stat-item">
-                    <strong>Rendimiento estimado:</strong> <span id="pagesHour">0</span> pág/h
-                </div>
-                <div class="stat-item">
-                    <strong>Total de caracteres:</strong> <span id="totalChars">0</span>
-                </div>
-            </div>
+    function showError(message) {
+        pageTitle.textContent = 'No se pudo transcribir';
+        pageSub.textContent = message;
+        resultsSection.hidden = true;
+    }
 
-            <div id="resultCards"></div>
-        </div>
-
-        <div id="status" class="status ready"></div>
-    </div>
-
-    <script>
-        const uploadSection = document.getElementById('uploadSection');
-        const dropZone = document.getElementById('dropZone');
-        const pdfFile = document.getElementById('pdfFile');
-        const btnBrowse = document.getElementById('btnBrowse');
-        const resultsSection = document.getElementById('resultsSection');
-        const statusEl = document.getElementById('status');
-        const resultCards = document.getElementById('resultCards');
-        const stats = document.getElementById('stats');
-        const pagesCount = document.getElementById('pagesCount');
-        const totalTime = document.getElementById('totalTime');
-        const avgTime = document.getElementById('avgTime');
-        const pagesHour = document.getElementById('pagesHour');
-        const totalChars = document.getElementById('totalChars');
-        const previewArea = document.getElementById('previewArea');
-        const progressBar = document.getElementById('progressBarFill');
-        const progressText = document.getElementById('progressText');
-
-        let totalPages = 0;
-        let pagesProcessed = 0;
-
-        // Manejar clic en botón
-        btnBrowse.addEventListener('click', () => pdfFile.click());
-
-        // Manejar selección de archivo
-        pdfFile.addEventListener('change', handleFileSelect);
-
-        // Manejar arrastrar y soltar
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
+    function handleFile(file) {
+        if (!file || !file.name.toLowerCase().endsWith('.pdf')) {
+            showError('Selecciona un archivo PDF.');
+            return;
+        }
+        if (file.size > 50 * 1024 * 1024) {
+            showError('El archivo es muy grande (máximo 50 MB).');
+            return;
         }
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'));
-        });
+        // Reiniciar la vista
+        pageTitle.textContent = 'Transcribiendo · ' + file.name;
+        pageSub.textContent = 'Modelo local PaddleOCR-VL · puede tardar cerca de un minuto por página.';
+        resultsSection.hidden = false;
+        kpis.hidden = true;
+        tilesCard.hidden = true;
+        tiles.replaceChildren();
+        resultCards.replaceChildren();
+        totalPages = 0;
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'));
-        });
+        const formData = new FormData();
+        formData.append('pdf', file);
 
-        dropZone.addEventListener('drop', handleDrop);
-
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
-            }
-        }
-
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            handleFile(file);
-        }
-
-        function handleFile(file) {
-            if (!file || !file.name.endsWith('.pdf')) {
-                alert('Por favor selecciona un archivo PDF');
-                return;
-            }
-
-            if (file.size > 50 * 1024 * 1024) { // 50MB limit
-                alert('El archivo es muy grande (máx. 50MB)');
-                return;
-            }
-
-            // Reset UI
-            resultsSection.classList.add('visible');
-            statusEl.className = 'status processing';
-            statusEl.textContent = 'Iniciando proceso OCR...';
-            
-            // Limpiar resultados anteriores
-            resultCards.innerHTML = '';
-            pagesCount.textContent = '0';
-            totalTime.textContent = '0';
-            avgTime.textContent = '0';
-            pagesHour.textContent = '0';
-            totalChars.textContent = '0';
-            progressBar.style.width = '0%';
-            progressText.textContent = '0 / 0 páginas (0%)';
-            
-            const formData = new FormData();
-            formData.append('pdf', file);
-
-            // Enviar el PDF y leer la respuesta en streaming (NDJSON):
-            // una línea por evento: start, page, done o error.
-            fetch('/ocr', {
-                method: 'POST',
-                body: formData
-            })
+        // La respuesta es NDJSON: una línea por evento (start, page, done, error).
+        fetch('/ocr', { method: 'POST', body: formData })
             .then(async response => {
                 if (!response.ok) {
                     const err = await response.json().catch(() => ({}));
@@ -390,73 +145,80 @@
                     }
                 }
             })
-            .catch(error => {
-                statusEl.className = 'status error';
-                statusEl.textContent = 'Error: ' + error.message;
-                console.error('Error:', error);
-            });
-        }
+            .catch(error => showError('Error: ' + error.message));
+    }
 
-        function handleEvent(ev) {
-            if (ev.type === 'start') {
-                totalPages = ev.total_pages;
-                pagesProcessed = 0;
-                statusEl.textContent = `Procesando ${totalPages} página(s)...`;
-            } else if (ev.type === 'page') {
-                addResultCard(ev);
-            } else if (ev.type === 'done') {
-                showFinalResults(ev);
-            } else if (ev.type === 'error') {
-                statusEl.className = 'status error';
-                statusEl.textContent = 'Error: ' + ev.error;
+    function handleEvent(ev) {
+        if (ev.type === 'start') {
+            totalPages = ev.total_pages;
+            pageSub.textContent = `${ev.total_pages} página(s) · modelo local PaddleOCR-VL · puede tardar cerca de un minuto por página.`;
+            tilesCard.hidden = false;
+            for (let n = 1; n <= ev.total_pages; n++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.id = 'tile' + n;
+                const pg = document.createElement('div');
+                pg.className = 'pg';
+                const label = document.createElement('div');
+                label.textContent = 'Página ' + n;
+                const time = document.createElement('span');
+                time.className = 'doc-s';
+                tile.append(pg, label, time);
+                tiles.appendChild(tile);
             }
+            markRunning(1);
+        } else if (ev.type === 'page') {
+            markDone(ev);
+            addResultCard(ev);
+            markRunning(ev.page + 1);
+        } else if (ev.type === 'done') {
+            pageTitle.textContent = 'Transcripción acabada';
+            pageSub.textContent = `${ev.total_pages} página(s) en ${ev.total_time} s · media ${ev.avg_time_per_page} s por página`;
+            kpis.hidden = false;
+            document.getElementById('kPages').textContent = ev.total_pages;
+            document.getElementById('kTime').textContent = ev.total_time + ' s';
+            document.getElementById('kAvg').textContent = ev.avg_time_per_page + ' s';
+            document.getElementById('kRate').textContent = ev.pages_per_hour_estimate;
+            document.getElementById('kChars').textContent = ev.total_chars;
+        } else if (ev.type === 'error') {
+            showError(ev.error);
         }
+    }
 
-        function showFinalResults(data) {
-            statusEl.className = 'status complete';
-            statusEl.textContent = '¡Proceso completado!';
-            
-            // Actualizar estadísticas finales
-            pagesCount.textContent = data.total_pages || pagesProcessed;
-            totalTime.textContent = data.total_time || '0';
-            avgTime.textContent = data.avg_time_per_page || '0';
-            pagesHour.textContent = data.pages_per_hour_estimate || '0';
-            totalChars.textContent = data.total_chars || '0';
-            
-            // Asegurar que la barra esté completa
-            updateProgressBar(totalPages, totalPages);
-            progressBar.style.width = '100%';
-            progressText.textContent = `${totalPages} / ${totalPages} páginas (100%)`;
-        }
+    function markRunning(n) {
+        const tile = document.getElementById('tile' + n);
+        if (tile) tile.classList.add('run');
+    }
 
-        function addResultCard(result) {
-            const card = document.createElement('div');
-            card.className = 'result-card';
-            const info = document.createElement('div');
-            info.className = 'page-info';
-            const title = document.createElement('strong');
-            title.textContent = `Página ${result.page}`;
-            const meta = document.createElement('span');
-            meta.textContent = ` (${result.time}s, ${result.chars} chars)`;
-            info.append(title, meta);
-            // textContent: el texto del OCR puede contener < o & y rompería innerHTML
-            const text = document.createElement('div');
-            text.className = 'ocr-text';
-            text.id = `textPage${result.page}`;
-            text.textContent = result.text;
-            card.append(info, text);
-            resultCards.appendChild(card);
-            
-            // Actualizar barra de progreso
-            pagesProcessed = result.page;
-            updateProgressBar(pagesProcessed, totalPages);
-        }
+    function markDone(ev) {
+        const tile = document.getElementById('tile' + ev.page);
+        if (!tile) return;
+        tile.classList.remove('run');
+        tile.classList.add('ok');
+        tile.lastElementChild.textContent = ev.time + ' s';
+    }
 
-        function updateProgressBar(current, total) {
-            const percentage = total > 0 ? (current / total) * 100 : 0;
-            progressBar.style.width = `${percentage}%`;
-            progressText.textContent = `${current} / ${total} páginas (${Math.round(percentage)}%)`;
-        }
-    </script>
+    function addResultCard(result) {
+        const card = document.createElement('div');
+        card.className = 'card result-card';
+
+        const head = document.createElement('div');
+        head.className = 'rc-head';
+        const title = document.createElement('strong');
+        title.textContent = 'Página ' + result.page;
+        const chip = document.createElement('span');
+        chip.className = 'chip ' + (result.chars > 0 ? 'ok' : 'bad');
+        chip.textContent = `${result.time} s · ${result.chars} caracteres`;
+        head.append(title, chip);
+
+        // textContent: el texto del OCR puede contener < o & y rompería innerHTML
+        const text = document.createElement('div');
+        text.className = 'ocr-text';
+        text.textContent = result.text;
+
+        card.append(head, text);
+        resultCards.appendChild(card);
+    }
+</script>
 </body>
 </html>

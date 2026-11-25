@@ -2,6 +2,7 @@
 
 ## Hecho
 
+- **Diseño de la maqueta aplicado**: cabecera ICAT, Roboto y los tokens de color de `maqueta/index.html`; una sola zona de arrastre y tiles por página (pendiente → en curso → verde con su tiempo) en lugar de la barra de progreso, y los resultados como tarjetas con el texto completo. Se mantiene una sola página (decisión de @Alex) en vez del flujo de tres vistas de la maqueta.
 - **App demo de OCR**: `ocr_web_app.py` (Flask) convierte el PDF a imágenes con PyMuPDF y lo manda página a página a PaddleOCR-VL 1.6 por Ollama; `templates/index.html` sube el PDF y muestra la transcripción por página.
 - **Progreso real**: `/ocr` responde con NDJSON en streaming (`start`, `page`, `done`, `error`) y el navegador lo lee con `response.body.getReader()`. Antes la barra consultaba un endpoint de mentira que siempre decía «procesando».
 - Corregidos un `forEach` sin cerrar que rompía el script entero y el volcado del texto OCR con `innerHTML`, que se comía los `<` y `&`.
