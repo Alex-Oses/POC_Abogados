@@ -1,6 +1,6 @@
 # Usuarios — ciclo de vida, roles y sesiones
 
-**Estado:** propuesta; roles e identidad en revisión por [[0012-identidad-y-roles]] (18/11/2026).
+**Estado:** aceptada (24/11/2026); roles e identidad según [[0012-identidad-y-roles]] y [[0015-identidad-en-v15]].
 **Lista completa para revisar:** [`reglas-de-negocio.md`](reglas-de-negocio.md) (U-01 a U-21 y A-01 a A-24 en un solo fichero).
 **Contrato HTTP:** `docs/api/endpoints.md` (aquí solo se referencian rutas, no se redefinen).
 **Modelo de datos:** `docs/architecture/` (migraciones Flyway).
@@ -17,7 +17,7 @@ Quién puede entrar, qué puede hacer y cómo se le retira el acceso. No describ
 | `revisor` | Abogado que valida la anonimización | Todos los documentos en revisión, asignación, visto bueno y auditoría |
 | `admin` | Sistemas | Usuarios y roles, reglas, categorías y configuración |
 
-**Regla U-01 — varios roles por usuario (propuesto, [[0012-identidad-y-roles]]).** Los roles viven en la tabla **`usuarios_roles (usuario_id, rol)`** (N:M) y el permiso es la **unión**. `usuarios.rol` desaparece. Hay tres roles: `transcriptor`, `revisor` y `admin`; **el supervisor se elimina** y sus funciones pasan al revisor.
+**Regla U-01 — varios roles por usuario ([[0012-identidad-y-roles]]).** Los roles viven en la tabla **`usuarios_roles (usuario_id, rol)`** (N:M) y el permiso es la **unión**. `usuarios.rol` desaparece. Hay tres roles: `transcriptor`, `revisor` y `admin`; **el supervisor se elimina** y sus funciones pasan al revisor.
 
 *Riesgo asumido:* un rol único obligaba a cuentas duplicadas cuando la misma persona sube, revisa y administra. Con roles múltiples, la separación de funciones ya no la da el rol: la darían A-07 (nadie revisa lo suyo) y A-15 (otro revisor firma), ambas retiradas o en pausa, así que hoy un revisor puede revisar y cerrar un documento que subió él.
 
@@ -57,7 +57,7 @@ activo → bloqueado → activo
 
 **Regla U-04 — el estado es explícito.** `usuarios.estado` sustituye al booleano `activo`. Con un booleano no se distingue «bloqueado» de «baja», y la auditoría no puede explicar por qué alguien no entra.
 
-**Regla U-05 — alta por SSO (propuesta en [[0009-identidad]] y [[0012-identidad-y-roles]]).** No hay autoregistro, ni invitación, ni contraseñas de usuario. El primer acceso con SSO crea la ficha en `activo` y **sin roles**; un admin le asigna los suyos y hasta entonces no ve documentos. El administrador de desarrollo se siembra por variable de entorno (U-21).
+**Regla U-05 — alta por SSO ([[0009-identidad]] y [[0012-identidad-y-roles]]).** No hay autoregistro, ni invitación, ni contraseñas de usuario. El primer acceso con SSO crea la ficha en `activo` y **sin roles**; un admin le asigna los suyos y hasta entonces no ve documentos. El administrador de desarrollo se siembra por variable de entorno (U-21).
 
 **Regla U-06 — el primer admin se siembra.** El admin de desarrollo se crea por variable de entorno, nunca por endpoint público. Sin esta regla, el sistema no arranca. No se despliega en producción (U-21).
 
@@ -98,7 +98,7 @@ Con SSO ([[0009-identidad]]), esta sección ya solo mira al **admin de desarroll
 | Caducidad de la sesión | `sesiones_usuario.expira_en` (tabla nueva; U-16 y U-18 lo necesitan) | U-18 |
 | Orden de antigüedad de sesiones | `sesiones_usuario.creado_en` (la misma tabla) | U-17 |
 
-Ninguna de estas columnas está todavía en `docs/architecture/`: la BD (`V1`-`V15`) es definitiva y no habrá `V13`, así que se añaden al final de `V15` editada ([[0015-identidad-en-v15]]). El SQL exacto está en [[0012-identidad-y-roles]], sección «Para @Marina: el SQL de `V15`».
+Estas columnas ya están en `docs/architecture/` al final de `V15` ([[0015-identidad-en-v15]]). El SQL de referencia está en [[0012-identidad-y-roles]], sección «Para @Marina: el SQL de `V15`».
 
 ## 8. Endpoints
 
@@ -118,6 +118,6 @@ GET    /admin/users?roles=&estado=
 PATCH  /admin/users/{id}
 ```
 
-**Decisiones cerradas:** U-05 (alta por SSO, propuesta en 0009/0012), U-17 (3 sesiones). **Abierta:** U-01, roles múltiples ([[0012-identidad-y-roles]]).
+**Decisiones cerradas:** U-01 (roles múltiples), U-05 (alta por SSO), U-17 (3 sesiones). **Pendiente externo:** registro OIDC del ICAT.
 
 **Pendiente de negocio (no bloquea):** plazo legal de conservación tras la baja.

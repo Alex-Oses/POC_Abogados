@@ -11,11 +11,34 @@
 |-------|------|-------|-------|-------------|
 | id | uuid | NO | PK | Identificador único |
 | email | varchar(255) | NO | UK | Email corporativo (login) |
-| nombre_completo | varchar(200) | NO | | Nombre + apellidos |
-| rol | varchar(50) | NO | | transcriptor / revisor / admin / supervisor |
-| activo | boolean | NO | | Baja lógica (no borrado) |
+| nombre | varchar(200) | NO | | Nombre |
+| apellidos | varchar(200) | NO | | Apellidos |
+| estado | varchar(20) | NO | | activo / bloqueado / baja |
+| motivo_baja | text | SÍ | | Motivo de la baja lógica |
+| eliminado_en | timestamptz | SÍ | | Fecha de baja lógica |
+| sso_subject | text | SÍ, UK | | Identificador `sub` del proveedor OIDC del ICAT |
+| password_hash | text | SÍ | | Solo admin local de desarrollo; nulo con SSO |
 | creado_en | timestamptz | NO | | Alta en sistema |
 | actualizado_en | timestamptz | NO | | Última modificación perfil |
+
+## usuarios_roles
+| Campo | Tipo | Nulos | Clave | Descripción |
+|-------|------|-------|-------|-------------|
+| usuario_id | uuid | NO | PK, FK→usuarios | Usuario al que pertenece el rol |
+| rol | varchar(50) | NO | PK | transcriptor / revisor / admin |
+
+## sesiones_usuario
+| Campo | Tipo | Nulos | Clave | Descripción |
+|-------|------|-------|-------|-------------|
+| id | uuid | NO | PK | Identificador de sesión |
+| usuario_id | uuid | NO | FK→usuarios | Usuario de la sesión |
+| token_hash | text | NO | UK | Hash del token opaco; nunca el token |
+| creado_en | timestamptz | NO | | Inicio de sesión |
+| expira_en | timestamptz | NO | | Caducidad absoluta o de renovación |
+| ultimo_uso_en | timestamptz | NO | | Último uso; permite renovación deslizante hasta el tope duro |
+| revocado_en | timestamptz | SÍ | | Logout, cambio de roles, bloqueo o baja |
+| ip_origen | inet | SÍ | | IP de origen, si está disponible |
+| user_agent | text | SÍ | | Agente del cliente |
 
 ---
 
@@ -30,6 +53,9 @@
 | nivel_riesgo | varchar(20) | NO | | alto / medio / bajo |
 | rgpd_especial | boolean | NO | | TRUE = Art. 9 RGPD (salud, genéticos, etc.) |
 | activa | boolean | NO | | Baja lógica catálogo |
+| prioridad | int | NO | | Orden cuando se solapan categorías |
+| creado_en | timestamptz | NO | | Alta del catálogo |
+| actualizado_en | timestamptz | NO | | Última modificación |
 
 ---
 
@@ -38,7 +64,7 @@
 |-------|------|-------|-------|-------------|
 | id | uuid | NO | PK | Identificador |
 | nombre_original | varchar(500) | NO | | Nombre archivo subido |
-| hash_sha256 | char(64) | NO | UK | SHA-256 binario (dedup) |
+| hash_sha256 | char(64) | NO | | SHA-256 binario; único por creador mientras el documento no esté eliminado |
 | mime_type | varchar(100) | NO | | application/pdf, image/png, image/jpeg... |
 | tamano_bytes | bigint | NO | | Tamaño en bytes |
 | ruta_almacenamiento | varchar(1000) | NO | | Ruta S3/MinIO/FS |
@@ -57,13 +83,16 @@
 | documento_id | uuid | NO | FK | Documento padre |
 | numero_version | int | NO | | 1,2,3... secuencial por documento |
 | tipo_version | varchar(30) | NO | | original / ocr_texto / anonimizado_ia / revisado_humano / final_aprobado |
-| contenido_texto | text | SÍ | | Texto plano (OCR o resultado) |
-| contenido_html | text | SÍ | | Texto con markup entidades para diff UI |
+| contenido_texto | text | SÍ | | Texto de origen leído por OCR/layout; nunca lleva aplicadas las sustituciones |
+| contenido_html | text | SÍ | | Markup de revisión sobre el mismo texto de origen; tampoco materializa sustituciones |
 | ruta_pdf | varchar(1000) | SÍ | | PDF renderizado de esta versión |
 | motor_ocr | varchar(50) | SÍ | | tesseract / paddleocr / azure / google |
 | modelo_ia | varchar(100) | SÍ | | presidio-es / spacy-es-lg / custom-ner-v1 |
-| confianza_promedio | decimal(4,3) | SÍ | | Media confianza entidades (0-1) |
-| metadatos_proceso | jsonb | NO | | {tiempo_ms, params, warnings, tokens} |
+| pipeline_version | varchar(100) | SÍ | | Versión del pipeline OCR/layout |
+| confianza_layout_promedio | decimal(4,3) | SÍ | | Media de confianza del layout (0-1) |
+| metadatos_proceso | jsonb | NO | | {tiempo_ms, params, warnings, tokens, estructura_path, hash_export} |
+| regla_id | uuid | SÍ | FK→reglas_anonimizacion | Regla aplicada |
+| es_actual | boolean | NO | | Una sola versión actual por documento; la mantiene `trg_version_auto_number` |
 | creado_por | uuid | SÍ | FK→usuarios | NULL si automático |
 | creado_en | timestamptz | NO | | Timestamp creación versión |
 
@@ -73,7 +102,7 @@
 | Campo | Tipo | Nulos | Clave | Descripción |
 |-------|------|-------|-------|-------------|
 | id | uuid | NO | PK | Identificador |
-| codigo | varchar(50) | NO | UK | RGPD_ES / LOPD / CAT_CIVIL / PENAL_MENORES |
+| codigo | varchar(50) | NO | UK por versión | RGPD_ES / LOPD / CAT_CIVIL / PENAL_MENORES |
 | nombre | varchar(200) | NO | | Nombre legible |
 | descripcion | text | SÍ | | Qué cubre la regla |
 | configuracion | jsonb | NO | | Ver estructura abajo |
@@ -82,6 +111,13 @@
 | creado_por | uuid | SÍ | FK→usuarios | Admin que crea |
 | creado_en | timestamptz | NO | | |
 | actualizado_en | timestamptz | NO | | |
+
+## regla_categorias
+| Campo | Tipo | Nulos | Clave | Descripción |
+|-------|------|-------|-------|-------------|
+| regla_id | uuid | NO | PK, FK→reglas_anonimizacion | Regla |
+| categoria_id | uuid | NO | PK, FK→categorias_sensibles | Categoría incluida |
+| configuracion | jsonb | NO | | Acción, umbral y excepciones del par |
 
 **Estructura `configuracion` (JSONB):**
 ```json
@@ -96,3 +132,11 @@
   "pseudonimizado_prefijo": "[ENTIDAD_",
   "pseudonimizado_sufijo": "]"
 }
+
+## anotaciones_entidad (campos de relación)
+| Campo | Tipo | Nulos | Clave | Descripción |
+|-------|------|-------|-------|-------------|
+| regla_id | uuid | SÍ | FK→reglas_anonimizacion | Regla que produjo la anotación |
+| bloque_id | uuid | SÍ | FK compuesta→bloques_layout | Bloque cuyo `contenido` contiene los offsets; debe ser de la misma `version_id` |
+
+`inicio_offset` y `fin_offset` cuentan caracteres sobre `bloques_layout.contenido` del bloque enlazado, no sobre `versiones_documento.contenido_texto`. Una anotación sin `bloque_id` no se puede pintar en el PDF: el export la rechaza.

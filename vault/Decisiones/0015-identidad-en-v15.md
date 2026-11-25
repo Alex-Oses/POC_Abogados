@@ -45,18 +45,18 @@ El orden de implementación importa, porque hay dependencias reales:
 
 Se considera implementada cuando `flyway migrate` funciona desde cero, `views.sql` y `triggers.sql` no mencionan `rol`/`activo`, y `data-dictionary.md` tiene `usuarios_roles` y las columnas nuevas.
 
-Esto decide **dónde**, no **qué**: 0012 sigue en Propuesta hasta que la voten @Kevin y @Alex.
+Esto decide **dónde** y aplica el modelo aceptado en [[0012-identidad-y-roles]]. @Kevin y @Alex pueden dejar constancia de conformidad por Teams, pero sus votos no bloquean la implementación.
 
 ## Consecuencias
 
 - **La BD sigue siendo `V1`-`V15`.** Ni `V13` ni `V16`; el hueco se queda.
 - **Hay que recrear la base de desarrollo**: `V15` ya está aplicada y Flyway guarda su *checksum*. No hay datos reales, solo seeds, así que es `flyway clean` + `migrate` (o borrar el esquema y volver a migrar). Si alguien la aplicó fuera de desarrollo, `flyway repair` no basta: el esquema cambia.
 - **`V15` deja de ser solo flujo de revisión y export.** Su nombre miente un poco; se acepta antes que abrir una migración nueva con otro número.
-- Los cambios en `views.sql`, `triggers.sql` y `data-dictionary.md` se hacen al implementar, no en esta decisión.
+- Los cambios en `views.sql`, `triggers.sql` y `data-dictionary.md` se aplicaron el 24/11 junto con esta implementación.
 - **Riesgo asumido**: si el ICAT tarda en dar el registro OIDC, la tabla `usuarios` ya tendrá el hueco (`sso_subject`) y el admin de desarrollo funcionará mientras tanto.
 
 ## Qué falta
 
-- Implementarlo: tarea en el [[Tablero]] (editar `V15`, la vista, el trigger y el diccionario de datos). No es trabajo de esta nota.
-- Los votos de @Kevin y @Alex en [[0012-identidad-y-roles]].
+- Validarlo desde cero en desarrollo: `flyway clean` + `migrate`, comprobar la vista y el trigger, y revisar el diccionario de datos.
+- La conformidad de @Kevin y @Alex en [[0012-identidad-y-roles]], que se recogerá por Teams sin bloquear la implementación ya aceptada por @Rubén.
 - El registro de la aplicación OIDC en el ICAT, que es lo único que no depende del equipo.

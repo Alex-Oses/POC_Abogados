@@ -2,7 +2,7 @@
 
 ## 1. Minimización de Datos (Art. 5.1.c RGPD)
 - **No se almacenan** datos sensibles en `documentos.metadatos_extras` ni `versiones_documento.metadatos_proceso`.
-- `anotaciones_entidad.texto_original` contiene el dato sensible **solo mientras dura el proceso**; al exportar PDF final, la versión `final_aprobado` ya no lo incluye.
+- `anotaciones_entidad.texto_original` contiene el dato sensible solo mientras dura el proceso. El **PDF final** no contiene ningún texto de origen: se reconstruye con las sustituciones aplicadas. La versión `final_aprobado` conserva el texto de origen como fuente de reconstrucción y solo se sirve a revisor o admin.
 - `auditoria.detalle` registra **acciones**, no contenido sensible (hash_anterior garantiza integridad sin replicar datos).
 
 ## 2. Derecho al Olvido / Supresión (Art. 17 RGPD)

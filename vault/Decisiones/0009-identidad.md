@@ -4,7 +4,7 @@
 - **Fecha**: 2026-11-17
 - **Autor**: @ia-opencode-ruben (a petición de @Rubén)
 - **Se decide con**: @Rubén (backend), @Kevin (despliegue), @Marina (BD), @Alex (frontend)
-- **Votos**: @Rubén (backend), 2026-11-18: **opción 3**, entendida como SSO sin gestión de cuentas y admin local **solo para desarrollo y pruebas**, no desplegado (ver [[0012-identidad-y-roles]]). Faltan @Kevin, @Marina y @Alex.
+- **Votos**: @Rubén (backend), 2026-11-18: **opción 3**, entendida como SSO sin gestión de cuentas y admin local **solo para desarrollo y pruebas**, no desplegado (ver [[0012-identidad-y-roles]]). @Kevin, @Marina y @Alex pueden dejar constancia de conformidad por Teams; no bloquean la decisión aceptada.
 
 ## Contexto
 

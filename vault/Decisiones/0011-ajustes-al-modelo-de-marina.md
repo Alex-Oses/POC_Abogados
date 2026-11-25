@@ -6,6 +6,8 @@
 - **Quién decide**: @Marina. Su [[Modelo de datos]] es la fuente de verdad; esto solo responde a las preguntas de [[0010-modelo-de-datos]] y baja el modelo a SQL.
 - **Votos**: @Marina acepta los once puntos y las cinco respuestas el 2026-11-17. @Rubén sigue debiendo **B8** (dueño del hash del PDF) y la confirmación de `GET /documents/{id}/pages`; ninguna de las dos entra en lo aceptado.
 
+> **Nota histórica (24/11/2026):** este documento conserva el estado de la revisión del 17/11. Desde entonces B8 y `GET /documents/{id}/pages` están cerrados, la identidad no va en `V13` sino al final de `V15` ([[0015-identidad-en-v15]]), y las referencias a una futura `V13` no describen el estado vigente.
+
 ## Contexto
 
 [[0010-modelo-de-datos]] dejó el modelo de @Marina como válido y seis preguntas abiertas. Este documento las contesta, revisa los tres puntos que no encajaban y las ocho columnas que podían sobrar, y entrega las migraciones `V14` (estructura, se puede aplicar ya) y `V15` (flujo, espera a 0005).
@@ -46,7 +48,7 @@ Sobre el punto 10: el renombrado es `ALTER TABLE revisiones RENAME COLUMN reviso
 
 ## Las cinco preguntas abiertas de 0010
 
-**1. Geometría.** Se queda como está: **píxeles de la página renderizada** y `pagina_ancho`/`pagina_alto` en el propio bloque. Con `forma = quad|poly` se usa `puntos`, en las **mismas unidades** y con el mismo tamaño de página; el `bbox` se guarda siempre porque es el que sirve para filtrar por zona y para el `hit-test` del visor. No se normaliza a 0-1: PaddleOCR-VL devuelve `coordinate` en píxeles, normalizar pierde precisión y obliga a recalcular si cambia el dpi del render. Precisión: `DECIMAL(10,2)`, que es 0,01 px.
+**1. Geometría.** Se queda como está: **píxeles de la página renderizada** y `pagina_ancho`/`pagina_alto` en el propio bloque. Con `forma = quad|poly` se usa `puntos`, en las **mismas unidades** y con el mismo tamaño de página; el `bbox` se guarda siempre porque es el que sirve para filtrar por zona y para el `hit-test` del visor. No se normaliza a 0-1: el detector de layout devuelve `coordinate` en píxeles y normalizar pierde precisión. Corrección (25/11): PaddleOCR-VL 1.6 solo devuelve texto; esas coordenadas vienen de la capa del PDF o de un detector aparte. Precisión: `DECIMAL(10,2)`, que es 0,01 px.
 
 **2. `revisiones`.** `asignado_a` es «quien la tiene» (A-05/A-06) y `revisor_id` sobra: «quien la cerró» ya está en `auditoria` (`REVISION_APROBADA`/`REVISION_RECHAZADA` con `usuario_id`) y en `versiones_documento.creado_por` de la versión que crea el cierre. A-04 se implementa con `documento_id` + índice parcial único sobre `en_cola`/`en_proceso`.
 

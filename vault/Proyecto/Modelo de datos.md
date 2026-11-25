@@ -1,7 +1,7 @@
 # Modelo de datos
 
 - **Qué es**: el modelo objetivo del proyecto, con el diagrama **corregido el 18/11/2026**. Sustituye al que dibujó @Marina el 17/11, que queda en el historial de git.
-- **Qué aplica**: lo **aceptado** en [[0011-ajustes-al-modelo-de-marina]] (`V14` y `V15`, ya escritas) y la identidad de [[0012-identidad-y-roles]], que sigue en **Propuesta**: roles en tabla `usuarios_roles` (decisión de @Marina, 18/11), `estado`, `sso_subject` y sesión propia en `sesiones_usuario`.
+- **Qué aplica**: lo **aceptado** en [[0011-ajustes-al-modelo-de-marina]] (`V14` y `V15`) y la identidad **aceptada** en [[0012-identidad-y-roles]]: roles en tabla `usuarios_roles` (decisión de @Marina, 18/11), `estado`, `sso_subject` y sesión propia en `sesiones_usuario`.
 - **No es el esquema actual**: en `docs/architecture/migrations/` lo último es `V15`. `V13` no está escrita.
 - **Los bloqueantes** se citan por su ID de [[Coherencia]] (B1-B8, I1-I9) y las reglas por su código (`docs/reglas/`).
 
@@ -243,18 +243,18 @@ erDiagram
 ## Lo que sigue pendiente y no está en el diagrama
 
 - **`hash_export`**: cerrado (B8, 19/11). Vive en `VERSIONES_DOCUMENTO.metadatos_proceso->>'hash_export'`; `DOCUMENTOS` solo guarda `exportado_en` y `cerrado_en`. No hay migración nueva.
-- **`regla_id` y `REGLA_CATEGORIAS`**: los lee el contrato, pero **no existen en `V1`-`V15`**. Es E-33 del [[Registro de errores]]: decidir si basta `reglas_anonimizacion.configuracion` o hay que editar `V5`.
+- **`regla_id` y `REGLA_CATEGORIAS`**: existen desde la edición de `V15` del 24/11; `regla_categorias` mantiene la configuración por par regla-categoría y las FK del modelo.
 - **`bbox_x/y/ancho/alto` y `pagina_numero` de `anotaciones_entidad`**: siguen en `V6` y `V15` no los quitó. Hay que decidir si se eliminan (con plan de datos) o se quedan como respaldo.
 - **`GET /documents/{id}/pages`**: ya existe en el contrato (19/11), con `PAGINAS_DOCUMENTO` como lector.
 - **Tabla de seudónimos** (I2): `pseudonimizado` guarda `texto_sustitucion` en la anotación, así que la misma persona puede salir con dos seudónimos distintos en el mismo documento.
 - **NUSS en `rgpd_especial`** (H8): la lista de la columna solo cubre art. 9-10, pero el seed `V11` sigue metiendo NUSS. Con A-15 en pausa no dispara nada; si vuelve, lo hace mal.
 - **Seeds de `configuracion_sistema`**: los motores OCR en cloud y el timeout de revisión de 60 min contradicen 0001. `preservar_formato_pdf = false` **no** es un defecto: es lo que pide 0007 (reconstruir sin el formato original).
-- **Identidad y sesiones**: `V13` no existe ni se va a escribir. Lo que piden [[0009-identidad]] y [[0012-identidad-y-roles]] (`estado`, `sso_subject`, `usuarios_roles`, `sesiones_usuario`) se añade al final de `V15` editada ([[0015-identidad-en-v15]]), no en una migración nueva.
+- **Identidad y sesiones**: `V13` no existe ni se va a escribir. Lo que piden [[0009-identidad]] y [[0012-identidad-y-roles]] (`estado`, `sso_subject`, `usuarios_roles`, `sesiones_usuario`) ya se ha añadido al final de `V15` editada ([[0015-identidad-en-v15]]), no en una migración nueva.
 
 ## Qué queda del debate con 0010
 
 [[0010-modelo-de-datos]] proponía bajar el modelo en tres migraciones (`V13` identidad, `V14` estructura, `V15` flujo). `V14` y `V15` están escritas; `V13` se descartó al cerrar la BD el 19/11. Su diagrama se retiró el 18/11 para dejar **un solo diagrama**, este, y no dos versiones que se contradicen.
 
-Lo que 0010 acertó y se ha quedado: `bloques_layout` como base de los offsets, `paginas_documento` con semáforo por página, la cola de revisión con `asignado_a` y un solo dueño del hash del PDF. Lo que sigue abierto es la coherencia de seudónimos y la retención; el endpoint de páginas y el dueño del hash ya están cerrados.
+Lo que 0010 acertó y se ha quedado: `bloques_layout` como base de los offsets, `paginas_documento` con semáforo por página, la cola de revisión con `asignado_a`, las relaciones de reglas y un solo dueño del hash del PDF. Lo que sigue abierto es la coherencia de seudónimos, la retención y si los campos de geometría legacy de `anotaciones_entidad` se conservan; el endpoint de páginas y el dueño del hash ya están cerrados.
 
-**Estado (18/11)**: [[0011-ajustes-al-modelo-de-marina]] está **aceptada**; [[0012-identidad-y-roles]] está en **Propuesta** y este diagrama aplica su parte de identidad con los roles en tabla, como decidió @Marina.
+**Estado (24/11)**: [[0011-ajustes-al-modelo-de-marina]] está **aceptada**; [[0012-identidad-y-roles]] queda **aceptada en la práctica por @Rubén** y su modelo se implementa en `V15` (los votos de @Kevin y @Alex quedan como conformidad de equipo pendiente, no como bloqueo del modelo).

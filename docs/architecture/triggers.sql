@@ -98,6 +98,14 @@ BEGIN
         FROM versiones_documento
         WHERE documento_id = NEW.documento_id;
     END IF;
+
+    -- Modelo ER: la versión insertada pasa a ser la vigente (es_actual).
+    UPDATE versiones_documento
+       SET es_actual = false
+     WHERE documento_id = NEW.documento_id
+       AND es_actual;
+    NEW.es_actual := true;
+
     RETURN NEW;
 END;
 $$;
@@ -125,14 +133,19 @@ CREATE TRIGGER trg_categoria_prevent_delete
     FOR EACH ROW EXECUTE FUNCTION trg_categoria_prevent_delete();
 
 -- ============================================================
--- 5. Validación: revisor solo puede ser rol='revisor'
+-- 5. Validación: revisor debe tener el rol en usuarios_roles
 -- ============================================================
 CREATE OR REPLACE FUNCTION trg_revision_validar_revisor()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
     -- Nulo es válido: la revisión nace en cola sin dueño (A-05).
     IF NEW.asignado_a IS NOT NULL
-       AND (SELECT rol FROM usuarios WHERE id = NEW.asignado_a) <> 'revisor' THEN
+       AND NOT EXISTS (
+           SELECT 1
+           FROM usuarios_roles
+           WHERE usuario_id = NEW.asignado_a
+             AND rol = 'revisor'
+       ) THEN
         RAISE EXCEPTION 'Usuario % no tiene rol revisor', NEW.asignado_a;
     END IF;
     RETURN NEW;

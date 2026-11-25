@@ -23,6 +23,8 @@ Los criterios que pone @Rubén, por orden de peso:
 5. **Tipado y seguridad**: que el lenguaje evite errores o ayude documentandolos.
 6. **Velocidad**: lo menos importante; el cuello es la GPU y el usuario es un Colegio.
 
+Las versiones de framework de la comparativa (`net10`, `Java 25`, `Spring Boot 4`, `python:3.12`) están escritas de memoria: no se han verificado contra las releases oficiales y se fijan al implementar. El resto del equipo no revisa la bóveda; su conformidad se recoge por Teams.
+
 ## Comparativa
 
 | Criterio                             | Python + FastAPI                                                  | C# + ASP.NET Core                                                                            | Java + Spring Boot                                                                                                     |
