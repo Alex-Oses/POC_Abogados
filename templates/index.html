@@ -25,26 +25,33 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
 .drop{border:2px dashed var(--line);border-radius:8px;padding:28px 22px;text-align:center;color:var(--m);background:#fff;margin-bottom:16px;width:100%;display:block}
 .drop b{color:var(--p)}
 .drop.over{border-color:var(--p);background:var(--p-bg)}
+.modes{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.mode{border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 14px;display:flex;gap:8px;align-items:center;cursor:pointer;font-size:13px}
+.mode.on{border-color:var(--p);background:var(--p-bg)}
+.mode input{accent-color:var(--p);margin:0}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin:16px 0}
 .kpi{padding:14px 18px}.kpi b{font-size:26px;font-weight:500;display:block}.kpi span{font-size:12px;color:var(--m)}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:18px}
-.tile{border:1px solid var(--line);border-radius:6px;padding:8px;font-size:12px;text-align:center;background:#fff;min-height:84px;cursor:pointer}
-.tile .pg{height:30px;margin:0 auto 6px;width:24px;background:repeating-linear-gradient(#ddd 0 2px,#fff 2px 5px);border:1px solid #ccc}
-.tile.run{border-color:var(--p)}
-.tile.sel{box-shadow:0 0 0 2px var(--p-bg);border-color:var(--p)}
-.tile.ok{border-color:var(--ok);background:var(--ok-bg)}
+.rev{display:grid;grid-template-columns:130px minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:16px;align-items:start}
+.thumbs{padding:8px;max-height:72vh;overflow:auto}
+.thumb{width:100%;border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 6px;margin-bottom:8px;display:flex;align-items:center;gap:8px;font-size:12px;text-align:left}
+.thumb.on{border:2px solid var(--p);background:var(--p-bg)}
+.thumb .dot{width:9px;height:9px;border-radius:50%;flex:none;background:#D5D2CC}
+.thumb.ok .dot{background:var(--ok)}
+.thumb.run .dot{background:var(--p);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+.scan{max-height:72vh;overflow:auto;background:#E9E7E3;padding:12px;display:flex;justify-content:center;align-items:flex-start}
+.scan img{max-width:100%;height:auto;display:block;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.text-pane{display:flex;flex-direction:column;max-height:72vh}
+.tool{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12px;color:var(--m)}
+.ocr-text{flex:1;overflow:auto;padding:14px 18px;white-space:pre-wrap;font-size:14px;outline:none;cursor:text}
+.ocr-text:focus{box-shadow:inset 0 0 0 2px var(--p-bg)}
+.diff{background:var(--p-bg);color:var(--p);border-radius:3px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 10px;border-radius:12px;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}.chip.bad{background:var(--p-bg);color:var(--p)}
 .spinner{width:20px;height:20px;border:2px solid var(--line);border-top-color:var(--p);border-radius:50%;margin:0 auto 8px;animation:spin .8s linear infinite}
 .spinner.sm{width:12px;height:12px;margin:0;display:inline-block;vertical-align:-2px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.viewer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:16px}
-.scan{padding:12px;display:flex;align-items:flex-start;justify-content:center;background:#E9E7E3;max-height:72vh;overflow:auto}
-.scan img{max-width:100%;height:auto;display:block;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
-.text-pane{padding:14px 18px;max-height:72vh;overflow:auto}
-.rc-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
-.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 10px;border-radius:12px;white-space:nowrap}
-.chip.ok{background:var(--ok-bg);color:var(--ok)}.chip.bad{background:var(--p-bg);color:var(--p)}
-.ocr-text{white-space:pre-wrap;font-size:14px}
-@media(max-width:900px){.viewer{grid-template-columns:1fr}}
+@media(max-width:900px){.rev{grid-template-columns:1fr}.thumbs{display:flex;gap:8px;overflow-x:auto}.thumb{min-width:120px}}
 </style>
 </head>
 <body>
@@ -57,6 +64,11 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
     <h1 id="pageTitle">Transcripción de documentos escaneados</h1>
     <p class="sub" id="pageSub">Sube un PDF y el modelo local lo transcribe página a página. Nada sale del servidor del Col·legi.</p>
 
+    <div class="modes" role="radiogroup" aria-label="Modo de transcripción">
+        <label class="mode on"><input type="radio" name="mode" value="single" checked> Transcripción única</label>
+        <label class="mode"><input type="radio" name="mode" value="double"> Doble transcripción · lo que no coincide se marca en rojo</label>
+    </div>
+
     <button class="drop" id="dropZone" type="button">
         <b>Arrastra aquí tu PDF</b><br>
         o haz clic para seleccionarlo · máximo 50 MB
@@ -64,12 +76,17 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
     <input type="file" id="pdfFile" accept=".pdf" hidden>
 
     <section id="resultsSection" hidden>
-        <div class="card" id="tilesCard" hidden><div class="tiles" id="tiles"></div></div>
-        <div class="viewer" id="viewer" hidden>
+        <div class="rev" id="viewer" hidden>
+            <div class="card thumbs" id="tiles" aria-label="Páginas"></div>
             <div class="card scan"><img id="pageImg" alt=""></div>
             <div class="card text-pane">
-                <div class="rc-head"><strong id="viewerTitle"></strong><span class="chip" id="viewerChip"></span></div>
-                <div class="ocr-text" id="viewerText"></div>
+                <div class="tool">
+                    <strong id="viewerTitle" style="color:var(--t)"></strong>
+                    <span class="chip" id="viewerChip"></span>
+                    <span class="sp"></span>
+                    <span id="modeNote"></span>
+                </div>
+                <div class="ocr-text" id="viewerText" contenteditable="false" spellcheck="false"></div>
             </div>
         </div>
         <div class="kpis" id="kpis" hidden>
@@ -88,21 +105,33 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
     const pageSub = document.getElementById('pageSub');
     const resultsSection = document.getElementById('resultsSection');
     const kpis = document.getElementById('kpis');
-    const tilesCard = document.getElementById('tilesCard');
     const tiles = document.getElementById('tiles');
     const viewer = document.getElementById('viewer');
     const pageImg = document.getElementById('pageImg');
     const viewerTitle = document.getElementById('viewerTitle');
     const viewerChip = document.getElementById('viewerChip');
     const viewerText = document.getElementById('viewerText');
+    const modeNote = document.getElementById('modeNote');
 
     let uploadId = null;
     let totalPages = 0;
     let selected = 0;
     let autoFollow = true;
+    let runMode = 'single';
     const pageState = {};   // n -> 'pending' | 'running' | 'done'
-    const pageText = {};    // n -> texto completo
+    const pageText = {};    // n -> texto (posiblemente editado a mano)
+    const pageSegs = {};    // n -> segmentos con el diff de la doble lectura
     const pageInfo = {};    // n -> {time, chars}
+    const pageEdited = {};  // n -> true si el usuario lo ha tocado
+
+    document.querySelectorAll('input[name="mode"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            document.querySelectorAll('.mode').forEach(l => l.classList.toggle('on', l.contains(radio) && radio.checked));
+        });
+    });
+    function selectedMode() {
+        return document.querySelector('input[name="mode"]:checked').value;
+    }
 
     dropZone.addEventListener('click', () => pdfFile.click());
     pdfFile.addEventListener('change', e => handleFile(e.target.files[0]));
@@ -115,6 +144,14 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
         dropZone.addEventListener(name, () => dropZone.classList.remove('over')));
     dropZone.addEventListener('drop', e => {
         if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+
+    viewerText.addEventListener('input', () => {
+        if (!selected || pageState[selected] !== 'done') return;
+        pageEdited[selected] = true;
+        pageText[selected] = viewerText.innerText;
+        viewerChip.className = 'chip ok';
+        viewerChip.textContent = `${pageInfo[selected].time} s · editado`;
     });
 
     function showError(message) {
@@ -133,23 +170,27 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
             return;
         }
 
+        runMode = selectedMode();
         pageTitle.textContent = 'Transcribiendo · ' + file.name;
-        pageSub.textContent = 'Modelo local PaddleOCR-VL · puede tardar cerca de un minuto por página.';
+        pageSub.textContent = runMode === 'double'
+            ? 'Doble lectura · el modelo pasa dos veces por cada página y lo que no coincide se marca en rojo.'
+            : 'Lectura única · modelo local PaddleOCR-VL · puede tardar cerca de un minuto por página.';
         resultsSection.hidden = false;
         kpis.hidden = true;
-        tilesCard.hidden = true;
         viewer.hidden = true;
         tiles.replaceChildren();
         uploadId = null;
         totalPages = 0;
         selected = 0;
         autoFollow = true;
-        for (const k of Object.keys(pageState)) delete pageState[k];
-        for (const k of Object.keys(pageText)) delete pageText[k];
-        for (const k of Object.keys(pageInfo)) delete pageInfo[k];
+        for (const obj of [pageState, pageText, pageSegs, pageInfo, pageEdited]) {
+            for (const k of Object.keys(obj)) delete obj[k];
+        }
+        modeNote.textContent = runMode === 'double' ? 'Editable · doble lectura' : 'Editable · lectura única';
 
         const formData = new FormData();
         formData.append('pdf', file);
+        formData.append('mode', runMode);
 
         // La respuesta es NDJSON: una línea por evento (start, page, done, error).
         fetch('/ocr', { method: 'POST', body: formData })
@@ -180,31 +221,22 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
         if (ev.type === 'start') {
             uploadId = ev.upload_id;
             totalPages = ev.total_pages;
-            pageSub.textContent = `${ev.total_pages} página(s) · modelo local PaddleOCR-VL · puede tardar cerca de un minuto por página.`;
-            tilesCard.hidden = false;
+            tiles.hidden = false;
             viewer.hidden = false;
             for (let n = 1; n <= ev.total_pages; n++) {
                 pageState[n] = 'pending';
-                const tile = document.createElement('div');
-                tile.className = 'tile';
-                tile.id = 'tile' + n;
-                tile.dataset.page = n;
-                tile.tabIndex = 0;
-                const pg = document.createElement('div');
-                pg.className = 'pg';
-                const spin = document.createElement('div');
-                spin.className = 'spinner';
-                spin.hidden = true;
-                const label = document.createElement('div');
+                const thumb = document.createElement('button');
+                thumb.type = 'button';
+                thumb.className = 'thumb';
+                thumb.id = 'tile' + n;
+                thumb.dataset.page = n;
+                const dot = document.createElement('span');
+                dot.className = 'dot';
+                const label = document.createElement('span');
                 label.textContent = 'Página ' + n;
-                const time = document.createElement('span');
-                time.className = 'doc-s';
-                tile.append(pg, spin, label, time);
-                tile.addEventListener('click', () => { autoFollow = false; selectPage(n); });
-                tile.addEventListener('keydown', e => {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); autoFollow = false; selectPage(n); }
-                });
-                tiles.appendChild(tile);
+                thumb.append(dot, label);
+                thumb.addEventListener('click', () => { autoFollow = false; selectPage(n); });
+                tiles.appendChild(thumb);
             }
             pageState[1] = 'running';
             markRunning(1);
@@ -212,6 +244,7 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
         } else if (ev.type === 'page') {
             pageState[ev.page] = 'done';
             pageText[ev.page] = ev.text;
+            pageSegs[ev.page] = ev.diff;
             pageInfo[ev.page] = { time: ev.time, chars: ev.chars };
             markDone(ev.page);
             if (selected === ev.page) renderViewer();
@@ -237,7 +270,7 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
     function selectPage(n) {
         if (!uploadId || n < 1 || n > totalPages) return;
         selected = n;
-        for (const tile of tiles.children) tile.classList.toggle('sel', Number(tile.dataset.page) === n);
+        for (const thumb of tiles.children) thumb.classList.toggle('on', Number(thumb.dataset.page) === n);
         pageImg.src = `/page/${uploadId}/${n}.png`;
         pageImg.alt = `Página ${n} del PDF`;
         viewerTitle.textContent = 'Página ' + n;
@@ -246,10 +279,21 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
 
     function renderViewer() {
         const n = selected, state = pageState[n];
+        viewerText.contentEditable = state === 'done' ? 'true' : 'false';
+        viewerText.replaceChildren();
         if (state === 'done') {
-            viewerChip.className = 'chip ok';
-            viewerChip.textContent = `${pageInfo[n].time} s · ${pageInfo[n].chars} caracteres`;
-            viewerText.textContent = pageText[n] || '(el modelo no ha detectado texto)';
+            const diffs = (pageSegs[n] || []).filter(s => s.diff).length;
+            if (pageEdited[n]) {
+                viewerChip.className = 'chip ok';
+                viewerChip.textContent = `${pageInfo[n].time} s · editado`;
+                viewerText.textContent = pageText[n];
+            } else {
+                viewerChip.className = 'chip ' + (diffs ? 'bad' : 'ok');
+                viewerChip.textContent = runMode === 'double'
+                    ? (diffs ? `${pageInfo[n].time} s · ${diffs} diferencia(s)` : `${pageInfo[n].time} s · sin diferencias`)
+                    : `${pageInfo[n].time} s · ${pageInfo[n].chars} caracteres`;
+                renderSegments(pageSegs[n], pageText[n]);
+            }
         } else if (state === 'running') {
             const spin = document.createElement('span');
             spin.className = 'spinner sm';
@@ -263,24 +307,37 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
         }
     }
 
+    function renderSegments(segs, fallback) {
+        if (!segs) {
+            viewerText.textContent = fallback || '(el modelo no ha detectado texto)';
+            return;
+        }
+        for (const seg of segs) {
+            if (!seg.diff) {
+                viewerText.appendChild(document.createTextNode(seg.t));
+                continue;
+            }
+            const span = document.createElement('span');
+            span.className = 'diff';
+            span.textContent = seg.t;
+            if (seg.other) span.title = '2ª lectura: ' + seg.other;
+            viewerText.appendChild(span);
+        }
+    }
+
     function markRunning(n) {
-        const tile = document.getElementById('tile' + n);
-        if (!tile) return;
-        tile.classList.add('run');
-        tile.setAttribute('aria-busy', 'true');
-        tile.querySelector('.pg').hidden = true;
-        tile.querySelector('.spinner').hidden = false;
+        const thumb = document.getElementById('tile' + n);
+        if (!thumb) return;
+        thumb.classList.add('run');
+        thumb.setAttribute('aria-busy', 'true');
     }
 
     function markDone(n) {
-        const tile = document.getElementById('tile' + n);
-        if (!tile) return;
-        tile.classList.remove('run');
-        tile.classList.add('ok');
-        tile.removeAttribute('aria-busy');
-        tile.querySelector('.pg').hidden = false;
-        tile.querySelector('.spinner').hidden = true;
-        tile.lastElementChild.textContent = pageInfo[n].time + ' s';
+        const thumb = document.getElementById('tile' + n);
+        if (!thumb) return;
+        thumb.classList.remove('run');
+        thumb.classList.add('ok');
+        thumb.removeAttribute('aria-busy');
     }
 </script>
 </body>

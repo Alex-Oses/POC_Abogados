@@ -6,12 +6,14 @@ y obteniendo la transcripción texto con tiempos y rendimiento estimado.
 Características:
 - Procesa TODAS las páginas del PDF (sin límite fijo de 20)
 - Transmite el progreso en NDJSON: una línea por página terminada
-- Muestra texto transcrito por página conforme se completa
+- Muestra la página y su texto en paralelo, con el texto editable
+- Modo doble lectura: dos pasadas por página y lo que no coincide se marca
 - Muestra estadísticas finales (tiempo total, promedio, rendimiento)
 """
 
 import json
 import base64
+import difflib
 import time
 import os
 import re
@@ -37,7 +39,7 @@ PAGES_DIR = os.path.join(TEST_PDF_IMAGES, 'pages')
 os.makedirs(PAGES_DIR, exist_ok=True)
 
 
-def ocr_single_img(img_path):
+def ocr_single_img(img_path, temperature=0):
     """Una llamada OCR a la API de Ollama para una imagen."""
     try:
         with open(img_path, 'rb') as f:
@@ -47,7 +49,7 @@ def ocr_single_img(img_path):
             'prompt': 'OCR:',
             'images': [img_b64],
             'stream': False,
-            'options': {'temperature': 0, 'num_ctx': 4096, 'repeat_penalty': 1.05, 'num_predict': 1500}
+            'options': {'temperature': temperature, 'num_ctx': 4096, 'repeat_penalty': 1.05, 'num_predict': 1500}
         }
         start = time.time()
         import urllib.request
@@ -61,6 +63,28 @@ def ocr_single_img(img_path):
         return elapsed, text
     except Exception as e:
         return 0, f"Error: {str(e)}"
+
+
+def diff_segments(a, b):
+    """Parte el primer texto en trozos y marca los que no coinciden con la segunda lectura."""
+    ta = re.findall(r'\S+\s*', a)
+    tb = re.findall(r'\S+\s*', b)
+    # Se comparan las palabras sin el espacio que las sigue: un salto de línea
+    # distinto no es una duda del OCR.
+    ka = [t.strip() for t in ta]
+    kb = [t.strip() for t in tb]
+    merged = []
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(a=ka, b=kb).get_opcodes():
+        t = ''.join(ta[i1:i2])
+        other = '' if tag == 'equal' else ' '.join(kb[j1:j2])
+        diff = tag != 'equal'
+        if merged and merged[-1]['diff'] == diff:
+            merged[-1]['t'] += t
+            if diff:
+                merged[-1]['other'] = (merged[-1]['other'] + ' ' + other).strip()
+        else:
+            merged.append({'t': t, 'diff': diff, 'other': other})
+    return [s for s in merged if s['t']]
 
 
 def convert_pdf_to_images(pdf_path, upload_id, max_pages=500):
@@ -128,6 +152,7 @@ def ocr():
     pdf_path = os.path.join(TEST_PDF_IMAGES, 'uploaded.pdf')
     pdf_file.save(pdf_path)
     upload_id = uuid.uuid4().hex
+    mode = request.form.get('mode', 'single')
 
     def generate():
         try:
@@ -138,11 +163,17 @@ def ocr():
                 except OSError:
                     pass
             image_paths, num_pages = convert_pdf_to_images(pdf_path, upload_id)
-            yield json.dumps({'type': 'start', 'total_pages': num_pages, 'upload_id': upload_id}) + '\n'
+            yield json.dumps({'type': 'start', 'total_pages': num_pages, 'upload_id': upload_id, 'mode': mode}) + '\n'
             total_time = 0
             total_chars = 0
             for i, img_path in enumerate(image_paths):
                 t, text = ocr_single_img(img_path)
+                diff = None
+                if mode == 'double':
+                    # Segunda lectura con otra temperatura: lo que no coincide es duda
+                    t2, text2 = ocr_single_img(img_path, temperature=0.3)
+                    t += t2
+                    diff = diff_segments(text, text2)
                 chars = len(text)
                 total_time += t
                 total_chars += chars
@@ -151,7 +182,8 @@ def ocr():
                     'page': i + 1,
                     'time': round(t, 2),
                     'chars': chars,
-                    'text': text
+                    'text': text,
+                    'diff': diff
                 }) + '\n'
             avg_time = total_time / num_pages if num_pages > 0 else 0
             yield json.dumps({
