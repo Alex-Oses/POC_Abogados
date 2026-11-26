@@ -22,6 +22,7 @@ fi
 STORAGE="$(grep '^STORAGE_DIR=' "$APP/backend/.env" | cut -d= -f2-)"
 STORAGE="${STORAGE:-storage}"
 [[ "$STORAGE" = /* ]] || STORAGE="$APP/backend/$STORAGE"
+mkdir -p "$STORAGE"   # sin documentos subidos aún no existe
 tar -C "$(dirname "$STORAGE")" -cf "$TMP/storage.tar" "$(basename "$STORAGE")"
 cp "$APP/backend/.env" "$TMP/env"
 tar -C "$TMP" -czf "$DESTINO/icat-$FECHA.tar.gz" bd.dump storage.tar env

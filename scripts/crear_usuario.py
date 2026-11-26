@@ -7,11 +7,14 @@ Roles: transcriptor, revisor, admin (uno o varios). Genera una contraseña aleat
 una sola vez; no se guarda en ningún log. Si el correo ya existe, cambia nombre, roles y contraseña.
 """
 
+import os
 import secrets
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
+BACKEND = Path(__file__).resolve().parents[1] / "backend"
+sys.path.insert(0, str(BACKEND))
+os.chdir(BACKEND)  # la configuración lee .env de la carpeta actual: funciona se lance desde donde se lance
 
 import psycopg  # noqa: E402
 
