@@ -27,7 +27,7 @@ UPDATE sesiones_usuario
         WHERE usuario_id = %(usuario_id)s
           AND revocado_en IS NULL
           AND expira_en > now()
-        ORDER BY creado_en ASC
+        ORDER BY creado_en DESC  -- se conservan las más recientes
        OFFSET %(conservar)s
  );
 
