@@ -4,9 +4,9 @@ from psycopg import Connection
 
 from app.core.errors import AppError
 from app.db.queries import SQL
-from app.integrations.etl import detectar_entidades_presidio
 from app.services.audit import registrar_evento
 from app.services.documents import obtener_documento, obtener_version
+from app.services.presidio import detectar_entidades_presidio
 
 
 def anonimizar_documento(
