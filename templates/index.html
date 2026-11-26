@@ -19,9 +19,14 @@ header{background:#fff;border-bottom:2px solid var(--p);display:flex;align-items
 .user{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--m)}
 .avatar{width:32px;height:32px;border-radius:50%;background:var(--p);color:#fff;display:grid;place-items:center;font-weight:700;font-size:11px}
 main{max-width:1280px;margin:0 auto;padding:24px 28px 80px}
+main.center{max-width:none;padding:0}
 h1{font-size:22px;font-weight:500;margin:0 0 4px}
 .sub{color:var(--m);font-size:13px;margin:0 0 20px}
 .card{background:#fff;border:1px solid var(--line);border-radius:8px}
+.btn{border:1px solid var(--line);background:#fff;color:var(--t);border-radius:6px;padding:8px 14px;min-height:36px;display:inline-flex;align-items:center;gap:6px}
+.btn.pri{background:var(--p);border-color:var(--p);color:#fff;font-weight:500}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.wide{width:100%;justify-content:center}
 .drop{border:2px dashed var(--line);border-radius:8px;padding:28px 22px;text-align:center;color:var(--m);background:#fff;margin-bottom:16px;width:100%;display:block}
 .drop b{color:var(--p)}
 .drop.over{border-color:var(--p);background:var(--p-bg)}
@@ -39,306 +44,41 @@ h1{font-size:22px;font-weight:500;margin:0 0 4px}
 .thumb.ok .dot{background:var(--ok)}
 .thumb.run .dot{background:var(--p);animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.25}}
-.scan{max-height:72vh;overflow:auto;background:#E9E7E3;padding:12px;display:flex;justify-content:center;align-items:flex-start}
-.scan img{max-width:100%;height:auto;display:block;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.scan{max-height:72vh;overflow:auto;background:#E9E7E3;padding:12px;display:flex;justify-content:center;align-items:flex-start;border:1px solid var(--line);border-radius:8px}
+.paper{position:relative;display:inline-block;max-width:100%}
+.paper img{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.paper.outline{outline:3px solid var(--p);outline-offset:3px}
+.hlbox{position:absolute;border:2px solid var(--p);background:rgba(178,5,27,.18);border-radius:2px;pointer-events:none}
 .text-pane{display:flex;flex-direction:column;max-height:72vh}
-.tool{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12px;color:var(--m)}
-.ocr-text{flex:1;overflow:auto;padding:14px 18px;white-space:pre-wrap;font-size:14px;outline:none;cursor:text}
+.tool{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12px;color:var(--m);flex-wrap:wrap}
+.tool.foot{border-bottom:0;border-top:1px solid var(--line)}
+.ocr-text{flex:1;overflow:auto;padding:14px 18px;white-space:pre-wrap;font-size:14px;outline:none;cursor:text;min-height:160px}
 .ocr-text:focus{box-shadow:inset 0 0 0 2px var(--p-bg)}
-.diff{background:var(--p-bg);color:var(--p);border-radius:3px}
-.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 10px;border-radius:12px;white-space:nowrap}
+.diff{background:var(--p-bg);color:var(--p);border-radius:3px;cursor:help}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 10px;border-radius:12px;white-space:nowrap;background:#EEE;color:var(--m)}
 .chip.ok{background:var(--ok-bg);color:var(--ok)}.chip.bad{background:var(--p-bg);color:var(--p)}
-.spinner{width:20px;height:20px;border:2px solid var(--line);border-top-color:var(--p);border-radius:50%;margin:0 auto 8px;animation:spin .8s linear infinite}
-.spinner.sm{width:12px;height:12px;margin:0;display:inline-block;vertical-align:-2px}
-@keyframes spin{to{transform:rotate(360deg)}}
+.banner{padding:12px 16px;border-radius:8px;margin:12px 0;font-size:14px}
+.banner.ok{background:var(--ok-bg);color:var(--ok)}
+.banner.bad{background:var(--p-bg);color:var(--p)}
+.login{max-width:420px;margin:9vh auto;padding:36px;text-align:center}
+.login .logo b{font-size:44px}
+.login h1{font-size:22px;margin:28px 0 22px}
+.fld{display:block;text-align:left;font-size:12px;color:var(--m);margin-bottom:12px}
+.fld input{display:block;width:100%;margin-top:4px;padding:9px 12px;border:1px solid var(--line);border-radius:6px;font:inherit;background:#fff}
+.hero{padding:38px;margin-bottom:16px}
+.hero h1{font-size:30px;line-height:1.25;margin:0 0 10px}
+.hero .sub{font-size:15px;margin-bottom:18px;max-width:60ch}
+.feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.feat{padding:20px}.feat .big{font-size:26px;margin-bottom:8px}.feat p{margin:6px 0 0}
+.doc-s{font-size:12px;color:var(--m)}
 @media(max-width:900px){.rev{grid-template-columns:1fr}.thumbs{display:flex;gap:8px;overflow-x:auto}.thumb{min-width:120px}}
 </style>
 </head>
 <body>
-<header>
-    <div class="logo"><b>ICA<i>T</i></b><small>Il·lustre Col·legi de l'Advocacia de Tarragona</small></div>
-    <span class="sp"></span>
-    <div class="user">Demo · PaddleOCR-VL 1.6 <span class="avatar" aria-hidden="true">OCR</span></div>
-</header>
-<main>
-    <h1 id="pageTitle">Transcripción de documentos escaneados</h1>
-    <p class="sub" id="pageSub">Sube un PDF y el modelo local lo transcribe página a página. Nada sale del servidor del Col·legi.</p>
-
-    <div class="modes" role="radiogroup" aria-label="Modo de transcripción">
-        <label class="mode on"><input type="radio" name="mode" value="single" checked> Transcripción única</label>
-        <label class="mode"><input type="radio" name="mode" value="double"> Doble transcripción · lo que no coincide se marca en rojo</label>
-    </div>
-
-    <button class="drop" id="dropZone" type="button">
-        <b>Arrastra aquí tu PDF</b><br>
-        o haz clic para seleccionarlo · máximo 50 MB
-    </button>
-    <input type="file" id="pdfFile" accept=".pdf" hidden>
-
-    <section id="resultsSection" hidden>
-        <div class="rev" id="viewer" hidden>
-            <div class="card thumbs" id="tiles" aria-label="Páginas"></div>
-            <div class="card scan"><img id="pageImg" alt=""></div>
-            <div class="card text-pane">
-                <div class="tool">
-                    <strong id="viewerTitle" style="color:var(--t)"></strong>
-                    <span class="chip" id="viewerChip"></span>
-                    <span class="sp"></span>
-                    <span id="modeNote"></span>
-                </div>
-                <div class="ocr-text" id="viewerText" contenteditable="false" spellcheck="false"></div>
-            </div>
-        </div>
-        <div class="kpis" id="kpis" hidden>
-            <div class="card kpi"><b id="kPages">0</b><span>páginas</span></div>
-            <div class="card kpi"><b id="kTime">0 s</b><span>tiempo total</span></div>
-            <div class="card kpi"><b id="kAvg">0 s</b><span>media por página</span></div>
-            <div class="card kpi"><b id="kRate">0</b><span>páginas / hora</span></div>
-            <div class="card kpi"><b id="kChars">0</b><span>caracteres</span></div>
-        </div>
-    </section>
-</main>
-<script>
-    const dropZone = document.getElementById('dropZone');
-    const pdfFile = document.getElementById('pdfFile');
-    const pageTitle = document.getElementById('pageTitle');
-    const pageSub = document.getElementById('pageSub');
-    const resultsSection = document.getElementById('resultsSection');
-    const kpis = document.getElementById('kpis');
-    const tiles = document.getElementById('tiles');
-    const viewer = document.getElementById('viewer');
-    const pageImg = document.getElementById('pageImg');
-    const viewerTitle = document.getElementById('viewerTitle');
-    const viewerChip = document.getElementById('viewerChip');
-    const viewerText = document.getElementById('viewerText');
-    const modeNote = document.getElementById('modeNote');
-
-    let uploadId = null;
-    let totalPages = 0;
-    let selected = 0;
-    let autoFollow = true;
-    let runMode = 'single';
-    const pageState = {};   // n -> 'pending' | 'running' | 'done'
-    const pageText = {};    // n -> texto (posiblemente editado a mano)
-    const pageSegs = {};    // n -> segmentos con el diff de la doble lectura
-    const pageInfo = {};    // n -> {time, chars}
-    const pageEdited = {};  // n -> true si el usuario lo ha tocado
-
-    document.querySelectorAll('input[name="mode"]').forEach(radio => {
-        radio.addEventListener('change', () => {
-            document.querySelectorAll('.mode').forEach(l => l.classList.toggle('on', l.contains(radio) && radio.checked));
-        });
-    });
-    function selectedMode() {
-        return document.querySelector('input[name="mode"]:checked').value;
-    }
-
-    dropZone.addEventListener('click', () => pdfFile.click());
-    pdfFile.addEventListener('change', e => handleFile(e.target.files[0]));
-
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(name =>
-        dropZone.addEventListener(name, e => { e.preventDefault(); e.stopPropagation(); }));
-    ['dragenter', 'dragover'].forEach(name =>
-        dropZone.addEventListener(name, () => dropZone.classList.add('over')));
-    ['dragleave', 'drop'].forEach(name =>
-        dropZone.addEventListener(name, () => dropZone.classList.remove('over')));
-    dropZone.addEventListener('drop', e => {
-        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-    });
-
-    viewerText.addEventListener('input', () => {
-        if (!selected || pageState[selected] !== 'done') return;
-        pageEdited[selected] = true;
-        pageText[selected] = viewerText.innerText;
-        viewerChip.className = 'chip ok';
-        viewerChip.textContent = `${pageInfo[selected].time} s · editado`;
-    });
-
-    function showError(message) {
-        pageTitle.textContent = 'No se pudo transcribir';
-        pageSub.textContent = message;
-        resultsSection.hidden = true;
-    }
-
-    function handleFile(file) {
-        if (!file || !file.name.toLowerCase().endsWith('.pdf')) {
-            showError('Selecciona un archivo PDF.');
-            return;
-        }
-        if (file.size > 50 * 1024 * 1024) {
-            showError('El archivo es muy grande (máximo 50 MB).');
-            return;
-        }
-
-        runMode = selectedMode();
-        pageTitle.textContent = 'Transcribiendo · ' + file.name;
-        pageSub.textContent = runMode === 'double'
-            ? 'Doble lectura · el modelo pasa dos veces por cada página y lo que no coincide se marca en rojo.'
-            : 'Lectura única · modelo local PaddleOCR-VL · puede tardar cerca de un minuto por página.';
-        resultsSection.hidden = false;
-        kpis.hidden = true;
-        viewer.hidden = true;
-        tiles.replaceChildren();
-        uploadId = null;
-        totalPages = 0;
-        selected = 0;
-        autoFollow = true;
-        for (const obj of [pageState, pageText, pageSegs, pageInfo, pageEdited]) {
-            for (const k of Object.keys(obj)) delete obj[k];
-        }
-        modeNote.textContent = runMode === 'double' ? 'Editable · doble lectura' : 'Editable · lectura única';
-
-        const formData = new FormData();
-        formData.append('pdf', file);
-        formData.append('mode', runMode);
-
-        // La respuesta es NDJSON: una línea por evento (start, page, done, error).
-        fetch('/ocr', { method: 'POST', body: formData })
-            .then(async response => {
-                if (!response.ok) {
-                    const err = await response.json().catch(() => ({}));
-                    throw new Error(err.error || 'HTTP ' + response.status);
-                }
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = '';
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-                    let nl;
-                    while ((nl = buffer.indexOf('\n')) >= 0) {
-                        const line = buffer.slice(0, nl).trim();
-                        buffer = buffer.slice(nl + 1);
-                        if (line) handleEvent(JSON.parse(line));
-                    }
-                }
-            })
-            .catch(error => showError('Error: ' + error.message));
-    }
-
-    function handleEvent(ev) {
-        if (ev.type === 'start') {
-            uploadId = ev.upload_id;
-            totalPages = ev.total_pages;
-            tiles.hidden = false;
-            viewer.hidden = false;
-            for (let n = 1; n <= ev.total_pages; n++) {
-                pageState[n] = 'pending';
-                const thumb = document.createElement('button');
-                thumb.type = 'button';
-                thumb.className = 'thumb';
-                thumb.id = 'tile' + n;
-                thumb.dataset.page = n;
-                const dot = document.createElement('span');
-                dot.className = 'dot';
-                const label = document.createElement('span');
-                label.textContent = 'Página ' + n;
-                thumb.append(dot, label);
-                thumb.addEventListener('click', () => { autoFollow = false; selectPage(n); });
-                tiles.appendChild(thumb);
-            }
-            pageState[1] = 'running';
-            markRunning(1);
-            selectPage(1);
-        } else if (ev.type === 'page') {
-            pageState[ev.page] = 'done';
-            pageText[ev.page] = ev.text;
-            pageSegs[ev.page] = ev.diff;
-            pageInfo[ev.page] = { time: ev.time, chars: ev.chars };
-            markDone(ev.page);
-            if (selected === ev.page) renderViewer();
-            if (ev.page < totalPages) {
-                pageState[ev.page + 1] = 'running';
-                markRunning(ev.page + 1);
-                if (autoFollow) selectPage(ev.page + 1);
-            }
-        } else if (ev.type === 'done') {
-            pageTitle.textContent = 'Transcripción acabada';
-            pageSub.textContent = `${ev.total_pages} página(s) en ${ev.total_time} s · media ${ev.avg_time_per_page} s por página`;
-            kpis.hidden = false;
-            document.getElementById('kPages').textContent = ev.total_pages;
-            document.getElementById('kTime').textContent = ev.total_time + ' s';
-            document.getElementById('kAvg').textContent = ev.avg_time_per_page + ' s';
-            document.getElementById('kRate').textContent = ev.pages_per_hour_estimate;
-            document.getElementById('kChars').textContent = ev.total_chars;
-        } else if (ev.type === 'error') {
-            showError(ev.error);
-        }
-    }
-
-    function selectPage(n) {
-        if (!uploadId || n < 1 || n > totalPages) return;
-        selected = n;
-        for (const thumb of tiles.children) thumb.classList.toggle('on', Number(thumb.dataset.page) === n);
-        pageImg.src = `/page/${uploadId}/${n}.png`;
-        pageImg.alt = `Página ${n} del PDF`;
-        viewerTitle.textContent = 'Página ' + n;
-        renderViewer();
-    }
-
-    function renderViewer() {
-        const n = selected, state = pageState[n];
-        viewerText.contentEditable = state === 'done' ? 'true' : 'false';
-        viewerText.replaceChildren();
-        if (state === 'done') {
-            const diffs = (pageSegs[n] || []).filter(s => s.diff).length;
-            if (pageEdited[n]) {
-                viewerChip.className = 'chip ok';
-                viewerChip.textContent = `${pageInfo[n].time} s · editado`;
-                viewerText.textContent = pageText[n];
-            } else {
-                viewerChip.className = 'chip ' + (diffs ? 'bad' : 'ok');
-                viewerChip.textContent = runMode === 'double'
-                    ? (diffs ? `${pageInfo[n].time} s · ${diffs} diferencia(s)` : `${pageInfo[n].time} s · sin diferencias`)
-                    : `${pageInfo[n].time} s · ${pageInfo[n].chars} caracteres`;
-                renderSegments(pageSegs[n], pageText[n]);
-            }
-        } else if (state === 'running') {
-            const spin = document.createElement('span');
-            spin.className = 'spinner sm';
-            viewerChip.className = 'chip';
-            viewerChip.replaceChildren(spin, ' transcribiendo…');
-            viewerText.textContent = 'Esperando a que el modelo termine esta página…';
-        } else {
-            viewerChip.className = 'chip';
-            viewerChip.textContent = 'en cola';
-            viewerText.textContent = 'Todavía no transcrita.';
-        }
-    }
-
-    function renderSegments(segs, fallback) {
-        if (!segs) {
-            viewerText.textContent = fallback || '(el modelo no ha detectado texto)';
-            return;
-        }
-        for (const seg of segs) {
-            if (!seg.diff) {
-                viewerText.appendChild(document.createTextNode(seg.t));
-                continue;
-            }
-            const span = document.createElement('span');
-            span.className = 'diff';
-            span.textContent = seg.t;
-            if (seg.other) span.title = '2ª lectura: ' + seg.other;
-            viewerText.appendChild(span);
-        }
-    }
-
-    function markRunning(n) {
-        const thumb = document.getElementById('tile' + n);
-        if (!thumb) return;
-        thumb.classList.add('run');
-        thumb.setAttribute('aria-busy', 'true');
-    }
-
-    function markDone(n) {
-        const thumb = document.getElementById('tile' + n);
-        if (!thumb) return;
-        thumb.classList.remove('run');
-        thumb.classList.add('ok');
-        thumb.removeAttribute('aria-busy');
-    }
-</script>
+<div id="root"></div>
+<script src="/static/vendor/react.production.min.js"></script>
+<script src="/static/vendor/react-dom.production.min.js"></script>
+<script src="/static/vendor/htm.umd.js"></script>
+<script src="/static/app.js"></script>
 </body>
 </html>

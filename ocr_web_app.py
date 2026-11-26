@@ -65,6 +65,38 @@ def ocr_single_img(img_path, temperature=0):
         return 0, f"Error: {str(e)}"
 
 
+def find_rects(pdf_path, page_number, candidates_list):
+    """Cajas normalizadas (0-1) de cada palabra en la capa de texto del PDF.
+
+    Solo funciona con PDFs que tienen texto seleccionable; en un escaneo no
+    hay capa de texto y devuelve None para todas.
+    """
+    try:
+        import fitz
+        doc = fitz.open(pdf_path)
+        page = doc[page_number - 1]
+        width, height = page.rect.width, page.rect.height
+        out = []
+        for candidates in candidates_list:
+            rect = None
+            for candidate in candidates:
+                if not candidate:
+                    continue
+                hits = page.search_for(candidate)
+                if hits:
+                    rect = hits[0]
+                    break
+            if rect is None or not width or not height:
+                out.append(None)
+            else:
+                out.append([round(rect.x0 / width, 4), round(rect.y0 / height, 4),
+                            round(rect.x1 / width, 4), round(rect.y1 / height, 4)])
+        doc.close()
+        return out
+    except Exception:
+        return [None] * len(candidates_list)
+
+
 def diff_segments(a, b):
     """Parte el primer texto en trozos y marca los que no coinciden con la segunda lectura."""
     ta = re.findall(r'\S+\s*', a)
@@ -174,6 +206,16 @@ def ocr():
                     t2, text2 = ocr_single_img(img_path, temperature=0.3)
                     t += t2
                     diff = diff_segments(text, text2)
+                    candidates = [[w for w in s['t'].split()] + s['other'].split()
+                                  for s in diff if s['diff']]
+                    rects = find_rects(pdf_path, i + 1, candidates)
+                    k = 0
+                    for s in diff:
+                        if s['diff']:
+                            s['rect'] = rects[k]
+                            k += 1
+                        else:
+                            s['rect'] = None
                 chars = len(text)
                 total_time += t
                 total_chars += chars

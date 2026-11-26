@@ -14,6 +14,10 @@
 - **Pasos de la maqueta**: la revisión va como en la maqueta, con los thumbs de páginas a la izquierda, la página en el centro y el texto a la derecha (`contenteditable`); los cambios se guardan por página al navegar y el chip pasa a «editado».
 - **Doble transcripción**: selector única/doble antes de subir. En doble se hace una segunda pasada con temperatura 0,3 y las palabras que no coinciden se marcan en rojo, con la 2ª lectura en el tooltip. El diff ignora espacios y saltos de línea: solo cuenta como duda lo que cambia el texto. Probado con un escaneo borroso: 7 tramos en rojo, y con un PDF limpio: 0.
 
+- **Frontend en React**: la interfaz pasa a React 18 servido desde Flask (`static/app.js`, React/htm vendorizados en `static/vendor`, sin build ni CDN). Componentes de login, landing y espacio de trabajo; el flujo es login falso (cualquier credencial) → landing → subida → revisión.
+- **Revisión como la maqueta**: thumbs, página y texto editable; cada página se marca «revisada» con el botón y solo entonces se avanza a la siguiente, con contador X/Y revisadas y banner al terminar.
+- **Resaltado al pasar el ratón**: al pasar sobre una palabra en rojo, se dibuja su caja sobre la imagen. La caja sale de la capa de texto del PDF (`find_rects` con PyMuPDF, coordenadas normalizadas); en un escaneo sin capa de texto se enmarca la página entera y se avisa de que no se puede localizar (el modelo no devuelve coordenadas).
+
 ## Siguiente
 
 - Decidir si la demo se prueba también en el servidor Arm64 o solo en local.
