@@ -21,3 +21,27 @@
 
 ## Siguiente
 - Cola de OCR para dejar PDF transcribiéndose de noche y script de despliegue en Azure.
+
+## Hecho (noche)
+- Cola de OCR en segundo plano con guardado por página ([[0017-cola-ocr-en-segundo-plano]], Propuesta) y frontend adaptado (bandeja como portada, progreso por documento).
+- `scripts/instalar_servidor.sh`: instala en Ubuntu 24.04 la BD (modelo de Marina V1..V15 + vistas), Ollama, la app como servicio systemd y Caddy con HTTPS por IP. Deja `arrancar.sh`, `parar.sh`, `actualizar.sh` y `logs.sh`.
+- `docker-compose.yml`: Postgres solo en `127.0.0.1` (Docker se salta ufw) y `restart: unless-stopped`.
+
+## Bloqueos / preguntas
+- `triggers.sql` y `partitioning.sql` de #52 no se aplican en el servidor: el backend ya mantiene versiones y auditoría, y falta `pg_partman`. @Marina: confirmar si debe ir así.
+- Script sin probar en un servidor real.
+- «Subido por» en bandeja y archivo (usuario logueado o carpeta de SharePoint), en `metadatos_extras` sin tocar el esquema.
+- `POST /documents/{id}/export/transcrito` → `<nombre>_trans.pdf`; el anonimizado ya salía como `_anon.pdf`.
+- Entrada por SharePoint ([[0019-entrada-por-sharepoint]], Propuesta). Probada con un Graph falso; falta un tenant real.
+- `DATABASE_URL` con `127.0.0.1`: con Postgres solo en IPv4, `localhost` (::1) colgaba la conexión en Windows. 25/25 tests.
+- Bandeja: modo de transcripción (doble/única) por documento, doble por defecto, filtros (estado, subido por, modo) y descarga ZIP (`POST /documents/export/zip`, `_trans` o `_anon`).
+- Justicia gratuita: tarjetas de expedientes y vista previa de páginas con el tipo detectado.
+- Animaciones CSS (sin JS, se apagan con reduce-motion).
+- Resumen completo: [[2026-11-26 Cambios de la sesión]].
+
+## Pendiente para el 27/11: envío por correo tras exportar
+- Idea: al exportar, enviar el PDF por correo (smtplib, sin dependencias) con el buzón de Microsoft 365.
+- A decidir con @Alex-Oses:
+  1. El PDF transcrito lleva datos personales: ¿solo a dominios internos (lista blanca en el servidor)? Propuesta: anonimizado a cualquiera, transcrito solo interno.
+  2. Destinatario: a) casilla al exportar con el correo de quien subió el documento, b) fijo por tipo en `.env`, c) ambos.
+  3. Buzón remitente y datos SMTP.

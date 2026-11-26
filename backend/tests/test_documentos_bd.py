@@ -4,8 +4,10 @@ Datos ficticios (AGENTS.md): el DNI 12345678Z tiene letra válida pero no es de 
 """
 
 import hashlib
+import io
 import json
 import os
+import zipfile
 from uuid import uuid4
 
 import psycopg
@@ -76,7 +78,24 @@ def test_flujo_completo(usuario):
         assert cliente.patch(f"/api/v1/documents/{doc_id}/pages/1", headers=h,
                              json={"texto": texto, "validada": True}).status_code == 204
         p1 = cliente.get(f"/api/v1/documents/{doc_id}/pages", headers=h).json()["items"][0]
-        assert p1["texto"] == texto and p1["validada"]
+        assert p1["texto"] == texto and p1["validada"] and p1["html"] is None
+
+        # Texto con formato: se sanea, el texto plano se deriva y solo-texto quita el formato
+        url = f"/api/v1/documents/{doc_id}/pages/2"
+        assert cliente.patch(url, headers=h, json={
+            "html": '<p><b>Volante</b><img src=x onerror="alert(1)"></p><div>Reus</div>'}).status_code == 204
+        p2 = cliente.get(f"/api/v1/documents/{doc_id}/pages", headers=h).json()["items"][1]
+        assert p2["html"] == "<p><b>Volante</b></p><div>Reus</div>" and p2["texto"] == "Volante\nReus"
+        sin = cliente.post("/api/v1/transform/build",
+                           headers=h, json={"id": doc_id})
+        assert sin.status_code == 200 and sin.content.startswith(b"%PDF")
+        assert cliente.patch(url, headers=h, json={"texto": PAGINAS[1]}).status_code == 204
+        p2 = cliente.get(f"/api/v1/documents/{doc_id}/pages", headers=h).json()["items"][1]
+        assert p2["html"] is None and p2["texto"] == PAGINAS[1]
+
+        # Recuadros en lote (capa de texto del PDF)
+        cajas = cliente.post(f"{url}/locate", headers=h, json={"q": ["Reus", "zzzz"]}).json()["bboxes"]
+        assert cajas[0] and cajas[0]["ancho"] > 0 and cajas[1] is None
 
         # Justicia gratuita (orientativa)
         jg = cliente.post(f"/api/v1/documents/{doc_id}/justicia-gratuita", headers=h).json()
@@ -91,6 +110,14 @@ def test_flujo_completo(usuario):
         # Búsqueda de texto completo
         lista = cliente.get("/api/v1/documents", headers=h, params={"q": "empadronamiento"}).json()
         assert any(d["id"] == doc_id for d in lista["items"])
+        assert next(d for d in lista["items"] if d["id"] == doc_id)["subido_por"] == "Flujo"
+        assert cliente.get(f"/api/v1/documents/{doc_id}", headers=h).json()["subido_por"] == "Flujo"
+
+        # PDF de la transcripción, antes de anonimizar
+        tr = cliente.post(f"/api/v1/documents/{doc_id}/export/transcrito", headers=h)
+        assert tr.status_code == 200 and tr.content.startswith(b"%PDF")
+        assert "filename*=UTF-8''expediente_trans.pdf" in tr.headers["content-disposition"]
+        assert "12345678Z" in pymupdf.open(stream=tr.content).load_page(0).get_text()
 
         # Anonimización con Presidio
         an = cliente.post(f"/api/v1/documents/{doc_id}/anonymize", headers=h, json={"modo": "seudonimo"})
@@ -98,6 +125,9 @@ def test_flujo_completo(usuario):
         assert an.json()["anotaciones"] > 0
         notas = cliente.get(f"/api/v1/documents/{doc_id}/annotations", headers=h).json()["items"]
         assert any(n["categoria"] == "DNI_NIE" and n["texto_original"] == "12345678Z" for n in notas)
+        # Tras anonimizar sigue saliendo la transcripción original, no la anonimizada
+        tr = cliente.post(f"/api/v1/documents/{doc_id}/export/transcrito", headers=h)
+        assert "12345678Z" in pymupdf.open(stream=tr.content).load_page(0).get_text()
 
         # Revisión
         rev = cliente.post(f"/api/v1/documents/{doc_id}/reviews", headers=h).json()
@@ -123,6 +153,14 @@ def test_flujo_completo(usuario):
         salida = pymupdf.open(stream=e1.content, filetype="pdf")
         todo = "".join(p.get_text() for p in salida)
         assert "12345678Z" not in todo and "Juan Pérez" not in todo
+
+        # ZIP: el mismo PDF anonimizado; un id ajeno se salta y se cuenta
+        z = cliente.post("/api/v1/documents/export/zip", headers=h,
+                         json={"ids": [doc_id, str(uuid4())], "tipo": "anon"})
+        assert z.status_code == 200 and z.headers["x-omitidos"] == "1"
+        with zipfile.ZipFile(io.BytesIO(z.content)) as zf:
+            assert zf.namelist() == ["expediente_anon.pdf"]
+            assert zf.read("expediente_anon.pdf") == e1.content
 
         # Auditoría e informes
         aud = cliente.get("/api/v1/audit", headers=h, params={"entidad_id": doc_id}).json()["items"]

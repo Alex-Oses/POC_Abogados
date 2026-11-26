@@ -3,12 +3,13 @@
 services:
   db:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: icat
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"   # solo local: Docker se salta ufw
     volumes:
       - ./docs/architecture:/migrations:ro
       - ./backend/db/init.sh:/docker-entrypoint-initdb.d/init.sh:ro

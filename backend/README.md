@@ -46,6 +46,6 @@ No están: SSO, `assign`, `sign-off` (A-15 en pausa), alta/edición de reglas y 
 Las pruebas de base de datos se saltan salvo que exista `DATABASE_TEST_URL` apuntando a un PostgreSQL con `V1`..`V15`:
 
 ```powershell
-$env:DATABASE_TEST_URL="postgresql://postgres:postgres@localhost:5432/icat_test"
+$env:DATABASE_TEST_URL="postgresql://postgres:postgres@127.0.0.1:5432/icat_test"
 .venv\Scripts\python -m pytest
 ```

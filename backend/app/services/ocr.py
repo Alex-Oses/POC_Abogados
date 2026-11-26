@@ -8,10 +8,12 @@ import difflib
 import io
 import json
 import re
+import threading
 import time
 import urllib.request
 
 from app.core.config import settings
+from app.core.logging import log
 
 DPI = 150
 _MOCK = ("Don Juan Pérez García, con DNI 12345678Z y domicilio en Barcelona, "
@@ -34,6 +36,26 @@ def renderizar(datos: bytes, mime: str) -> list[dict]:
                         "capa": capa})
     doc.close()
     return paginas
+
+
+def contar(datos: bytes, mime: str) -> int:
+    import pymupdf as fitz
+
+    tipo = "pdf" if mime == "application/pdf" else mime.split("/")[1]
+    with fitz.open(stream=datos, filetype=tipo) as doc:
+        return len(doc)
+
+
+def una_pagina(datos: bytes, mime: str, numero: int) -> dict:
+    """Como `renderizar`, pero solo la página `numero` (la cola no carga todo el PDF en PNG)."""
+    import pymupdf as fitz
+
+    tipo = "pdf" if mime == "application/pdf" else mime.split("/")[1]
+    with fitz.open(stream=datos, filetype=tipo) as doc:
+        pagina = doc[numero - 1]
+        pix = pagina.get_pixmap(dpi=DPI)
+        capa = pagina.get_text() if mime == "application/pdf" else ""
+        return {"png": pix.tobytes("png"), "ancho": pix.width, "alto": pix.height, "capa": capa}
 
 
 def png_pagina(datos: bytes, mime: str, numero: int) -> bytes:
@@ -68,6 +90,7 @@ def contraste(png: bytes) -> int:
 
 def leer(png: bytes, temperatura: float = 0, capa: str = "") -> tuple[float, str]:
     if settings.ocr_mock:
+        time.sleep(settings.ocr_mock_delay)  # simula la lentitud del modelo en pruebas
         # Sin modelo: se usa la capa de texto del PDF si existe, para probar con contenido real.
         texto = capa.strip() or _MOCK
         if temperatura > 0:
@@ -102,6 +125,30 @@ def variante(png: bytes) -> bytes:
 
 
 _LINEAS: dict[str, list] = {}  # shortcut: caché en memoria por hash de la imagen; se pierde al reiniciar
+_CANDADO = threading.Lock()  # una sola pasada de RapidOCR a la vez; quien llega después espera y reutiliza
+
+
+def _lineas(png: bytes) -> list:
+    import hashlib
+
+    clave = hashlib.sha256(png).hexdigest()
+    if clave not in _LINEAS:
+        with _CANDADO:
+            if clave not in _LINEAS:
+                from rapidocr_onnxruntime import RapidOCR
+
+                _LINEAS[clave] = RapidOCR()(png)[0] or []
+    return _LINEAS[clave]
+
+
+def calentar(png: bytes) -> None:
+    """Precalcula en segundo plano las líneas de RapidOCR de un escaneo (recuadro instantáneo)."""
+    def tarea():
+        try:
+            _lineas(png)
+        except Exception:  # noqa: BLE001 - sin caché, `locate` lo calcula al pedirlo
+            log.warning("rapidocr_precalculo_fallido")
+    threading.Thread(target=tarea, daemon=True).start()
 
 
 def localizar(png: bytes, pdf: bytes | None, numero: int, texto: str) -> dict | None:
@@ -114,17 +161,11 @@ def localizar(png: bytes, pdf: bytes | None, numero: int, texto: str) -> dict | 
         caja = cajas(pdf, numero, [[texto] + texto.split()], DPI / 72)[0]
         if caja:
             return caja
-    import hashlib
-
-    clave = hashlib.sha256(png).hexdigest()
-    if clave not in _LINEAS:
-        from rapidocr_onnxruntime import RapidOCR
-
-        _LINEAS[clave] = RapidOCR()(png)[0] or []
+    lineas = _lineas(png)
     norm = lambda x: re.sub(r"\W", "", x).lower()  # RapidOCR junta palabras
     buscados = [norm(texto)] + [norm(w) for w in texto.split() if len(norm(w)) >= 3]
     for buscado in filter(None, buscados):
-        for puntos, linea, _conf in _LINEAS[clave]:
+        for puntos, linea, _conf in lineas:
             n = norm(linea)
             i = n.find(buscado)
             if i < 0:
@@ -184,6 +225,9 @@ def procesar_pagina(pagina: dict, numero: int, doble: bool, pdf: bytes | None) -
     legible = c >= settings.contraste_minimo
     t, texto, diff = 0.0, "", None
     avisos: list[dict] = []
+    escaneo = legible and not pagina["capa"].strip()
+    if escaneo:
+        calentar(pagina["png"])  # en paralelo con el modelo: no frena el flujo
     if legible:  # página mala: el modelo inventaría texto, así que no se lee
         t, texto = leer(pagina["png"], 0, pagina["capa"])
         if doble:
@@ -196,6 +240,12 @@ def procesar_pagina(pagina: dict, numero: int, doble: bool, pdf: bytes | None) -
             rects = cajas(pdf, numero, [s["t"].split() + s["other"].split() for s in dudas],
                           DPI / 72)
             for s, rect in zip(dudas, rects, strict=True):
+                if not rect and escaneo:  # sin capa de texto: líneas de RapidOCR (ya calentadas)
+                    try:
+                        rect = (localizar(pagina["png"], None, numero, s["t"])
+                                or localizar(pagina["png"], None, numero, s["other"]))
+                    except Exception:  # noqa: BLE001 - sin caja el aviso sigue valiendo
+                        rect = None
                 aviso = {"tipo": "doble_lectura",
                          "mensaje": f"Lectura dudosa: «{s['t'].strip()}» / «{s['other']}»"}
                 if rect:

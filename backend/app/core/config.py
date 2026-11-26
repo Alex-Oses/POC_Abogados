@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     entorno: str = "desarrollo"
     log_level: str = "INFO"
 
-    database_url: str = "postgresql://postgres:postgres@localhost:5432/icat"
+    database_url: str = "postgresql://postgres:postgres@127.0.0.1:5432/icat"
 
     # U-17 y U-18
     session_horas: int = 1
@@ -33,9 +33,21 @@ class Settings(BaseSettings):
     ollama_url: str = "http://localhost:11434"
     ocr_model: str = "hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF:latest"
     contraste_minimo: int = 80
+    ocr_mock_delay: float = 0  # segundos por lectura simulada (pruebas de la cola)
+    # Cola de OCR (0017): hilos del worker (1 = una página a la vez) y sondeo del NDJSON.
+    ocr_workers: int = 1
+    ocr_sondeo_seg: float = 1.0
 
     # Presidio (0006, docs/presidio.md): `md` es el equilibrio medido.
     spacy_model: str = "es_core_news_md"
+
+    # Entrada por SharePoint (Microsoft Graph). Sin las cuatro primeras no se activa.
+    sharepoint_tenant_id: str = ""
+    sharepoint_client_id: str = ""
+    sharepoint_client_secret: str = ""
+    sharepoint_drive_id: str = ""  # biblioteca de documentos (GET /sites/{id}/drives)
+    sharepoint_carpeta: str = "Entrada"  # dentro, una carpeta por persona
+    sharepoint_sondeo_seg: int = 60
 
 
 @lru_cache

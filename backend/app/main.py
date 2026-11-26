@@ -7,10 +7,12 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import auth, catalog, documents, reviews, users
 from app.core.logging import log, setup_logging
-from app.db.pool import pool, tx
+from app.db import pool as bd
+from app.db.pool import tx
 from app.middleware import audit
 from app.middleware import auth as auth_middleware
 from app.middleware.handler_error import install as install_error_handlers
+from app.services import cola, sharepoint
 from app.services.users import sembrar_admin
 
 
@@ -19,7 +21,7 @@ async def lifespan(app: FastAPI):
     setup_logging()
     app.state.bd_disponible = False
     try:
-        pool.open(wait=True, timeout=5)
+        bd.abrir()
         app.state.bd_disponible = True
     except Exception as error:  # noqa: BLE001 - el servicio arranca degradado y /health lo dice
         log.error("bd_no_disponible", extra={"detalle": str(error).splitlines()[0]})
@@ -31,8 +33,16 @@ async def lifespan(app: FastAPI):
         except Exception:  # noqa: BLE001 - sin semilla se sigue; el fallo queda en el log
             log.exception("semilla_admin_fallida")
 
+        try:
+            cola.arrancar()  # 0017: OCR en segundo plano; reanuda lo que quedó a medias
+        except Exception:  # noqa: BLE001 - sin cola la API sigue; el fallo queda en el log
+            log.exception("cola_ocr_no_arranca")
+        sharepoint.arrancar()  # solo si SHAREPOINT_* está configurado
+
     yield
-    pool.close()
+    sharepoint.detener()
+    cola.detener()
+    bd.cerrar()
 
 
 app = FastAPI(title="ICAT · API", version="0.1.0", lifespan=lifespan)

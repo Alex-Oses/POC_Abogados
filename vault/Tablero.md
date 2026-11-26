@@ -4,6 +4,8 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 ## Pendiente
 
+- [ ] Envío por correo del PDF exportado (anonimizado o transcrito) a quien lo deba recibir. Pendiente de hablar el 27/11: ver [[2026-11-26-ia-claude-alex]] · @Alex-Oses
+
 **Entrega viernes 27/11** (ver [[Equipo]]):
 - [ ] Especificación funcional con criterios «cómo comprobarlo»
 - [ ] Presentar el stack completo funcionando (frontend React + backend FastAPI + PostgreSQL + OCR PaddleOCR-VL + Presidio) con los PDF de ejemplo; la maqueta ya no se pasa a Figma · @Alex
@@ -19,7 +21,7 @@ Resto:
 - [x] Integrar Presidio en el backend (26/11): `app/services/presidio.py` con las 6 categorías iniciales (Nombre, DNI/NIE, Email, Teléfono, Dirección, IBAN), fallback regex sin spaCy, `ocr.py` separado de la lógica de Presidio · `backend/` · @ia-antigravity-ruben
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Rubén
 
-- [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
+- [x] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]] → [[0017-cola-ocr-en-segundo-plano]] (Propuesta)
 - [ ] Endpoint que reciba un PDF y devuelva texto por página con su color de semáforo · [[Rendimiento OCR]]
 - [ ] Semáforo de calidad: contraste antes del OCR (< 80 → volver a escanear) y heurísticas de texto después
 - [ ] Validación de DNI/NIE (letra de control) e IBAN

@@ -621,12 +621,15 @@ Nota de implementación: no cambia el contrato de arriba. Lo que se añade fuera
 
 | Ruta | Estado |
 | --- | --- |
-| `POST /transform/document` | Hecha. Campo opcional `modo=simple\|doble` (por defecto `doble`, A-24). Con `Accept: application/x-ndjson` responde `200` en streaming, con una línea JSON por evento: `start`, `page` (una por página) y `done`, o `error`. Sin esa cabecera espera al final y responde `201` según el contrato. Si el OCR falla, el documento vuelve a `pendiente`. Duplicado del mismo creador: `409 DOCUMENTO_DUPLICADO`. |
+| `POST /transform/document` | Hecha, **asíncrona** (decisión [[0017-cola-ocr-en-segundo-plano]]). Campo opcional `modo=simple\|doble` (por defecto `doble`, A-24). Guarda el original, deja el documento en cola (`pendiente`, con el modo en `metadatos_extras.ocr`) y responde al momento `202 {id, num_paginas, estado: "pendiente"}`. Con `Accept: application/x-ndjson` responde `200` en streaming leyendo la BD cada ~1 s: `start` (añade `queue_position`), un `page` por página según se guarda y `done`, o `error` (`code` = `OCR_FALLIDO` o `CANCELADO`). Cerrar el flujo no para el trabajo. Duplicado del mismo creador: `409 DOCUMENTO_DUPLICADO`; fichero que no abre: `415`. |
 | `POST /transform/plain-text`, `POST /transform/build` | Hechas. |
-| `GET /documents` | Hecha, más los parámetros **extra** `q` (texto completo en español sobre la versión vigente y el nombre; devuelve `fragmento`) y los campos `paginas_revisar`, `paginas_ilegibles` y `exportado_en`. |
+| `GET /documents` | Hecha, más los parámetros **extra** `q` (texto completo en español sobre la versión vigente y el nombre; devuelve `fragmento`) y los campos `paginas_revisar`, `paginas_ilegibles`, `exportado_en`, `pages_done` (páginas ya guardadas) y `queue_position` (1 = el siguiente; `null` si no está en cola). |
 | `GET /documents/{id}`, `/pages`, `/original`, `DELETE` | Hechas. `/pages` añade `texto`, `validada`, `diferencias` y `contraste_bruto` (0-255). |
-| **extra** `PATCH /documents/{id}/pages/{n}` | `{texto?, validada?}` → `204`. Solo en `ocr_completado`. |
-| **extra** `POST /documents/{id}/pages/{n}/ocr` | Multipart con `file` opcional (reescaneo) y `modo` → evento `page`. |
+| **extra** `PATCH /documents/{id}/pages/{n}` | `{texto?, html?, validada?}` → `204`. En `ocr_completado` y también mientras la cola lee otras páginas (`pendiente`/`ocr_procesando`): solo las páginas ya guardadas; una que aún no se ha transcrito da `409 PAGINA_EN_PROCESO`. Tras anonimizar, `409 DOCUMENTO_NO_EDITABLE`. Validar todas las páginas no cambia el estado del documento. |
+| **extra** `POST /documents/{id}/pages/{n}/ocr` | Multipart con `file` opcional (reescaneo) y `modo` → evento `page`. Mismas reglas que el `PATCH` durante el proceso. |
+| **extra** `GET /documents/{id}/progress` | `{estado, total_pages, pages_done, current_page, queue_position, error}`. `current_page` solo en `ocr_procesando`; `error` = `OCR_FALLIDO` o `CANCELADO` (el documento sale de la cola). |
+| **extra** `GET /documents/{id}/stream` | El mismo NDJSON de la subida, para retomar el progreso tras recargar la página. |
+| **extra** `POST /documents/{id}/cancel` | Saca el documento de la cola (`pendiente` o `ocr_procesando`); para entre páginas y conserva las ya leídas. `409 DOCUMENTO_NO_EN_COLA` si no estaba. Devuelve el progreso. |
 | **extra** `GET /documents/{id}/pages/{n}/image` | PNG a 150 dpi renderizado desde el original cifrado; cada acceso se audita. |
 | Versiones y bloques | Hechas. Bloques sintéticos, uno por página (docs/export/pdf.md, modo secuencial). |
 | `POST /documents/{id}/anonymize` | Hecha. `regla_id` opcional (V1..V15 no siembran reglas: sin él se usan todas las categorías activas) y **extra** `modo` = `censurar\|borrar\|tachar\|etiqueta\|seudonimo\|iniciales`. |
@@ -639,4 +642,13 @@ Nota de implementación: no cambia el contrato de arriba. Lo que se añade fuera
 | **extra** `GET /reports/summary` | Agregados del mes: páginas, tiempo medio de revisión, páginas reescaneadas, envíos de JG y documentos por estado. |
 | `/config` | No hecha. |
 
+Cola de OCR: un hilo dentro del backend (`OCR_WORKERS`, por defecto 1) toma el documento más antiguo en `pendiente` con `FOR UPDATE SKIP LOCKED`, lo pasa a `ocr_procesando` y guarda cada página (fila de `paginas_documento`, bloque de la versión `ocr_texto`, avisos con caja, diferencias y contraste) en su propia transacción. Al arrancar, lo que quedó en `ocr_procesando` vuelve a la cola y sigue desde la última página guardada. Un fallo deja el documento en `pendiente` con `metadatos_extras.ocr.error` y audita `OCR_FALLIDO`; la cola sigue con el siguiente.
+
 Auth: además del Bearer, el login deja la cookie `icat_token` (HttpOnly, SameSite=Strict), que usan `<img>` y el visor del original.
+
+### Añadido 26/11 (noche): «subido por», PDF transcrito y entrada por SharePoint
+
+- `GET /documents` y `GET /documents/{id}`: campo `subido_por` (nombre de quien subió el documento o de la carpeta de SharePoint). Se guarda en `metadatos_extras.subido_por`; sin cambios de esquema.
+- **Nuevo `POST /documents/{id}/export/transcrito`**: PDF de la última transcripción, sin anonimizar y con formato, como `<nombre>_trans.pdf`. `409 ESTADO_INVALIDO` mientras se transcribe; `422 SIN_TEXTO` si no hay transcripción. No se guarda; queda en auditoría (`PDF_TRANSCRITO_EXPORTADO`). El anonimizado sigue en `POST /documents/{id}/export` como `<nombre>_anon.pdf`.
+- `Content-Disposition` lleva `filename*=UTF-8''…` para nombres con tildes.
+- SharePoint (`SHAREPOINT_*` en `.env`): ver [[0019-entrada-por-sharepoint]].

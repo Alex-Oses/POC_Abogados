@@ -1,5 +1,8 @@
+import io
 import json
+import zipfile
 from typing import Literal
+from urllib.parse import quote
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
@@ -10,7 +13,7 @@ from pydantic import BaseModel, Field
 from app.api.deps import connection, require_role
 from app.core.errors import AppError
 from app.db.queries import SQL
-from app.services import anonymize, audit, export, jg
+from app.services import anonymize, audit, cola, export, jg
 from app.services import documents as service
 
 router = APIRouter(tags=["documentos"])
@@ -24,14 +27,24 @@ class IdIn(BaseModel):
     id: UUID
 
 
+class ZipIn(BaseModel):
+    ids: list[UUID] = Field(min_length=1, max_length=100)
+    tipo: Literal["anon", "trans"] = "anon"
+
+
 class PaginaIn(BaseModel):
     texto: str | None = Field(default=None, max_length=200_000)
     validada: bool | None = None
+    html: str | None = Field(default=None, max_length=200_000)
+
+
+class LocalizarIn(BaseModel):
+    q: list[str] = Field(max_length=100)
 
 
 class AnonimizarIn(BaseModel):
     regla_id: UUID | None = None
-    modo: Modo = "censurar"
+    modo: Modo = "borrar"
 
 
 class AnotacionIn(BaseModel):
@@ -54,33 +67,36 @@ class AnotacionNuevaIn(BaseModel):
 
 def _pdf(datos: bytes, nombre: str, inline: bool = False, cabeceras: dict | None = None):
     modo = "inline" if inline else "attachment"
+    # ASCII de respaldo + filename* UTF-8: tildes, comillas o saltos de línea no rompen la cabecera.
+    ascii_ = "".join(c if 32 <= ord(c) < 127 and c != '"' else "_" for c in nombre)
     return Response(datos, media_type="application/pdf", headers={
-        "Content-Disposition": f'{modo}; filename="{nombre}"', **(cabeceras or {})})
+        "Content-Disposition": f"{modo}; filename=\"{ascii_}\"; filename*=UTF-8''{quote(nombre)}",
+        **(cabeceras or {})})
 
 
 # --- Subida y transformaciones --------------------------------------------------------------
 
-@router.post("/transform/document", status_code=201)
+@router.post("/transform/document", status_code=202)
 async def subir(
     request: Request,
     file: UploadFile = File(...),
     modo: Literal["simple", "doble"] = Form("doble"),
     usuario: dict = Depends(T),
 ):
-    """Sube y transcribe. Con `Accept: application/x-ndjson` devuelve el progreso en streaming."""
+    """Sube y deja en la cola de OCR (0017). Con `Accept: application/x-ndjson` sigue el
+    progreso leyendo la BD; cerrar el flujo no detiene el trabajo."""
     datos = await file.read()
-    subido = service.registrar_subida(file.filename or "documento", datos, usuario, request)
-    flujo = service.flujo_ocr(subido["id"], subido["mime"], datos, modo == "doble",
-                              usuario["usuario_id"], request)
+    subido = service.registrar_subida(file.filename or "documento", datos, modo == "doble",
+                                      usuario, request)
+    cola.despertar.set()
     if "application/x-ndjson" in request.headers.get("accept", ""):
-        lineas = (json.dumps(e, ensure_ascii=False, default=str) + "\n" for e in flujo)
-        return StreamingResponse(lineas, media_type="application/x-ndjson")
-    ultimo = None
-    for evento in flujo:
-        ultimo = evento
-    if ultimo["type"] == "error":
-        raise AppError(ultimo["code"], ultimo["message"], 500)
-    return {"id": ultimo["id"], "num_paginas": ultimo["num_paginas"], "estado": ultimo["estado"]}
+        return _ndjson(service.seguir_ocr(subido["id"], usuario))
+    return subido
+
+
+def _ndjson(eventos):
+    lineas = (json.dumps(e, ensure_ascii=False, default=str) + "\n" for e in eventos)
+    return StreamingResponse(lineas, media_type="application/x-ndjson")
 
 
 @router.post("/transform/plain-text")
@@ -126,6 +142,28 @@ def detalle(documento_id: UUID, usuario: dict = Depends(TR), conexion: Connectio
     return service.detalle(service.obtener(conexion, documento_id, usuario))
 
 
+@router.get("/documents/{documento_id}/progress")
+def progreso(documento_id: UUID, usuario: dict = Depends(TR),
+             conexion: Connection = Depends(connection)):
+    service.obtener(conexion, documento_id, usuario)
+    return service.progreso(conexion, documento_id)
+
+
+@router.get("/documents/{documento_id}/stream")
+def seguir(documento_id: UUID, usuario: dict = Depends(TR),
+           conexion: Connection = Depends(connection)):
+    """NDJSON de progreso de un documento ya subido (p. ej. tras recargar la página)."""
+    service.obtener(conexion, documento_id, usuario)
+    return _ndjson(service.seguir_ocr(documento_id, usuario))
+
+
+@router.post("/documents/{documento_id}/cancel")
+def cancelar(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
+             conexion: Connection = Depends(connection)):
+    return service.cancelar(conexion, service.obtener(conexion, documento_id, usuario),
+                            usuario, request)
+
+
 @router.delete("/documents/{documento_id}", status_code=204)
 def eliminar(documento_id: UUID, request: Request,
              usuario: dict = Depends(require_role("transcriptor", "admin")),
@@ -163,7 +201,8 @@ def paginas(documento_id: UUID, usuario: dict = Depends(TR), conexion: Connectio
 def editar_pagina(documento_id: UUID, numero: int, datos: PaginaIn, request: Request,
                   usuario: dict = Depends(TR), conexion: Connection = Depends(connection)) -> None:
     doc = service.obtener(conexion, documento_id, usuario)
-    service.editar_pagina(conexion, doc, numero, datos.texto, datos.validada, usuario, request)
+    service.editar_pagina(conexion, doc, numero, datos.texto, datos.validada, usuario, request,
+                          datos.html)
 
 
 @router.post("/documents/{documento_id}/pages/{numero}/ocr")
@@ -193,7 +232,15 @@ def localizar(documento_id: UUID, numero: int, q: str = Query(..., max_length=20
               usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
     """Caja (píxeles de la imagen a 150 dpi) de un texto en la página, o null."""
     doc = service.obtener(conexion, documento_id, usuario)
-    return {"bbox": service.localizar(doc, numero, q)}
+    return {"bbox": service.localizar(doc, numero, [q])[0]}
+
+
+@router.post("/documents/{documento_id}/pages/{numero}/locate")
+def localizar_varios(documento_id: UUID, numero: int, datos: LocalizarIn,
+                     usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
+    """Lote de `locate`: una caja (o null) por texto, en el mismo orden."""
+    doc = service.obtener(conexion, documento_id, usuario)
+    return {"bboxes": service.localizar(doc, numero, [q[:200] for q in datos.q])}
 
 
 # --- Versiones y bloques --------------------------------------------------------------------
@@ -296,3 +343,42 @@ def exportar(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
         raise AppError("FORBIDDEN", "Solo el dueño o un revisor exporta", 403)
     pdf, huella, nombre = export.exportar(conexion, documento_id, usuario, request)
     return _pdf(pdf, nombre, cabeceras={"X-Document-Hash": huella})
+
+
+@router.post("/documents/export/zip")
+def exportar_zip(datos: ZipIn, request: Request, usuario: dict = Depends(TR),
+                 conexion: Connection = Depends(connection)):
+    """Varios PDF en un ZIP: `anon` solo de documentos aprobados o exportados; `trans` de los
+    que tienen la transcripción terminada. Los que no cumplen se saltan y se listan en
+    `X-Omitidos`."""
+    buffer, nombres, omitidos = io.BytesIO(), set(), 0
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for documento_id in dict.fromkeys(datos.ids):
+            try:
+                doc = service.obtener(conexion, documento_id, usuario)
+                if datos.tipo == "anon":
+                    pdf, _, nombre = export.exportar(conexion, documento_id, usuario, request)
+                else:
+                    pdf, nombre = export.transcrito(conexion, doc, usuario, request)
+            except AppError:
+                omitidos += 1
+                continue
+            base, i = nombre, 2
+            while nombre in nombres:  # dos documentos con el mismo nombre no se pisan
+                nombre, i = base.replace(".pdf", f" ({i}).pdf"), i + 1
+            nombres.add(nombre)
+            zf.writestr(nombre, pdf)
+    if not nombres:
+        raise AppError("SIN_DOCUMENTOS", "Ninguno de los documentos se puede exportar así", 409)
+    return Response(buffer.getvalue(), media_type="application/zip", headers={
+        "Content-Disposition": f'attachment; filename="documentos_{datos.tipo}.zip"',
+        "X-Omitidos": str(omitidos)})
+
+
+@router.post("/documents/{documento_id}/export/transcrito")
+def exportar_transcrito(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
+                        conexion: Connection = Depends(connection)):
+    """PDF de la transcripción antes de anonimizar: `<nombre>_trans.pdf`."""
+    doc = service.obtener(conexion, documento_id, usuario)
+    pdf, nombre = export.transcrito(conexion, doc, usuario, request)
+    return _pdf(pdf, nombre)
