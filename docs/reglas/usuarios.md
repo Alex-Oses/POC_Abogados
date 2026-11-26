@@ -71,7 +71,7 @@ U-07 (validez de 72 h de la invitación) se retira el 18/11: con SSO no hay invi
 
 Con SSO ([[0009-identidad]]), esta sección ya solo mira al **admin de desarrollo**: no hay contraseñas de usuario. U-10 a U-15 se retiran el 18/11; el admin local sigue funcionando igual, pero deja de tener reglamento propio.
 
-**Regla U-21 — la credencial del admin de desarrollo no vive en el repo.** Se siembra por variable de entorno, no se versiona y **no se despliega en producción**. El admin local funciona igual que antes (login y cambio de contraseña); lo que desaparece es el reglamento sobre cómo se gestiona su contraseña y, con U-10 a U-15, el reset por correo. El hash, la política, el bloqueo por intentos y el mensaje de error se quedan en el código como están.
+**Regla U-21 — la credencial del admin de desarrollo no vive en el repo.** Se siembra por variable de entorno, no se versiona y **no se despliega en producción**. El admin local funciona igual que antes (login y cambio de contraseña); lo que desaparece es el reglamento sobre cómo se gestiona su contraseña y, con U-10 a U-15, el reset por correo. El hash, la política, el bloqueo por intentos y el mensaje de error se quedan en el código como están. La cuenta sembrada lleva **los tres roles** (transcriptor, revisor y admin) para poder recorrer el flujo completo mientras el SSO esté en pausa; sigue siendo una sola cuenta, no un rol nuevo, y no se despliega.
 
 ## 6. Sesiones
 

@@ -99,7 +99,7 @@ Los roles se releen de la base de datos en cada petición: un token no arrastra 
 
 ## 1. Autenticación
 
-El camino de producción es el **SSO del ICAT**: no hay alta, invitación ni contraseñas de usuario. Las rutas `/user/*` de esta sección son el **camino local del admin de desarrollo**, no se exponen en producción y, desde el 18/11, no tienen reglas propias ([[0012-identidad-y-roles]], U-21).
+El camino de producción es el **SSO del ICAT**: no hay alta, invitación ni contraseñas de usuario. Las rutas `/user/*` de esta sección son el **camino local del admin de desarrollo**, no se exponen en producción y, desde el 18/11, no tienen reglas propias ([[0012-identidad-y-roles]], U-21). La implementación del SSO está **en pausa** hasta que el ICAT registre la aplicación OIDC; mientras tanto, el piloto se prueba con esa cuenta, que lleva los tres roles.
 
 ### `GET /auth/sso/login` *(propuesta)*
 
@@ -118,7 +118,7 @@ Recibe `code` y `state`, valida el `state` y canjea el `code`. Busca la ficha po
 
 ### Camino local de desarrollo
 
-Estas rutas existen para arrancar y probar sin el ICAT. No hay autoregistro: la cuenta del admin de desarrollo se siembra por variable de entorno (U-21) y no se despliega en producción. **Invitación y recuperación de contraseña se retiran** con U-10 a U-15 (18/11): no hay tabla `tokens_usuario` ni proveedor de correo.
+Estas rutas existen para arrancar y probar sin el ICAT. No hay autoregistro: la cuenta del admin de desarrollo se siembra por variable de entorno (U-21) y no se despliega en producción. Esa cuenta lleva **transcriptor, revisor y admin**, para poder recorrer el flujo completo sin cambiar de usuario. **Invitación y recuperación de contraseña se retiran** con U-10 a U-15 (18/11): no hay tabla `tokens_usuario` ni proveedor de correo.
 
 ### `POST /user/login`
 
