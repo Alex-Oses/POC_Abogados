@@ -32,6 +32,8 @@ Resto:
 
 ## Hecho
 
+- [x] Frontend React con todas las pantallas de la [[Maqueta]] conectado al OCR real, semáforo de contraste, export PDF y arranque con un clic (26/11, @ia-claude-alex)
+- [x] App demo de OCR (25/11, @ia-opencode-alex): `ocr_web_app.py` + `templates/index.html` convierten el PDF a imágenes con PyMuPDF y lo transcriben página a página con PaddleOCR-VL 1.6 vía Ollama; `/ocr` emite eventos NDJSON (`start`, `page`, `done`, `error`) y el navegador los lee en streaming, así que el progreso por página es real · verificado de extremo a extremo con un PDF de 2 páginas
 - [x] Backend Python creado (26/11): fundación FastAPI, identidad local de desarrollo, administración de usuarios y auditoría encadenada; `ruff` limpio y 7 pruebas en verde, 4 de BD saltadas por falta de PostgreSQL · `backend/` · [[Estructura del backend (Python)]] · @ia-opencode-ruben
 - [x] Admin de desarrollo con **los tres roles** (26/11): la cuenta sembrada por entorno (U-21) permite recorrer el flujo completo sin SSO; el SSO queda en pausa · `backend/app/services/users.py` · @ia-opencode-ruben
 - [x] Panel de investigación de reconstrucción de PDF (26/11): lector de estructura, render de vista previa por imágenes, OCR desde Markdown y utilidades de fuentes · `investigacion/reconstruccion_pdf/` · @ia-opencode-ruben
