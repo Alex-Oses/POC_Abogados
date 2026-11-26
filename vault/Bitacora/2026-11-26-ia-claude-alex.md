@@ -49,3 +49,5 @@
 - Pruebas (agente + API): cola de 7 ficheros con cancelar y recarga, edición con formato que persiste y llega a la anonimización, validar, Ctrl+→, avisos, JPG/PNG y rechazo 415. Arreglos: cancelado ya no sale como error, rechazados en aviso fijo, errores del backend traducidos.
 - Servidor: BD externa (`DATABASE_URL`) con `scripts/comprobar_bd.py`, `DOMINIO` con Let's Encrypt, producción sin `/docs`, fuentes locales (sin Google), logs en `logs/` y `diagnostico.sh` con claves tapadas. Instalación probada en un Ubuntu 24.04 limpio (contenedor): OK, y con BD mala falla con línea, comando y log.
 - `scripts/generar_pruebas.py`: 17 documentos ficticios en `pruebas/` (no se suben).
+- Revisión: cabecera con el recuento de páginas y miniatura actual siempre visible (con 20+ páginas la columna se cortaba sin aviso).
+- `docs/GUIA_SERVIDOR.md` (guía paso a paso), `scripts/crear_usuario.py` (altas mientras no haya SSO) y `scripts/copia_seguridad.sh`. Comandos de la guía probados en un Ubuntu 24.04 limpio contra `icat_test`.
