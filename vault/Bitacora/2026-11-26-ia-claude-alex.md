@@ -45,3 +45,4 @@
   1. El PDF transcrito lleva datos personales: ¿solo a dominios internos (lista blanca en el servidor)? Propuesta: anonimizado a cualquiera, transcrito solo interno.
   2. Destinatario: a) casilla al exportar con el correo de quien subió el documento, b) fijo por tipo en `.env`, c) ambos.
   3. Buzón remitente y datos SMTP.
+- Auditoría funcional de la web (agente Evidence Collector) y arreglos: subida duplicada ya no dice «acabada», justicia gratuita en catalán (tipos, aviso, nombre e ingresos con «Nom:»/«Ingressos:»), confirmación al enviar con documentación incompleta, eventos de auditoría legibles, estado visible en móvil, «seudónimos» solo con ese modo, guía fija abajo a la derecha y documentos huérfanos de antes de la cola marcados como fallidos. Sin cambiar: el resaltado del menú (las pantallas de flujo cuelgan de Safata y Exportat de Arxiu).

@@ -25,6 +25,7 @@ def tomar() -> dict | None:
 def reanudar() -> list:
     """Devuelve a la cola lo que quedó en `ocr_procesando` (caída o reinicio)."""
     with tx() as conexion:
+        conexion.execute(SQL["cola_huerfanos"])
         return [f["id"] for f in conexion.execute(SQL["cola_reanudar"]).fetchall()]
 
 

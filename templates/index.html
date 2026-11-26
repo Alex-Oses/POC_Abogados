@@ -115,7 +115,7 @@ details ul{list-style:none;padding:0;margin:8px 0 0}
 .login .logo b{font-size:44px}
 .audit{font:12px/1.7 ui-monospace,Consolas,monospace;color:var(--m);padding:12px 18px}
 /* guía de la demo */
-.guide{margin:12px 28px 0;text-align:right;font-size:13px}
+.guide{position:fixed;right:16px;bottom:16px;z-index:25;text-align:right;font-size:13px}
 .guide ol{background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.12);padding:12px 14px 12px 32px;margin:0 0 8px;width:260px}
 .guide li{padding:2px 0}.guide li a{color:var(--t);text-decoration:none}.guide li.on a{color:var(--p);font-weight:500}
 .guide>button{float:right}
@@ -166,6 +166,9 @@ details ul{list-style:none;padding:0;margin:8px 0 0}
 .invalid{cursor:pointer}
 .doubt:focus,.invalid:focus{outline:2px solid var(--f);outline-offset:1px}
 @media(max-width:900px){header{flex-wrap:wrap;gap:12px}.kpis{grid-template-columns:repeat(2,1fr)}.rev{grid-template-columns:1fr;height:auto}.thumbs{display:flex;gap:8px;overflow-x:auto}.thumb{min-width:110px}.grid2,.anon{grid-template-columns:1fr}table{display:block;overflow-x:auto}}
+/* Estado en móvil bajo el título (las columnas quedan fuera de la vista) */
+.mob{display:none;margin-top:4px}
+@media(max-width:900px){.mob{display:block}}
 /* Filtros y selección */
 .fsel{width:auto;min-width:170px;flex:0 1 220px}
 .rsel{width:17px;height:17px;accent-color:var(--p);cursor:pointer}

@@ -661,7 +661,7 @@ function Rows({ rows, head }) {
                 <td style=${{ width: '44px' }} onClick=${e => e.stopPropagation()}><input type="checkbox" className="rsel" aria-label=${d.title}
                     checked=${S.sel.has(d.id)} onChange=${() => toggleSel(d.id)} /></td>
                 <td style=${{ width: '44px' }}><div className="tile" style=${{ minHeight: 0, padding: '4px', width: '30px' }}><div className="pg" style=${{ margin: 0, height: '28px', width: '20px' }}></div></div></td>
-                <td><div className="doc-t">${d.title}</div>${d.raw.subido_por && html`<div className="doc-s">${t('pujat_per')} ${d.raw.subido_por}</div>`}
+                <td><div className="doc-t">${d.title}</div><div className="mob">${chip(d.st[0], d.st[1])}</div>${d.raw.subido_por && html`<div className="doc-s">${t('pujat_per')} ${d.raw.subido_por}</div>`}
                     ${d.raw.modo_ocr && html`<div className="doc-s">${d.raw.modo_ocr === 'doble' ? '⧉ ' + t('m_double') : '▢ ' + t('m_single')}</div>`}<${Snippet} s=${d.frag} />
                     ${!RUNNING.includes(d.raw.estado) && !d.raw._err && html`<button type="button" className="btn" style=${{ marginTop: '4px' }}
                         onClick=${e => { e.stopPropagation(); exportTranscrit(d.id, d.title); }}>⬇ ${t('exp_transcrit')}</button>`}</td><td>${d.p}</td>
@@ -745,14 +745,15 @@ function Processant() {
     const sts = pg.map(p => [p.n, pstate(p)]);
     const ok = sts.filter(([, s]) => ['ok', 'v'].includes(s)).length, w = sts.filter(([, s]) => s === 'w').map(([n]) => n), bad = sts.filter(([, s]) => s === 'bad').map(([n]) => n);
     return html`<${Shell} active="safata">
-        <h1 aria-live="polite">${d.done ? `${t('proc_fi')} · ${d.name}` : `${t('proc_t')} ${done}/${d.total || '…'} · ${d.name}`}</h1>
+        <h1 aria-live="polite">${d.error && !d.total ? d.name : d.done ? `${t('proc_fi')} · ${d.name}` : `${t('proc_t')} ${done}/${d.total || '…'} · ${d.name}`}</h1>
         <p className="sub">${t(d.mode === 'double' ? 'm_double' : 'm_single')} · ${t('proc_s2')}</p>
         ${d.error && html`<div className="banner bad">Error: ${d.error}</div>`}
-        <div className="card"><div className="tiles">
+        ${!(d.error && !d.total) && html`<div className="card"><div className="tiles">
             ${d.total === 0 && !d.done && html`<div className="tile run"><div className="pg"></div><span className="spin" aria-hidden="true"></span> …</div>`}
             ${range(d.total).map(n => { const p = d.pages[n]; return html`<div key=${n} className=${'tile' + (p && p.status === 'run' ? ' run' : '')}><div className="pg"></div>${t('pag')} ${n}<br />${tileBody(p)}</div>`; })}
-        </div></div>
-        ${d.done && html`<div className="card" style=${{ marginTop: '16px', padding: '16px 18px' }}>
+        </div></div>`}
+        ${d.error && !d.total && html`<a className="btn" href="#safata">${t('tornar_safata')}</a>`}
+        ${d.done && !(d.error && !d.total) && html`<div className="card" style=${{ marginTop: '16px', padding: '16px 18px' }}>
             <div className="row wrap">
                 ${chip('ok', `✓ ${ok} ${t('sum_ok')}`)}
                 ${w.length > 0 && chip('w', `! ${w.length} ${t('sum_w')} (${t('pag')} ${w.join(', ')})`)}
@@ -880,7 +881,7 @@ function JG() {
         ${j.sent && html`<div className="banner ok row">✓ ${t('env_ok')} (${hhmm(j.sent)})<span className="sp"></span><a className="btn pri" href="#anonimitzar" onClick=${() => { S.an = null; }}>${t('an_t')} →</a></div>`}
         <div className="grid2">
             <div className="card"><div className="box-h">${t('aportada')}</div>${j.documentos.map(x => { const c = cls(x.estado); return html`<div key=${x.tipo} className=${'check' + (x.paginas.length ? ' click' : '')} onClick=${x.paginas.length ? () => { S.jgPage = x.paginas[0]; up(); } : undefined}>
-                <span className="ic" style=${{ color: col(c) }}>${c === 'ok' ? '✓' : c === 'w' ? '!' : '✕'}</span><div className="sp"><div>${x.nombre}${x.requerido ? '' : ' · ' + t('opcional')}</div><div className="doc-s">${det(x)}</div></div>${chip(c, lbl(x.estado))}</div>`; })}
+                <span className="ic" style=${{ color: col(c) }}>${c === 'ok' ? '✓' : c === 'w' ? '!' : '✕'}</span><div className="sp"><div>${jgName(x)}${x.requerido ? '' : ' · ' + t('opcional')}</div><div className="doc-s">${det(x)}</div></div>${chip(c, lbl(x.estado))}</div>`; })}
                 ${j.paginas_sin_clasificar.length > 0 && html`<div className="check doc-s">${t('sense_classif')}: ${t('pag')} ${j.paginas_sin_clasificar.join(', ')}</div>`}
             </div>
             <div className="card"><div className="box-h">${t('dades')}</div>
@@ -888,11 +889,11 @@ function JG() {
                     <span>DNI</span><b>${da.dni || '—'} ${da.dni && html`<span style=${{ color: da.dni_valido ? 'var(--ok)' : 'var(--p)' }}>${da.dni_valido ? '✓' : '✕'}</span>`}</b>
                     <span>${t('ingressos')}</span><b>${eur(da.ingresos_anuales)}</b><span>${t('membres')}</span><b>${da.miembros_unidad_familiar ?? '—'}</b>
                     <span>${t('proc')}</span><b>${da.procedimiento || '—'}</b><span>${t('domicili')}</span><b>${da.domicilio || '—'}</b></div>
-                <div style=${{ padding: '0 18px' }}><div className="banner w"><b>${t('orient')}</b> ${j.aviso}</div>
+                <div style=${{ padding: '0 18px' }}><div className="banner w"><b>${t('orient')}</b> ${t('orient2')}</div>
                     ${j.completo ? html`<div className="banner ok">✓ ${t('jg_complet')}</div>` : html`<div className="banner bad">${t('jg_falta')}</div>`}</div>
                 <div className="row" style=${{ padding: '6px 18px 18px' }}>
                     <button type="button" className="btn" disabled=${!j.requerimiento} onClick=${() => { S.modal = { type: 'dem', text: j.requerimiento }; up(); }}>${t('demanar')}</button>
-                    <button type="button" className="btn pri" disabled=${!!j.sent} onClick=${sendJg}>${t('enviar_tram')}</button>
+                    <button type="button" className="btn pri" disabled=${!!j.sent} onClick=${() => { if (j.completo) sendJg(); else { S.modal = { type: 'jgsend' }; up(); } }}>${t('enviar_tram')}</button>
                 </div>
             </div>
         </div>
@@ -900,9 +901,10 @@ function JG() {
     <//>`;
 }
 // Vista previa: miniaturas de todas las páginas con su tipo detectado; clic en una o en un documento la amplía.
+const jgName = x => (t('jgt_' + x.tipo) === 'jgt_' + x.tipo ? x.nombre : t('jgt_' + x.tipo));
 function JgPreview({ j }) {
     const tipoDe = {};
-    j.documentos.forEach(x => [...x.paginas, ...x.paginas_ilegibles].forEach(p => { tipoDe[p] = x.nombre; }));
+    j.documentos.forEach(x => [...x.paginas, ...x.paginas_ilegibles].forEach(p => { tipoDe[p] = jgName(x); }));
     const total = Math.max(0, ...Object.keys(tipoDe).map(Number), ...j.paginas_sin_clasificar,
         (S.docs.find(d => d.id === j.id) || {}).num_paginas || 0);
     const cur = S.jgPage && S.jgPage <= total ? S.jgPage : 1;
@@ -1056,7 +1058,7 @@ function Anonimitzar() {
         ${!ed && html`<div className="banner w">${t('an_ro')}</div>`}
         <div className="anon">
             <div className="card doc" style=${{ whiteSpace: 'pre-wrap' }}>${A.texts[S.anonPage] ? pageParts(S.anonPage) : html`<span className="doc-s">${t('buit')}</span>`}</div>
-            <aside className="card side"><h3>${t('an_panel')}</h3><div className="doc-s">${A.anns.length} ${t('detect')} · ${onN} ${t('anonim')}</div>
+            <aside className="card side"><h3>${t('an_panel')}</h3><div className="doc-s">${A.anns.length} ${t('detect')} · ${onN} ${t('anonim')}${A.anns.some(a => !a.decision_revisor) ? ` (${A.anns.filter(a => !a.decision_revisor).length} ${t('sense_dec')})` : ''}</div>
                 <h5>${t('com')}</h5>
                 <div className="modes">${Object.keys(MODES).map(m => html`<button key=${m} type="button" className=${S.anMode === m ? 'on' : ''} aria-pressed=${S.anMode === m} disabled=${!ed} onClick=${() => setMode(m)}>${t('m_' + m)}</button>`)}</div>
                 ${S.anMode === 'tatxar' && html`<div className="banner w" style=${{ marginTop: '8px' }}>${t('tatxar_av')}</div>`}
@@ -1074,9 +1076,11 @@ function Anonimitzar() {
         </div>
     <//>`;
 }
+// Código de evento → texto: con traducción si existe; si no, el código en minúsculas y sin guiones bajos.
+const evName = ev => (t('ev_' + ev) === 'ev_' + ev ? ev.toLowerCase().replace(/_/g, ' ') : t('ev_' + ev));
 function AuditCard({ style }) {
     return html`<div className="card" style=${style}><div className="box-h">${t('registre')}</div>
-        <div className="audit">${S.audit.length ? S.audit.map(a => html`<div key=${a.id}>${hhmm(a.creado_en)}  ${a.evento}  ${a.entidad_tipo || ''} ${a.detalle && a.detalle.pagina ? t('pag') + ' ' + a.detalle.pagina : ''}</div>`) : t('cap')}</div></div>`;
+        <div className="audit">${S.audit.length ? S.audit.map(a => html`<div key=${a.id}>${hhmm(a.creado_en)}  ${evName(a.evento)} ${a.detalle && a.detalle.pagina ? t('pag') + ' ' + a.detalle.pagina : ''}</div>`) : t('cap')}</div></div>`;
 }
 function Exportat() {
     const E = S.exp;
@@ -1086,7 +1090,7 @@ function Exportat() {
         <div className="card" style=${{ padding: '28px', maxWidth: '720px', margin: '0 auto' }}>
             <div className="banner ok"><b>✓ ${t('exp_t')}</b> · ${E.name} · ${t('exp_s')}</div>
             <p className="doc-s" style=${{ wordBreak: 'break-all' }}>SHA-256: <code>${E.hash}</code></p>
-            <ul style=${{ lineHeight: 2 }}>${['g1', 'g2', 'g3', 'g4'].map(g => html`<li key=${g}>${t(g)}</li>`)}</ul>
+            <ul style=${{ lineHeight: 2 }}>${['g1', 'g2', 'g3', ...(S.anMode === 'pseudonim' ? ['g4'] : [])].map(g => html`<li key=${g}>${t(g)}</li>`)}</ul>
             <div className="row"><button type="button" className="btn pri" onClick=${() => { download(E.blob, E.name); toast('⤓ ' + E.name); }}>⤓ ${t('descarregar')}</button><a className="btn" href="#safata">${t('tornar_safata')}</a></div>
         </div>
         <${AuditCard} style=${{ maxWidth: '720px', margin: '16px auto 0' }} />
@@ -1150,6 +1154,10 @@ function Modal() {
             <div className="row" style=${{ marginTop: '16px' }}><span className="sp"></span><button type="button" className="btn" onClick=${close}>${t('cancel')}</button>
                 <button type="button" className="btn" onClick=${() => { p.esc = true; S.modal = null; S.cur = nextAttention(d, n) || n; up(); }}>${t('marcar_esc')}</button>
                 <button type="button" className="btn pri" disabled=${!file} onClick=${() => { S.modal = null; reOcr(d, n, file); }}>${t('pujar_pag')}</button></div>`;
+    } else if (M.type === 'jgsend') {
+        body = html`<h2>${t('enviar_tram')}</h2><p className="banner bad">${t('jg_falta')}</p><p>${t('jg_env_inc')}</p>
+            <div className="row" style=${{ marginTop: '16px' }}><span className="sp"></span><button type="button" className="btn" onClick=${close}>${t('cancel')}</button>
+                <button type="button" className="btn pri" onClick=${() => { close(); sendJg(); }}>${t('enviar_tram')}</button></div>`;
     } else if (M.type === 'dem') {
         body = html`<h2>${t('msg_t')}</h2><textarea aria-label=${t('msg_t')} style=${{ width: '100%', height: '190px', font: '14px/1.5 Roboto', border: '1px solid var(--line)', borderRadius: '6px', padding: '10px' }} value=${txt} onChange=${e => setTxt(e.target.value)}></textarea>
             <div className="row" style=${{ marginTop: '14px' }}><span className="sp"></span><button type="button" className="btn" onClick=${close}>${t('cancel')}</button>

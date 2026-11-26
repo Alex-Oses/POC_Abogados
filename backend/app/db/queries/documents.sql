@@ -30,6 +30,16 @@ UPDATE documentos SET estado = 'pendiente'
  WHERE estado = 'ocr_procesando' AND metadatos_extras ? 'ocr'
 RETURNING id;
 
+-- name: cola_huerfanos
+-- Subidos antes de la cola (sin `ocr` en metadatos): no se pueden reanudar. Quedan como fallidos
+-- para que la bandeja ofrezca volver a subirlos en vez de «transcribiendo» para siempre.
+UPDATE documentos
+   SET estado = 'pendiente', actualizado_en = now(),
+       metadatos_extras = metadatos_extras || jsonb_build_object('ocr', jsonb_build_object(
+           'error', 'Transcripción interrumpida: vuelve a subir el documento'))
+ WHERE estado = 'ocr_procesando' AND NOT metadatos_extras ? 'ocr'
+RETURNING id;
+
 -- name: doc_progreso
 SELECT d.estado, d.num_paginas, d.creado_en, d.metadatos_extras -> 'ocr' AS ocr,
        (SELECT count(*) FROM paginas_documento p WHERE p.documento_id = d.id) AS pages_done,
