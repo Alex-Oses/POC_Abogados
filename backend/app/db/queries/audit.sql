@@ -14,3 +14,15 @@ SELECT %(evento)s, %(entidad_tipo)s, %(entidad_id)s, %(usuario_id)s,
        %(ip)s::inet, %(user_agent)s, %(detalle)s::jsonb,
        (SELECT hash FROM previa)
 RETURNING id;
+
+-- name: auditoria_listar
+SELECT id, evento, entidad_tipo, entidad_id, usuario_id, host(ip_origen) AS ip_origen,
+       creado_en, detalle, COUNT(*) OVER () AS total
+  FROM auditoria
+ WHERE (%(entidad_tipo)s::text IS NULL OR entidad_tipo = %(entidad_tipo)s)
+   AND (%(entidad_id)s::uuid IS NULL OR entidad_id = %(entidad_id)s)
+   AND (%(usuario_id)s::uuid IS NULL OR usuario_id = %(usuario_id)s)
+   AND (%(desde)s::timestamptz IS NULL OR creado_en >= %(desde)s)
+   AND (%(hasta)s::timestamptz IS NULL OR creado_en < %(hasta)s)
+ ORDER BY id DESC
+ LIMIT %(limit)s OFFSET %(offset)s;

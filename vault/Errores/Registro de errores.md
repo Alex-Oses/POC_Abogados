@@ -541,7 +541,7 @@ El modelo del 24/11 es la fuente del [diagrama](../Proyecto/Modelo%20de%20datos.
 - **Evidencia.** Con `DATABASE_TEST_URL`, `test_health_sin_bd_es_503` fallaba con `assert 200 == 503`: los tests de autenticación ya habían ejecutado el lifespan (`with TestClient(app)`) y `app.state.bd_disponible` seguía en `True` en el `app` compartido, aunque este test crea su propio `TestClient` sin `with`.
 - **Impacto.** La suite solo era verde sin base de datos. Con la base disponible —justo cuando interesa— daba un falso fallo de `/health`; no es un defecto de la API en producción.
 - **Arreglo (26/11).** El test guarda y fuerza `bd_disponible = False`, y lo restaura en `finally`, para comprobar el modo degradado sin depender del orden de módulos.
-- **Estado.** corregido. `15 passed` con `DATABASE_TEST_URL`; `11 passed, 4 skipped` sin ella.
+- **Estado.** corregido. `15 passed` con `DATABASE_TEST_URL`; `10 passed, 5 skipped` sin ella tras integrar `main` (#53), que añadió un test de flujo completo. Para esa prueba hace falta además un `STORAGE_KEY` efímero de Fernet en el entorno (no se guarda en el repo).
 
 ### Resultado de la validación
 
@@ -555,7 +555,7 @@ El modelo del 24/11 es la fuente del [diagrama](../Proyecto/Modelo%20de%20datos.
 | Cadena de hash | dos inserciones → 2 valores de `hash_anterior` distintos (E-23 sigue abierto para concurrencia) |
 | Versiones | numeradas `1,2`, una sola `es_actual`, documento en `ocr_completado` |
 | Vistas | `v_documento_actual`, `v_dashboard_estados` y `v_metricas_revisor` consultables |
-| Backend | 15/15 tests con BD; 11 passed + 4 skipped sin BD |
+| Backend | 15/15 tests con BD (y `STORAGE_KEY` efímero); 10 passed + 5 skipped sin BD, tras integrar `main` (#53) |
 
 ---
 
