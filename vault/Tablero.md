@@ -16,6 +16,7 @@ Resto:
 - [x] Modelo de roles aceptado (24/11, @Rubén): tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`**; @Kevin y @Alex pueden dejar constancia por Teams · [[0012-identidad-y-roles]] · @Rubén
 - [ ] Cerrar el registro OIDC del ICAT (SSO **en pausa** desde el 26/11, con intención de retomarlo): `GET /auth/sso/login` y `GET /auth/sso/callback` ya están redactados como propuesta; solo falta que el ICAT entregue el registro · @Rubén @Kevin
 - [ ] Validar `V1`..`V15` y el backend contra PostgreSQL 16 desde cero: aquí no hay Docker ni `psql`, así que las pruebas de integración están escritas pero no ejecutadas · @Rubén
+- [x] Integrar Presidio en el backend (26/11): `app/services/presidio.py` con las 6 categorías iniciales (Nombre, DNI/NIE, Email, Teléfono, Dirección, IBAN), fallback regex sin spaCy, `ocr.py` separado de la lógica de Presidio · `backend/` · @ia-antigravity-ruben
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Rubén
 
 - [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
