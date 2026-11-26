@@ -14,7 +14,8 @@ Resto:
 - [x] Stack del backend decidido: **Python 3.12 + FastAPI** · único stack para API, Presidio y PDF · C#/Java quedan como alternativas · [[0014-stack-backend-c-sharp-java-python]] · @Rubén
 - [x] Identidad implementada (24/11): `V15`, `v_metricas_revisor`, trigger de revisor y diccionario alineados con [[0012-identidad-y-roles]], manteniendo intacto el modelo lógico-relacional · [[0015-identidad-en-v15]] · @Rubén
 - [x] Modelo de roles aceptado (24/11, @Rubén): tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`**; @Kevin y @Alex pueden dejar constancia por Teams · [[0012-identidad-y-roles]] · @Rubén
-- [ ] Cerrar el registro OIDC del ICAT: `GET /auth/sso/login` y `GET /auth/sso/callback` ya están redactados como propuesta; solo falta que el ICAT entregue el registro · @Rubén @Kevin
+- [ ] Cerrar el registro OIDC del ICAT (SSO **en pausa** desde el 26/11, con intención de retomarlo): `GET /auth/sso/login` y `GET /auth/sso/callback` ya están redactados como propuesta; solo falta que el ICAT entregue el registro · @Rubén @Kevin
+- [ ] Validar `V1`..`V15` y el backend contra PostgreSQL 16 desde cero: aquí no hay Docker ni `psql`, así que las pruebas de integración están escritas pero no ejecutadas · @Rubén
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Rubén
 
 - [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
@@ -30,6 +31,9 @@ Resto:
 
 ## Hecho
 
+- [x] Backend Python creado (26/11): fundación FastAPI, identidad local de desarrollo, administración de usuarios y auditoría encadenada; `ruff` limpio y 7 pruebas en verde, 4 de BD saltadas por falta de PostgreSQL · `backend/` · [[Estructura del backend (Python)]] · @ia-opencode-ruben
+- [x] Admin de desarrollo con **los tres roles** (26/11): la cuenta sembrada por entorno (U-21) permite recorrer el flujo completo sin SSO; el SSO queda en pausa · `backend/app/services/users.py` · @ia-opencode-ruben
+- [x] Panel de investigación de reconstrucción de PDF (26/11): lector de estructura, render de vista previa por imágenes, OCR desde Markdown y utilidades de fuentes · `investigacion/reconstruccion_pdf/` · @ia-opencode-ruben
 - [x] PDF final decidido: reconstrucción desde estructura con ReportLab, modo layout/secuencial, hash en la versión e idempotencia; responsabilidad de @Rubén · [[0007-generacion-pdf-final]] · 23/11/2026
 - [x] Consultas decididas (23/11, @Rubén): **SQL directo** con el driver y un mapeador fino (`psycopg` + `.sql`, o `Npgsql` + `Dapper` si 0014 cae en C#); sin SQLAlchemy y sin declarar el esquema · [[0013-consultas-sql-o-sqlalchemy-core]] · @Rubén
 - [x] Identidad decidida (24/11, @Rubén): el SQL de [[0012-identidad-y-roles]] está al final de `V15` editada, sin `V13` ni `V16`; B1 resuelto en [[Coherencia]] · [[0015-identidad-en-v15]] · @Rubén

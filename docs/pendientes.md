@@ -1,6 +1,6 @@
 # Lo que queda del modelo y la integración
 
-- **Estado:** actualizado · 24/11/2026
+- **Estado:** actualizado · 26/11/2026
 - **Autor:** @ia-opencode-ruben
 - **Para qué:** el contrato, las reglas y el esquema ya describen autenticación, bloques de layout, cola de revisión y export; aquí queda solo lo que falta validar o pedir a terceros.
 - **Qué no es:** no decide nada. Los bloqueantes se citan por su ID de [Coherencia](../vault/Proyecto/Coherencia.md) y las decisiones por su número; aquí solo se agrupa lo que hoy no se puede implementar.
@@ -11,7 +11,9 @@
 
 **Dónde estamos.** `V15__flujo_revision_y_export.sql` ya añade `usuarios_roles`, `estado`, `sso_subject`, `password_hash` y `sesiones_usuario`; vista, trigger y diccionario están alineados. Falta validar la recreación de la base de desarrollo desde cero.
 
-**Qué falta.** [0009](../vault/Decisiones/0009-identidad.md) está **aceptada (20/11)**: SSO del ICAT + admin local solo de desarrollo. Queda una dependencia externa: **el ICAT tiene que registrar la aplicación OIDC** (redirect URI, secreto, grupos). Son 1-2 semanas de terceros; mientras tanto, el piloto puede arrancar con el admin local de desarrollo.
+**Qué falta.** [0009](../vault/Decisiones/0009-identidad.md) está **aceptada (20/11)**: SSO del ICAT + admin local solo de desarrollo. Queda una dependencia externa: **el ICAT tiene que registrar la aplicación OIDC** (redirect URI, secreto, grupos). Son 1-2 semanas de terceros. **El SSO queda en pausa desde el 26/11**, con intención de retomarlo: mientras tanto el piloto arranca con el admin local de desarrollo, que lleva los tres roles.
+
+**Ya implementado (26/11).** El backend de `backend/` tiene login local, `/user/me`, cierre de sesión, cambio de contraseña, administración de usuarios y auditoría encadenada. Falta ejecutarlo contra PostgreSQL: aquí no hay Docker ni `psql`, así que las pruebas de integración están escritas pero saltadas.
 
 **Qué arrastra a la BD**
 
@@ -24,7 +26,7 @@
 
 Con SSO, `password_hash` queda **solo** para el admin de desarrollo y la invitación por email desaparece; `tokens_usuario` no se crea. Eso importa porque **no hay proveedor de correo elegido** (B2): sin invitaciones ni reset no hace falta SMTP.
 
-**Qué no se puede escribir hasta decidir:** el alta de usuarios, el middleware de sesión y la pantalla de login. Sin U-10 a U-15 no queda ninguna caducidad de token de invitación o reset; la del expediente se retiró (B6, A-21).
+**Qué no se puede escribir todavía:** el SSO en sí (alta por `sub`, callback OIDC) espera al registro del ICAT. El alta por invitación no existe (U-10 a U-15 retiradas); la cuenta local de desarrollo se siembra por entorno (U-21).
 
 ## 2. `bbox`, OCR y reconstrucción del PDF (B3, I5 · [0007](../vault/Decisiones/0007-generacion-pdf-final.md) y [pdf.md](export/pdf.md))
 
@@ -76,7 +78,7 @@ Los once puntos revisados, las cinco preguntas contestadas y el orden están en 
 
 | Decisión | Quién falta | Desbloquea |
 |---|---|---|
-| [0009](../vault/Decisiones/0009-identidad.md) identidad | **Aceptada (20/11)**; falta el registro OIDC del ICAT | el alta de usuarios: el SQL va al final de `V15` editada ([0015](../vault/Decisiones/0015-identidad-en-v15.md)) |
+| [0009](../vault/Decisiones/0009-identidad.md) identidad | **Aceptada (20/11)**; SSO **en pausa (26/11)** hasta que el ICAT registre la app OIDC | el alta de usuarios por `sub`; el piloto usa el admin local con tres roles |
 | [0015](../vault/Decisiones/0015-identidad-en-v15.md) identidad en V15 | **Aceptada (24/11)**; falta validar desde cero | recrear la base de desarrollo y ejecutar las comprobaciones de vista, trigger y diccionario |
 | [0008](../vault/Decisiones/0008-stack-backend.md) stack | **Resuelta (23/11)**: Python aceptado por @Rubén | [0014](../vault/Decisiones/0014-stack-backend-c-sharp-java-python.md): Python; C#/Java como alternativas |
 | [0005](../vault/Decisiones/0005-reglas-usuarios-y-aprobacion.md) reglas de usuarios y aprobación | @Rubén | estados, cola de revisión, reglas (V15) |
