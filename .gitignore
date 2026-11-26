@@ -15,3 +15,6 @@ __pycache__/
 *.egg-info/
 .playwright-mcp/
 test_pdf_images_web/
+
+# Ficheros de documentos del backend (originales cifrados y PDFs exportados)
+backend/storage/

@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
-from app.api.v1 import auth, users
+from app.api.v1 import auth, catalog, documents, reviews, users
 from app.core.logging import log, setup_logging
 from app.db.pool import pool, tx
 from app.middleware import audit
@@ -40,6 +42,19 @@ install_error_handlers(app)
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
+app.include_router(documents.router, prefix="/api/v1")
+app.include_router(reviews.router, prefix="/api/v1")
+app.include_router(catalog.router, prefix="/api/v1")
+
+# Frontend en el mismo proceso: `/` sirve templates/index.html y `/static` sus ficheros.
+RAIZ = Path(__file__).resolve().parents[2]
+if (RAIZ / "static").is_dir():
+    app.mount("/static", StaticFiles(directory=RAIZ / "static"), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def inicio():
+    return FileResponse(RAIZ / "templates" / "index.html")
 
 
 @app.get("/health", tags=["operación"])

@@ -5,14 +5,18 @@ Python 3.12+ y FastAPI. Estructura de la decisión [[0014-stack-backend-c-sharp-
 ## Arrancar
 
 ```powershell
+docker compose up -d db        # desde la raíz: PostgreSQL 16 con V1..V15 + views.sql (y la base icat_test)
 cd backend
 python -m venv .venv
 .venv\Scripts\python -m pip install -e ".[dev]"
-Copy-Item .env.example .env   # ajusta DATABASE_URL y el admin de desarrollo
-.venv\Scripts\uvicorn app.main:app --reload
+.venv\Scripts\python -m spacy download es_core_news_md
+Copy-Item .env.example .env   # rellena ADMIN_PASSWORD y STORAGE_KEY (ver comentario en el fichero)
+.venv\Scripts\uvicorn app.main:app --reload   # API en /api/v1 y la app en http://127.0.0.1:8000/
 ```
 
-La base de datos la manda Flyway (`docs/architecture/migrations/`). Este backend no crea ni migra el esquema.
+`OCR_MOCK=1` prueba sin modelo (lee la capa de texto del PDF). Sin él hace falta Ollama con `hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF:latest`.
+
+La base de datos la manda Flyway (`docs/architecture/migrations/`). Este backend no crea ni migra el esquema; `backend/db/init.sh` solo la monta para desarrollo. `triggers.sql` **no** se aplica: falla en PostgreSQL 16 (`sha256(text)`) y el backend ya mantiene `es_actual`, la numeración de versiones, el estado y la auditoría.
 
 `GET /health` responde `503` mientras no haya base de datos; el resto de rutas también, salvo las que rechazan antes por falta de token (`401`).
 
@@ -25,7 +29,13 @@ La base de datos la manda Flyway (`docs/architecture/migrations/`). Este backend
 - Semilla del admin de desarrollo por variables de entorno (U-21), nunca por endpoint. Lleva **los tres roles** (transcriptor, revisor y admin) y el arranque lo deja activo, para probar todo el flujo sin SSO.
 - SSO en pausa: no hay rutas `auth/sso/*`; se retomará cuando el ICAT registre la aplicación OIDC.
 
-No están: SSO (espera al registro OIDC del ICAT), documentos/OCR, revisión, anonimización, export, reglas, categorías y configuración.
+- Documentos y OCR: original cifrado (Fernet), semáforo de contraste, doble lectura (A-24), progreso NDJSON, imagen de página, edición/validación y reescaneo de página.
+- Anonimización con Presidio (`es_core_news_md`, configuración «mejorada» de `docs/presidio.md`) y seis formas.
+- Revisión (cola, toma, cierre con `If-Match`, reapertura) y export PDF con ReportLab (0007), idempotente con hash.
+- Justicia gratuita orientativa, búsqueda de texto completo, auditoría e informe mensual.
+- Sirve el frontend (`templates/index.html` + `static/`) en `/`. Estado por ruta: `docs/api/endpoints.md` §11.
+
+No están: SSO, `assign`, `sign-off` (A-15 en pausa), alta/edición de reglas y categorías, y `/config`.
 
 ## Pruebas
 
