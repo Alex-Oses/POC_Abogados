@@ -6,7 +6,6 @@ mayúsculas; sin personas jurídicas, municipios ni instituciones.
 """
 
 import re
-from functools import lru_cache
 
 from psycopg import Connection
 
@@ -15,8 +14,8 @@ from app.core.errors import AppError
 from app.db.queries import SQL
 from app.services import audit
 from app.services.documents import nueva_version
+from app.services.presidio import cargar_analyzer
 
-CONSONANTES = "BCDFGHJKLMNPRSTVWXYZ"
 # Entidad de Presidio → código de `categorias_sensibles` (V11).
 MAPA = {"ES_NIF": "DNI_NIE", "ES_NIE": "DNI_NIE", "PERSON": "NOMBRE_PERSONA",
         "PHONE_NUMBER": "TELEFONO", "EMAIL_ADDRESS": "EMAIL", "DIRECCION": "DIRECCION",
@@ -38,45 +37,12 @@ MODOS = {"censurar": "censurar", "borrar": "eliminado", "tachar": "tachado",
          "etiqueta": "etiqueta", "seudonimo": "pseudonimizado", "iniciales": "iniciales"}
 
 
-@lru_cache
 def motor():
-    from presidio_analyzer import AnalyzerEngine, Pattern, PatternRecognizer, RecognizerRegistry
-    from presidio_analyzer.nlp_engine import NlpEngineProvider
-    from presidio_analyzer.predefined_recognizers import (
-        EmailRecognizer,
-        EsNieRecognizer,
-        EsNifRecognizer,
-        IbanRecognizer,
-        IpRecognizer,
-        PhoneRecognizer,
-        SpacyRecognizer,
-    )
-
-    nlp = NlpEngineProvider(nlp_configuration={
-        "nlp_engine_name": "spacy",
-        "models": [{"lang_code": "es", "model_name": settings.spacy_model}]}).create_engine()
-    reg = RecognizerRegistry(supported_languages=["es"])
-    for rec in (EsNifRecognizer(supported_language="es"), EsNieRecognizer(supported_language="es"),
-                IbanRecognizer(supported_language="es"), EmailRecognizer(supported_language="es"),
-                IpRecognizer(supported_language="es"),
-                PhoneRecognizer(supported_language="es", supported_regions=("ES",)),
-                SpacyRecognizer(supported_language="es", supported_entities=["PERSON", "LOCATION"])):
-        reg.add_recognizer(rec)
-
-    def patron(entidad, rx, score=0.85):
-        reg.add_recognizer(PatternRecognizer(supported_entity=entidad, supported_language="es",
-                                             patterns=[Pattern(entidad, rx, score)]))
-
-    patron("ES_REF_CATASTRAL", r"\b\d{7}[A-Z]{2}\d{4}[A-Z]\d{4}[A-Z]{2}\b")
-    patron("MATRICULA", rf"\b\d{{4}}[\s-]?[{CONSONANTES}]{{3}}\b")
-    patron("PHONE_NUMBER", r"(?:\+34\s?)?\b[6789]\d{2}(?:\s?\d{2}){3}\b|\b[6789]\d{2}\s?\d{3}\s?\d{3}\b", 0.6)
-    patron("ES_NIF", r"\b\d{1,2}\.\d{3}\.\d{3}-?[A-Z]\b", 0.7)
-    patron("NUSS", r"\b\d{2}/\d{8}/\d{2}\b", 0.8)
-    patron("DIRECCION",
-           r"(?i)\b(?:calle|c/|c\.|avenida|avda\.|plaza|paseo|carrer|pla[çc]a|rambla|passeig)\s[^,\n]{2,40}"
-           r"(?:,?\s*(?:n\.?º|núm\.?)?\s*\d+(?![.\d]))?(?:,\s*\d\.º\s*\d\.ª)?(?:,\s*\d{5})?"
-           r"(?:,?\s*(?:de\s)?[A-ZÀ-Ú][\wÀ-ÿ'·]*(?:\s[A-ZÀ-Ú][\wÀ-ÿ'·]*)?)?")
-    return AnalyzerEngine(registry=reg, nlp_engine=nlp, supported_languages=["es"])
+    """Motor de Presidio del backend (services/presidio.py, #51)."""
+    analizador = cargar_analyzer()
+    if analizador is None:
+        raise AppError("PRESIDIO_UNAVAILABLE", "Presidio o el modelo de spaCy no están instalados", 503)
+    return analizador
 
 
 def detectar(texto: str) -> list[dict]:

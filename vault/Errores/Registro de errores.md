@@ -5,6 +5,7 @@
 - **Creado:** 20/11/2026
 - **Actualizado:** 20/11/2026, tercera pasada: contrato contra `V1`-`V15`, export, RGPD y maqueta. Arreglados E-31, E-32, E-35, E-37, E-40, E-41, E-45, E-46, E-48, E-49 y E-50
 - **Actualizado (25/11/2026):** cerrados E-21, E-25 y E-52; offsets por bloque y correcciones del diseño del PDF final.
+- **Actualizado (26/11/2026):** documentación de esquema alineada con el modelo v0.3; corregidos E-04, E-05, E-07, E-08 y E-13, parcial E-44, y abierto E-53 con las contradicciones del documento v0.3.
 - **Alcance:** los 41 ficheros versionados del repo (`README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/api/`, `docs/architecture/`, `docs/reglas/`, `docs/export/`, `docs/presidio.md`, `vault/`, `maqueta/`, `scripts/`) y, leídos enteros, las 14 migraciones (`V1`–`V12`, `V14`, `V15`), `views.sql`, `triggers.sql` y `partitioning.sql`.
 - **Para qué:** una sola lista de defectos, con evidencia, impacto y estado, para no reabrirlos ni volver a reportar lo descartado.
 - **Qué no es:** no sustituye al [[Tablero]] ni a [[Coherencia]]. Aquí van defectos comprobables; allí, decisiones y bloqueantes.
@@ -25,16 +26,16 @@
 | E-01 | P0 | `sha256()` recibe `text` y solo admite `bytea`: `triggers.sql` no se puede crear | `triggers.sql:46-54` | abierto |
 | E-02 | — | «El trigger de auto-estado lee `NEW.documento_id` en `revisiones`» | `triggers.sql:176` | **descartado** (V15 añade la columna) |
 | E-03 | P0 | `ALTER TABLE … PARTITION BY` no es SQL válido y el README manda ejecutarlo | `partitioning.sql:16` | abierto |
-| E-04 | P1 | El diccionario documenta 5 de las 11 tablas y para en V12 | `data-dictionary.md` | abierto |
-| E-05 | P2 | El árbol de `docs/architecture/` sigue en una sola línea (los 16 triggers ya están) | `docs/architecture/README.md:9` | abierto |
+| E-04 | P1 | El diccionario documenta 5 de las 11 tablas y para en V12 | `data-dictionary.md` | **corregido** (26/11: 14 tablas + 19 relaciones) |
+| E-05 | P2 | El árbol de `docs/architecture/` sigue en una sola línea (los 16 triggers ya están) | `docs/architecture/README.md:9` | **corregido** (26/11) |
 | E-06 | — | «README raíz con V1–V12, `/user/register` y Word» | `README.md` | **corregido** (#37) |
-| E-07 | P1 | [[Base de datos]] lista 9 de las 11 tablas y se presenta como «primer borrador» | `vault/Proyecto/Base de datos.md` | abierto |
-| E-08 | P1 | `pendientes.md` §1 pide columnas que su propio §3 da por no creadas | `docs/pendientes.md` §1 vs §3 | abierto |
+| E-07 | P1 | [[Base de datos]] lista 9 de las 11 tablas y se presenta como «primer borrador» | `vault/Proyecto/Base de datos.md` | **corregido** (26/11: 14 tablas del modelo v0.3) |
+| E-08 | P1 | `pendientes.md` §1 pide columnas que su propio §3 da por no creadas | `docs/pendientes.md` §1 vs §3 | **corregido** (26/11) |
 | E-09 | P2 | Dos enlaces markdown rotos | `docs/presidio.md`, bitácora del 18/11 | abierto |
 | E-10 | P2 | Dos wikilinks apuntan a la decisión `0006`, que es la **0007** | bitácora del 16/11, [[Anonimizacion con Presidio]] | abierto |
 | E-11 | — | «`version_esquema_bd = 1` con 15 migraciones» | `V12` | **descartado** (V15 lo pone a 15) |
 | E-12 | P2 | No hay seed de `reglas_anonimizacion` y la config apunta a `RGPD_ES`, que no existe | `V12` + falta migración de reglas | abierto |
-| E-13 | P2 | H3 de [[Coherencia]] cita `estado='eliminado'`, que V15 ya metió en el CHECK | `vault/Proyecto/Coherencia.md` | abierto |
+| E-13 | P2 | H3 de [[Coherencia]] cita `estado='eliminado'`, que V15 ya metió en el CHECK | `vault/Proyecto/Coherencia.md` | **corregido** (26/11) |
 | E-14 | P3 | Comentarios y `CHECK` siguen hablando de `supervisor`, que 0012 quita | `V1:7`, `V15:29,169` | bloqueado (0012) |
 | E-15 | P2 | `investigacion/` en minúsculas en [[Inicio]]; en la bóveda es `Investigacion/` | `vault/Inicio.md:20` | abierto |
 | E-16 | P0 | `partitioning.sql` llama a `partman` sobre `public.auditia`, que no existe | `partitioning.sql:52,58,61,67,70,73,81` | abierto |
@@ -65,7 +66,7 @@
 | E-41 | P2 | El README de arquitectura deja un bloque de código SQL sin cerrar | `docs/architecture/README.md:18-34` | **corregido** (20/11) |
 | E-42 | P2 | `V15` siembra plazo, aviso y calendario de A-20, una regla retirada | `V15:163-172`; `README.md:9` | abierto |
 | E-43 | P2 | `V12` activa notificaciones por email/Slack sin proveedor ni regla que las pida | `V12:21-22` | abierto |
-| E-44 | P2 | El documento RGPD describe otro sistema: acción por defecto y borrado físico | `rgpd-considerations.md:11-13,48` vs `V15:151-153` | abierto |
+| E-44 | P2 | El documento RGPD describe otro sistema: acción por defecto y borrado físico | `rgpd-considerations.md:11-13,48` vs `V15:151-153` | parcial (26/11: acción y PDF alineados; queda la retención) |
 | E-45 | P2 | La maqueta promete borrar la imagen y la capa de texto de un PDF reconstruido | `maqueta/index.html:155-156,187-188`; `docs/maqueta.md` §3.7 | **corregido** (20/11) |
 | E-46 | P2 | La documentación sigue mandando arreglos a `V13`/`V16`, que ya no existirán | `usuarios.md:98-101`; `pendientes.md:77,99`; `Modelo de datos.md:245,252` | **corregido** (20/11) |
 | E-47 | P2 | La cabecera de `V15` describe un estado anterior: 0005 sin aceptar y B8 con migración | `V15:4-5,30,32` | corregido (24/11) |
@@ -74,6 +75,7 @@
 | E-50 | P2 | [[Modelo de datos]] da por abiertos B5 y B8 y dice que `preservar_formato_pdf = false` contradice 0007 | `Modelo de datos.md:245,248-249` | **corregido** (20/11) |
 | E-51 | P2 | `anotaciones_entidad` conserva `pagina_numero` y `bbox_*`, que no aparecen en el modelo ER vigente | `V6__create_anotaciones_entidad.sql` vs `Modelo de datos.md:147-165,247` | bloqueado: requiere decidir si se conservan como respaldo o se eliminan con plan de datos |
 | E-52 | P1 | El diseño del PDF final tenía lagunas: geometría, semántica del texto, `falso_negativo`, sobrescritura, concurrencia y offsets | `pdf.md`, 0007, `endpoints.md` §5-6 | corregido (25/11) |
+| E-53 | P3 | La v0.3 se contradice: `hash_export`, A-20, 0012, A-04, offsets, columnas de `revisiones` y columnas que el SQL no trae | `Modelo-ER-POC-ICAT-v0.3` (24/11) | abierto (documentado; decide el equipo) |
 
 ---
 
@@ -126,15 +128,15 @@
 
 - **Evidencia.** `data-dictionary.md` tiene 5 tablas: `usuarios`, `categorias_sensibles`, `documentos`, `versiones_documento` y `reglas_anonimizacion`. Existen **11**: faltan `anotaciones_entidad`, `revisiones`, `auditoria`, `configuracion_sistema`, `paginas_documento` y `bloques_layout`. Describe además `usuarios.rol` con `supervisor`, que 0012 quita.
 - **Impacto.** Es el documento que se lee para escribir backend. Quien lo siga crea un modelo con 5 tablas y sin flujo de revisión.
-- **Arreglo.** Reescribirlo contra V1–V15. El diccionario de `Documents/Advocats/docs/architecture-postgresSQL/data-dictionary.md` ya está en ese punto y sirve de base, corrigiendo nombres (`hash_sha256`, no `hash_actual`).
-- **Estado.** abierto.
+- **Arreglo (26/11).** El diccionario describe las 14 tablas de `V1`–`V15` y se le añaden las 19 relaciones del modelo v0.3 y el desfase de columnas (E-53). Ya no cita `supervisor`.
+- **Estado.** corregido el 26/11.
 
 ### E-05 · El árbol de `docs/architecture/` sigue en una sola línea
 
 - **Evidencia.** `docs/architecture/README.md:9` mete todo el árbol de ficheros en una línea, sin saltos: no se lee en GitHub. El recuento de triggers ya está bien (16) desde #34, que también cambió la nota de V13.
 - **Impacto.** Cosmético, pero es la puerta de entrada a la carpeta del modelo.
-- **Arreglo.** Devolver el árbol a varias líneas.
-- **Estado.** abierto (la cifra se corrigió el 19/11; solo queda el formato).
+- **Arreglo (26/11).** Árbol en bloque `text`, una línea por fichero, con la nota de que `V15` incluye la identidad y las reglas. La cifra de 16 triggers ya estaba bien desde #34.
+- **Estado.** corregido el 26/11.
 
 ### E-06 · El README raíz prometía cosas que el contrato no tiene — corregido
 
@@ -145,15 +147,15 @@
 
 - **Evidencia.** Resume 9 tablas y se titula «primer borrador»; faltan `paginas_documento` y `bloques_layout`, y sigue diciendo que los roles están en `usuarios`.
 - **Impacto.** Quien entra por [[Inicio]] → [[Base de datos]] ve un modelo anterior al de [[Modelo de datos]].
-- **Arreglo.** Añadir las dos tablas, apuntar a [[Modelo de datos]] como fuente y quitar «primer borrador».
-- **Estado.** abierto.
+- **Arreglo (26/11).** Ficha reescrita con las 14 tablas y las 19 relaciones de la v0.3, y una columna que indica qué hay en el SQL. Ya no se presenta como borrador.
+- **Estado.** corregido el 26/11.
 
 ### E-08 · `pendientes.md` §1 y §3 se contradicen entre sí
 
 - **Evidencia.** §1 dice que `usuarios` recibirá `estado`, `password_hash`, `intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `motivo_baja` y `sso_subject`; §3, en el mismo fichero, dice que `usuarios` se queda «sin `roles[]`, `estado`, `sso_subject` ni `password_hash`: el login tiene que caber en `rol`/`activo` o quedar fuera del piloto».
 - **Impacto.** La lista de trabajo del backend se contradice a dos secciones de distancia. Desde #34 ya no pide `password_cambiado_en`, así que el conflicto con 0012 se ha estrechado, pero no ha desaparecido.
-- **Arreglo.** Dejar una sola versión: o §1 se marca como «si se reabre la BD» o se retira y §3 queda como la única realidad.
-- **Estado.** abierto.
+- **Arreglo (26/11).** §1 da por implementada la identidad en `V15` ([[0015-identidad-en-v15]]) y §3 recoge lo que falta, con E-53 como única lista de columnas pendientes. Ya no se contradicen.
+- **Estado.** corregido el 26/11.
 
 ---
 
@@ -259,8 +261,8 @@
 
 - **Evidencia.** H3 dice que el documento de RGPD usa `estado = 'eliminado'`, «que no está en el CHECK de `documentos`». Desde V15:13-17, `'eliminado'` **sí** está en el CHECK. H4 ya está marcado como resuelto en [[Coherencia]] desde #34.
 - **Impacto.** Queda un bloqueante fantasma en la lista; los otros dos puntos de H3 (borrado en cascada de anotaciones y `usuarios.activo`) siguen vivos y se mezclan con este.
-- **Arreglo.** Quitar el primer punto de H3 y dejar los otros dos separados.
-- **Estado.** abierto.
+- **Arreglo (26/11).** H3 tacha el punto del CHECK y el de `usuarios.activo`: el documento RGPD usa `eliminado_en`, roles de `usuarios_roles`, `cerrado_en` y la cadena de hash. Queda separado el borrado de `anotaciones_entidad` frente a A-18.
+- **Estado.** corregido el 26/11.
 
 ### E-15 · `investigacion/` con dos significados
 
@@ -311,6 +313,24 @@
 - `V1:7` admite `'supervisor'` en el `CHECK` de `rol`; `V15:29` describe `visto_bueno_por` como «supervisor que firmó» y `V15:169` manda el aviso al supervisor. 0012 deja **tres roles, sin supervisor**.
 - **No es un error a corregir por mi cuenta**: el `CHECK` se cambia editando `V1`, y espera a 0009 y 0012.
 - **Estado.** bloqueado (0012).
+
+### E-53 · Contradicciones internas del documento v0.3
+
+El modelo del 24/11 es la fuente del [diagrama](../Proyecto/Modelo%20de%20datos.md), pero su texto se contradice en varios puntos. Se han documentado **sin copiar el error** a la documentación de esquema; cada uno necesita una decisión, no una corrección automática.
+
+| # | Qué dice la v0.3 | Qué dice el repo | Cómo se ha reflejado |
+|---|---|---|---|
+| 1 | `hash_export` en `documentos` y B8 abierto | B8 cerrado el 19/11: el hash es de la versión, en `versiones_documento.metadatos_proceso->>'hash_export'` | Columna en el modelo por fidelidad a la v0.3, con aviso; [[Coherencia]] manda lo cerrado |
+| 2 | A-20 «en pausa», con plazos en `revisiones` | A-20 **retirada** el 18/11; los campos siguen en el SQL sin uso (E-42) | `fecha_limite` y `aviso_24h_enviado_en` documentados sin uso |
+| 3 | §5 de 0012: la propuesta sustituye `usuarios_roles` por una columna `roles` | @Marina decidió el 18/11 que los roles van en tabla, implementado en `V15` ([[0015-identidad-en-v15]]) | Prevalece la decisión: `usuarios_roles` con tres roles |
+| 4 | Índice parcial de A-04 «por versión» | La regla aceptada es una revisión abierta **por documento** | Corregido en el diagrama y en el diccionario |
+| 5 | `documento_id` y `actualizado_en` en `ANOTACIONES_ENTIDAD` | Son columnas de `revisiones` (A-04 y A-23, `docs/reglas/aprobacion.md`) | Corregido en el diagrama y en el diccionario |
+| 6 | Offsets dentro de `bloques_layout.contenido` | E-21 y E-25 cerrados el 25/11: la edición de `V15` coincide con la v0.3 | Sin conflicto ya; el diagrama conserva la frase de la v0.3 |
+| 7 | Campos de identidad que el SQL no trae (`intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `password_cambiado_en`, `otorgado_en`, `otorgado_por`) y no trae `ultimo_uso_en` | `V15` sí añade `ultimo_uso_en` y no los otros seis | Diferencia documentada en [[Base de datos]], README y diccionario |
+
+- **Impacto.** Quien lea solo la v0.3 montaría un hash en la tabla equivocada, un índice que permite dos revisiones abiertas y una tabla de usuarios con campos que no existen.
+- **Arreglo.** Los puntos 4 y 5 ya están corregidos en la documentación; el 6 está resuelto en el SQL. Los puntos 1, 2, 3 y 7 exigen confirmación antes de editar `V15` otra vez.
+- **Estado.** abierto (documentado; a la espera de decisión para los puntos 1, 2, 3 y 7).
 
 ---
 
@@ -413,8 +433,8 @@
 
 - **Evidencia.** `docs/architecture/rgpd-considerations.md:48` fija `accion_por_defecto="tachado"`; `V15:151-153` lo cambia a `"censurar"` (y la descripción de la clave). `rgpd-considerations.md:11-13` promete borrado físico del original a los 30 días y `Cascade delete` de versiones y anotaciones; `V15:31` y A-18 dicen que el borrado lógico «no borra versiones ni anotaciones» y A-21 deja el original sin caducidad; `:37` habla de 60 meses. H3 de [[Coherencia]] cubre parte de la cascada, pero no la acción por defecto ni el plazo de 30 días.
 - **Impacto.** El ROPA/EIPD describe una acción y una retención que el sistema no aplica. En un documento legal, eso no es cosmético.
-- **Arreglo.** Alinear las tres cosas con A-18/A-21 y V15; decidir el plazo de conservación (U-08) y escribirlo en un solo sitio.
-- **Estado.** abierto.
+- **Arreglo (26/11).** Alineadas la acción por defecto (`censurar`) y la reconstrucción del PDF con 0007/V15. Queda decidir el plazo de conservación (U-08): el documento ya no afirma un borrado físico a 30 días como si estuviera acordado.
+- **Estado.** parcialmente corregido el 26/11; abierto solo la retención.
 
 ### E-45 · La maqueta promete borrar imagen y capa de texto de un PDF reconstruido
 

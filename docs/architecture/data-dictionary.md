@@ -1,5 +1,7 @@
 # Diccionario de Datos - Anonimización iCAT
 
+> Describe el esquema que resulta de `V1`–`V15` (14 tablas). El modelo objetivo es `Modelo-ER-POC-ICAT-v0.3` (24/11), con el [diagrama](../../vault/Proyecto/Modelo%20de%20datos.md) y el [resumen](../../vault/Proyecto/Base%20de%20datos.md). Las diferencias entre ambos se recogen al final (E-53).
+
 ## Convenciones
 - **PK** = Primary Key | **FK** = Foreign Key | **UK** = Unique Key | **NN** = NOT NULL
 - Tipos: `uuid` (gen_random_uuid), `timestamptz` (UTC), `jsonb` (flexible), `decimal(p,s)`
@@ -140,3 +142,39 @@
 | bloque_id | uuid | SÍ | FK compuesta→bloques_layout | Bloque cuyo `contenido` contiene los offsets; debe ser de la misma `version_id` |
 
 `inicio_offset` y `fin_offset` cuentan caracteres sobre `bloques_layout.contenido` del bloque enlazado, no sobre `versiones_documento.contenido_texto`. Una anotación sin `bloque_id` no se puede pintar en el PDF: el export la rechaza.
+
+---
+
+## Relaciones del modelo v0.3 (19)
+
+| Relación | FK | Cardinalidad |
+|---|---|---|
+| `tiene_rol` | `usuarios_roles.usuario_id` | 1 : N |
+| `abre` | `sesiones_usuario.usuario_id` | 1 : N |
+| `crea` | `documentos.creado_por` | 1 : N |
+| `registra` | `auditoria.usuario_id` | 1 : N |
+| `actualiza` | `configuracion_sistema.actualizado_por` | 1 : N |
+| `configura` | `reglas_anonimizacion.creado_por` | 1 : N |
+| `valida` | `anotaciones_entidad.revisado_por` | 1 : N |
+| `asignado` | `revisiones.asignado_a` | 1 : N |
+| `genera` | `versiones_documento.creado_por` | 1 : N |
+| `tiene_paginas` | `paginas_documento.documento_id` | 1 : N |
+| `tiene_versiones` | `versiones_documento.documento_id` | 1 : N |
+| `se_divide_en_bloques` | `bloques_layout.version_id` | 1 : N |
+| `genera_revisiones` | `revisiones.version_id` | 1 : N |
+| `aplica_regla` | `versiones_documento.regla_id` | N : 0..1 |
+| `incluye` | `regla_categorias.regla_id` | 1 : N |
+| `participa_en` | `regla_categorias.categoria_id` | 1 : N |
+| `clasifica` | `anotaciones_entidad.categoria_id` | 1 : N |
+| `produce` | `anotaciones_entidad.regla_id` | 1 : N |
+| `contiene_entidades` | `anotaciones_entidad.bloque_id` | 1 : N |
+
+Sin relación nombrada: `documentos.visto_bueno_por`, `revisiones.documento_id`, `anotaciones_entidad.version_id` y la referencia externa `documentos.clave_cifrado`.
+
+## Desfase entre la v0.3 y el SQL (E-53)
+
+- **Faltan en el SQL**: `usuarios.intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `password_cambiado_en` y `usuarios_roles.otorgado_en`/`otorgado_por`.
+- **Sobra en el SQL**: `sesiones_usuario.ultimo_uso_en` y los campos de geometría legacy de `anotaciones_entidad` (`pagina_numero`, `bbox_*`, E-51).
+- **Ubicación distinta**: la v0.3 pone `hash_export` en `documentos`; B8 cerró que el hash vive en `versiones_documento.metadatos_proceso->>'hash_export'`.
+- **Correcciones aplicadas al modelo**: `documento_id` y `actualizado_en` son de `revisiones`, no de `anotaciones_entidad`; el parcial de A-04 es por documento, no por versión.
+- **Estado**: B3 y B8 están cerrados; las diferencias de columnas siguen abiertas a la espera de una decisión.

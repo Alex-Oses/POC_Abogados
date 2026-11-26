@@ -1,7 +1,8 @@
 # Coherencia del proyecto — revisión del 16/11/2026
 
 - **Estado**: abierta. La BD (`V1`-`V15`) es **definitiva** desde el 19/11: no hay plan de migrarla, así que cada bloqueante se cierra en el contrato o queda fuera del alcance.
-- **Actualizado**: 20/11/2026. Los defectos comprobables viven en el [[Registro de errores]]; aquí quedan las contradicciones de producto.
+- **Actualizado**: 26/11/2026. Los defectos comprobables viven en el [[Registro de errores]]; aquí quedan las contradicciones de producto.
+- **Modelo de referencia**: `Modelo-ER-POC-ICAT-v0.3` (24/11), con el [diagrama](Modelo%20de%20datos.md) y el [diccionario](../../docs/architecture/data-dictionary.md). `V15` ya crea sus 14 tablas; las diferencias de columnas quedan como E-53.
 - **Autor**: @ia-opencode-ruben
 - **Alcance**: contrato v1 (`docs/api/endpoints.md`), reglas U/A (`docs/reglas/`), migraciones `V1`-`V15`, vistas y triggers, decisiones 0001-0016, `maqueta/index.html`, `README.md` y el plan de la [[Propuesta ICAT]].
 - **Qué es**: la lista de contradicciones entre lo que promete el producto, lo que pide la maqueta y lo que aguantan el contrato y el modelo.
@@ -27,6 +28,7 @@ La revisión del 16/11 encontró cuatro bloqueantes y nueve importantes. Hoy **n
 | 20/11 | **El contrato deja de pedir columnas que no existen** (E-31, E-32, E-35, E-37): sin `es_actual`, con `confianza_promedio`, estados de página de `V14` y export idempotente | `docs/api/endpoints.md` (PR #41) |
 | 23/11 | **PDF final cerrado**: reconstrucción con ReportLab, modo layout/secuencial, hash en la versión y responsabilidad de @Rubén | [[0007-generacion-pdf-final]], `docs/export/pdf.md` |
 | 20/11 | **I2 y H5 cerrados**: la maqueta ya no promete «zones de la imatge esborrades» y `usuarios.md` ya no apunta a `V13` | `maqueta/index.html`, `docs/reglas/usuarios.md` (PR #41) |
+| 26/11 | **Documentación de esquema alineada con la v0.3**: diagrama de 14 entidades y 19 relaciones, ficha de base de datos, README y diccionario; el RGPD usa roles, sesiones, `eliminado_en` y la cadena de hash (E-04, E-05, E-07, E-08, E-13 y E-44) | [[Modelo de datos]], [[Base de datos]], `docs/architecture/` |
 
 ## Bloqueantes
 
@@ -63,7 +65,7 @@ No se puede implementar el contrato tal cual. Ordenados por lo que cuesta descub
 |---|---|---|
 | H1 | ~~El README sigue listando `/user/register`, que ya no existe, y promete exportación a Word~~ **Resuelto (19/11)** | `README.md` §Endpoints, §Qué hace |
 | H2 | ~~El README no menciona `docs/api/`, `docs/reglas/` ni `docs/export/` en el árbol del repo~~ **Resuelto (19/11)** | `README.md` §Estructura |
-| H3 | RGPD: ~~usa `estado = 'eliminado'`, que no está en el CHECK~~ **el CHECK ya lo admite desde `V15`**. Siguen vivos el borrado en cascada de `anotaciones_entidad` (choca con A-18) y `usuarios.activo`; la acción por defecto y la retención son E-44 | `docs/architecture/rgpd-considerations.md` |
+| H3 | RGPD: ~~usa `estado = 'eliminado'`, que no está en el CHECK~~ **resuelto**, y ~~cita `usuarios.activo`~~ **resuelto** (26/11: `eliminado_en`, roles de `usuarios_roles`, `cerrado_en`, cadena de hash y `censurar`). Sigue vivo el borrado de `anotaciones_entidad` frente a A-18 | `docs/architecture/rgpd-considerations.md` (E-44) |
 | H4 | ~~El README de arquitectura cita `er-diagram.md` (no existe) y «7 triggers» (hay 15)~~ **Resuelto (19/11)**: apunta al PNG y dice 16 | `docs/architecture/README.md` |
 | H5 | ~~`usuarios.md` dice que `sesiones_usuario.creado_en` «ya existe»; la tabla no existe~~ **Resuelto (20/11, PR #41)**: `usuarios.md` §7 ya no apunta a `V13`, sino a editar una migración existente | `docs/reglas/usuarios.md` §7 |
 | H6 | ~~V12 siembra motores OCR en cloud, `preservar_formato_pdf = true`, `tiempo_max_revision_minutos = 60` y `version_esquema_bd = 1`~~ **Resuelto (20/11)**: `V15` corrige los cuatro (paddleocr-vl en local, `false`, clave borrada, versión 15) | `V15:141-161` |
