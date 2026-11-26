@@ -15,6 +15,7 @@ Resto:
 - [x] Modelo de roles aceptado (24/11, @Rubén): tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`**; @Kevin y @Alex pueden dejar constancia por Teams · [[0012-identidad-y-roles]] · @Rubén
 - [ ] Cerrar el registro OIDC del ICAT (SSO **en pausa** desde el 26/11, con intención de retomarlo): `GET /auth/sso/login` y `GET /auth/sso/callback` ya están redactados como propuesta; solo falta que el ICAT entregue el registro · @Rubén @Kevin
 - [ ] Validar `V1`..`V15` y el backend contra PostgreSQL 16 desde cero: aquí no hay Docker ni `psql`, así que las pruebas de integración están escritas pero no ejecutadas · @Rubén
+- [ ] Validar el esquema MariaDB desde cero (`flyway clean` + `migrate`, `views.sql`, `triggers.sql`, `partitioning.sql` y una inserción con dos versiones para comprobar `es_actual`): hoy no hay motor y está revisado solo por lectura · @Kevin · [[0018-mariadb-segunda-opcion]]
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Rubén
 
 - [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
@@ -28,7 +29,7 @@ Resto:
 
 ## En curso
 
-- [ ] Cerrar los defectos SQL abiertos E-01, E-03, E-16 y E-17 · @ia-opencode-maga369 · `docs/architecture/`, `backend/app/db/queries/audit.sql` · [[0017-particionado-auditoria]] en **Propuesta** (pendiente de aprobación; PR abierto)
+- [ ] Cerrar los defectos SQL abiertos E-01, E-03, E-16 y E-17 y documentar la arquitectura MariaDB en el mismo PR · @ia-opencode-maga369 · `docs/architecture/`, `docs/architecture/mariadb/`, `backend/app/db/queries/audit.sql` · [[0017-particionado-auditoria]] y [[0018-mariadb-segunda-opcion]] en **Propuesta** (pendientes de aprobación; PR abierto)
 
 ## Hecho
 
@@ -84,3 +85,6 @@ Resto:
 - @Alex: ¿bajamos la protección de `main`? Hoy exige 1 aprobación en todo, y con dos personas con escritura cada PR mío espera a que lo mires: es el mayor freno del día a día. Propuesta en tres pasos, de menos a más: **(1)** `CODEOWNERS` con revisión obligatoria solo de `backend/`, `docs/api/`, `docs/reglas/` y `docs/architecture/migrations/`, y los PR que solo tocan `vault/`, `maqueta/` o `docs/export/` se auto-mergean con CI verde; **(2)** si GitHub no les encaja así, bajar a 0 aprobaciones y exigir solo `Require status checks` + `Require conversation resolution`; **(3)** mantener el bloqueo de push directo a `main` en cualquier caso. Lo que no propongo es quitar la protección: solo el paso por revisión en lo que no es código. · @ia-opencode-ruben
 - ~~@Marina: [[0012-identidad-y-roles]] cambia tu modelo aceptado, pero **la BD es definitiva y `V13` no se escribe**. `usuarios` se queda con `rol` y `activo`, sin `usuarios_roles`, sin `sso_subject`, sin `password_hash` y sin `sesiones_usuario`. ¿El alta y la sesión se implementan sobre esas dos columnas, o el login queda fuera del piloto?~~ **Resuelto (23/11)**: se implementa completo al final de `V15` editada ([[0015-identidad-en-v15]]).
 - @Alex: la maqueta promete «zones de la imatge esborrades (no només tapades)», pero el PDF final se reconstruye sin ningún píxel del escaneo (0007): no hay imagen que borrar y tampoco se conservan sellos ni firmas manuscritas. ¿Cambiamos el texto por «el PDF no contiene ninguna imagen del original» o preferís mantener la promesa tal cual en la demo? (I2) · @ia-opencode-ruben
+- @Marina: el port a MariaDB mantiene tus `bbox_*` legacy tal cual (E-51) y tampoco incorpora las columnas de la v0.3 que faltan (E-53). ¿Conservamos la geometría como respaldo o la quitamos con plan de datos, y decides tú qué columnas entran en una migración nueva? · @ia-opencode-maga369
+- @Rubén: he dejado PostgreSQL como motor principal y el backend con `psycopg` intacto; [[0018-mariadb-segunda-opcion]] solo documenta MariaDB. ¿Confirmas que no quieres que adaptemos las consultas `.sql` mientras tanto? · @ia-opencode-maga369
+- @Kevin: si MariaDB llega a desplegarse en el DGX Spark (Arm64), hay que programar `sp_auditoria_add_partition()` cada mes y `sp_auditoria_drop_partition()` para los 120 meses de retención. ¿Lo asumes tú y confirmas soporte de MariaDB 11.4 en Arm64? · @ia-opencode-maga369

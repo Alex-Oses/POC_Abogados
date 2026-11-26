@@ -7,7 +7,8 @@
 - **Actualizado (25/11/2026):** cerrados E-21, E-25 y E-52; offsets por bloque y correcciones del diseño del PDF final.
 - **Actualizado (26/11/2026):** documentación de esquema alineada con el modelo v0.3; corregidos E-04, E-05, E-07, E-08 y E-13, parcial E-44, y abierto E-53 con las contradicciones del documento v0.3.
 - **Actualizado (26/11/2026, segunda pasada):** cerrados los cuatro defectos P0 del SQL (E-01, E-03, E-16 y E-17); E-17 queda ligado a la decisión propuesta [[0017-particionado-auditoria]].
-- **Alcance:** los 41 ficheros versionados del repo (`README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/api/`, `docs/architecture/`, `docs/reglas/`, `docs/export/`, `docs/presidio.md`, `vault/`, `maqueta/`, `scripts/`) y, leídos enteros, las 14 migraciones (`V1`–`V12`, `V14`, `V15`), `views.sql`, `triggers.sql` y `partitioning.sql`.
+- **Actualizado (26/11/2026, tercera pasada):** documentado el port a MariaDB como segunda opción (`docs/architecture/mariadb/`, [[0018-mariadb-segunda-opcion]]). No abre defectos nuevos: E-23, E-51 y E-53 se heredan y se documentan como límites del port, sin ejecutar por falta de motor.
+- **Alcance:** los ficheros versionados del repo (`README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/api/`, `docs/architecture/`, `docs/architecture/mariadb/`, `docs/reglas/`, `docs/export/`, `docs/presidio.md`, `vault/`, `maqueta/`, `scripts/`) y, leídos enteros, las 14 migraciones (`V1`–`V12`, `V14`, `V15`), `views.sql`, `triggers.sql` y `partitioning.sql`, además de sus 14 equivalentes MariaDB.
 - **Para qué:** una sola lista de defectos, con evidencia, impacto y estado, para no reabrirlos ni volver a reportar lo descartado.
 - **Qué no es:** no sustituye al [[Tablero]] ni a [[Coherencia]]. Aquí van defectos comprobables; allí, decisiones y bloqueantes.
 
