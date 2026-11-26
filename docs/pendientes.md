@@ -5,6 +5,7 @@
 - **Para qué:** el contrato, las reglas y el esquema ya describen autenticación, bloques de layout, cola de revisión y export; aquí queda solo lo que falta validar o pedir a terceros.
 - **Qué no es:** no decide nada. Los bloqueantes se citan por su ID de [Coherencia](../vault/Proyecto/Coherencia.md) y las decisiones por su número; aquí solo se agrupa lo que hoy no se puede implementar.
 - **Verificado el 24/11/2026** contra las migraciones `V1`-`V15`, `docs/api/endpoints.md`, `docs/reglas/` y las decisiones vigentes. **La BD sigue siendo `V1`-`V15`: no se abre `V13` ni `V16`.**
+- **Modelo objetivo**: `Modelo-ER-POC-ICAT-v0.3` (24/11, [diagrama](../vault/Proyecto/Modelo%20de%20datos.md), [diccionario](architecture/data-dictionary.md)). `V15` ya crea sus 14 tablas; las columnas que aún faltan se recogen en E-53 (§3).
 
 ## 1. Identidad y sesiones (B1, B2 · [0009](../vault/Decisiones/0009-identidad.md))
 
@@ -61,8 +62,9 @@ Lo aplicado queda en `origen_geometria` para que el render sea reproducible.
 | `configuracion_sistema` (seed) | motores OCR en cloud, `preservar_formato_pdf = true` y el timeout de 60 min siguen sembrados | H6 | — |
 | `categorias_sensibles` (seed) | `NUSS` sigue marcado `rgpd_especial` | H8 | — |
 | `auditoria` | **no cambia**: `evento` + `detalle` JSONB aguantan login, SSO, reapertura y export | — | — |
+| Diferencias de columnas (E-53) | La v0.3 pide `intentos_fallidos`, `bloqueado_hasta`, `ultimo_acceso`, `password_cambiado_en` y `usuarios_roles.otorgado_en`/`otorgado_por`; el SQL no los tiene, y sí añade `sesiones_usuario.ultimo_uso_en`, ausente en el modelo | EDICIÓN de `V15` | decisión nueva |
 
-`documentos.num_paginas`, `bloques_layout`, `paginas_documento`, `revisiones.asignado_a`/`en_cola` y las columnas del visto bueno y del cierre **ya están en `V14`/`V15`**.
+`documentos.num_paginas`, `bloques_layout`, `paginas_documento`, `revisiones.asignado_a`/`en_cola` y las columnas del visto bueno y del cierre **ya están en `V14`/`V15`**. Los offsets por bloque (B3, E-21) y la FK compuesta de `bloque_id` (E-25) también están cerrados desde el 25/11.
 
 ### Migraciones
 
