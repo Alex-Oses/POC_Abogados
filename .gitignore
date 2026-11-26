@@ -18,3 +18,6 @@ test_pdf_images_web/
 
 # Ficheros de documentos del backend (originales cifrados y PDFs exportados)
 backend/storage/
+
+# Documentos de prueba generados (scripts/generar_pruebas.py)
+pruebas/

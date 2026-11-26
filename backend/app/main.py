@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import auth, catalog, documents, reviews, users
+from app.core.config import settings
 from app.core.logging import log, setup_logging
 from app.db import pool as bd
 from app.db.pool import tx
@@ -45,7 +46,11 @@ async def lifespan(app: FastAPI):
     bd.cerrar()
 
 
-app = FastAPI(title="ICAT · API", version="0.1.0", lifespan=lifespan)
+# Fuera de desarrollo la web está en Internet: sin /docs ni /openapi.json públicos.
+_dev = settings.entorno == "desarrollo"
+app = FastAPI(title="ICAT · API", version="0.1.0", lifespan=lifespan,
+              docs_url="/docs" if _dev else None, redoc_url=None,
+              openapi_url="/openapi.json" if _dev else None)
 app.add_middleware(auth_middleware.IdentificarToken)
 app.add_middleware(audit.RegistroPeticiones)
 install_error_handlers(app)
