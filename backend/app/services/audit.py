@@ -39,21 +39,3 @@ def registrar(
             "detalle": json.dumps(detalle or {}, ensure_ascii=False),
         },
     )
-
-
-def registrar_evento(
-    conexion: Connection,
-    usuario_id,
-    evento: str,
-    entidad_tipo: str | None = None,
-    entidad_id=None,
-    detalle: dict | None = None,
-) -> None:
-    registrar(
-        conexion,
-        evento,
-        usuario_id=usuario_id,
-        entidad_tipo=entidad_tipo,
-        entidad_id=entidad_id,
-        detalle=detalle,
-    )

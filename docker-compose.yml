@@ -1,0 +1,17 @@
+# PostgreSQL de desarrollo con V1..V15 y views.sql aplicadas al crear el volumen.
+# Arranque: docker compose up -d db   ·   Reset: docker compose down -v
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: icat
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docs/architecture:/migrations:ro
+      - ./backend/db/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      - icat_pg:/var/lib/postgresql/data
+volumes:
+  icat_pg:

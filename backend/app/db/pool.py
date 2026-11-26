@@ -8,7 +8,7 @@ from app.core.config import settings
 pool = ConnectionPool(
     settings.database_url,
     min_size=1,
-    max_size=5,
+    max_size=10,  # el streaming del OCR usa una conexión aparte
     open=False,
     timeout=5,
     kwargs={"row_factory": dict_row, "connect_timeout": 3},
