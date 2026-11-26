@@ -1,6 +1,6 @@
 -- views.sql
 -- Vistas listas para consumo por API (Backend/Frontend)
--- Ejecutar DESPUÉS de V10__create_indexes.sql
+-- Ejecutar DESPUÉS de V15__flujo_revision_y_export.sql y de los índices.
 
 -- ============================================================
 -- 1. Documento con su versión actual + métricas rápidas
@@ -17,7 +17,7 @@ SELECT
     d.creado_en                   AS documento_creado_en,
     d.creado_por                  AS documento_creado_por,
     u.email                       AS creado_por_email,
-    -- Versión actual (la más alta)
+    -- Versión actual marcada en el modelo ER
     vd.id                         AS version_id,
     vd.numero_version,
     vd.tipo_version,
@@ -26,7 +26,7 @@ SELECT
     vd.ruta_pdf,
     vd.motor_ocr,
     vd.modelo_ia,
-    vd.confianza_promedio,
+    vd.confianza_layout_promedio,
     vd.metadatos_proceso,
     vd.creado_en                  AS version_creado_en,
     -- Conteos para UI
@@ -44,6 +44,7 @@ JOIN LATERAL (
     SELECT *
     FROM versiones_documento vd2
     WHERE vd2.documento_id = d.id
+      AND vd2.es_actual
     ORDER BY vd2.numero_version DESC
     LIMIT 1
 ) vd ON true
@@ -73,6 +74,7 @@ CREATE OR REPLACE VIEW v_entidades_pendientes_revision AS
 SELECT
     ae.id                         AS anotacion_id,
     ae.version_id,
+    ae.bloque_id,
     vd.documento_id,
     d.nombre_original             AS documento_nombre,
     d.estado                      AS documento_estado,
@@ -87,12 +89,12 @@ SELECT
     ae.texto_sustitucion,
     ae.confianza_deteccion,
     ae.motor_deteccion,
-    ae.pagina_numero,
-    ae.bbox_x, ae.bbox_y, ae.bbox_ancho, ae.bbox_alto,
+    bl.pagina_numero,
     ae.creado_en                  AS detectado_en,
-    -- Contexto para UI (snippet alrededor)
-    SUBSTRING(vd.contenido_texto FROM GREATEST(1, ae.inicio_offset - 80) FOR 200) AS contexto_texto
+    -- Contexto para UI (snippet alrededor, dentro del bloque)
+    SUBSTRING(bl.contenido FROM GREATEST(1, ae.inicio_offset - 80) FOR 200) AS contexto_texto
 FROM anotaciones_entidad ae
+JOIN bloques_layout bl ON bl.id = ae.bloque_id
 JOIN versiones_documento vd ON vd.id = ae.version_id
 JOIN documentos d ON d.id = vd.documento_id
 JOIN categorias_sensibles cs ON cs.id = ae.categoria_id
@@ -112,7 +114,7 @@ COMMENT ON VIEW v_entidades_pendientes_revision IS 'Cola priorizada para el revi
 CREATE OR REPLACE VIEW v_metricas_revisor AS
 SELECT
     u.id                          AS revisor_id,
-    u.nombre_completo             AS revisor_nombre,
+    concat_ws(' ', u.nombre, u.apellidos) AS revisor_nombre,
     u.email                       AS revisor_email,
     COUNT(DISTINCT r.id)          AS revisiones_totales,
     COUNT(DISTINCT r.id) FILTER (WHERE r.estado = 'aprobado') AS revisiones_aprobadas,
@@ -133,8 +135,13 @@ SELECT
 FROM usuarios u
 LEFT JOIN revisiones r ON r.asignado_a = u.id
 LEFT JOIN anotaciones_entidad ae ON ae.revisado_por = u.id
-WHERE u.rol = 'revisor' AND u.activo = true
-GROUP BY u.id, u.nombre_completo, u.email
+WHERE EXISTS (
+    SELECT 1
+    FROM usuarios_roles ur
+    WHERE ur.usuario_id = u.id
+      AND ur.rol = 'revisor'
+) AND u.estado = 'activo'
+GROUP BY u.id, u.nombre, u.apellidos, u.email
 ORDER BY revisiones_totales DESC;
 
 COMMENT ON VIEW v_metricas_revisor IS 'KPIs por revisor: volumen, velocidad, calidad (para dashboard supervisor)';
@@ -174,6 +181,7 @@ CREATE OR REPLACE VIEW v_entidad_detalle_diff AS
 SELECT
     ae.id,
     ae.version_id,
+    ae.bloque_id,
     ae.categoria_id,
     cs.codigo AS categoria_codigo,
     cs.nombre AS categoria_nombre,
@@ -188,19 +196,11 @@ SELECT
     ae.revisado_en,
     ae.decision_revisor,
     ae.observaciones_revisor,
-    -- Versión original (tipo_version='ocr_texto') para comparar
-    v_orig.contenido_texto AS texto_original_completo,
-    v_orig.numero_version AS version_ocr_numero
+    -- Texto del bloque sobre el que cuentan los offsets (B3)
+    bl.contenido AS texto_bloque,
+    bl.pagina_numero
 FROM anotaciones_entidad ae
 JOIN categorias_sensibles cs ON cs.id = ae.categoria_id
-JOIN versiones_documento vd ON vd.id = ae.version_id
-JOIN LATERAL (
-    SELECT contenido_texto, numero_version
-    FROM versiones_documento v2
-    WHERE v2.documento_id = vd.documento_id
-      AND v2.tipo_version = 'ocr_texto'
-    ORDER BY v2.numero_version DESC
-    LIMIT 1
-) v_orig ON true;
+JOIN bloques_layout bl ON bl.id = ae.bloque_id;
 
-COMMENT ON VIEW v_entidad_detalle_diff IS 'Para componente UI diff: muestra entidad con texto OCR original completo';
+COMMENT ON VIEW v_entidad_detalle_diff IS 'Para componente UI diff: entidad y texto del bloque sobre el que cuentan sus offsets';

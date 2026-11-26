@@ -59,7 +59,7 @@ Los payloads y códigos de cada ruta viven en el contrato; aquí solo va lo que 
 | Qué | Cómo |
 |---|---|
 | Primer acceso | Se crea la ficha con `sub`, nombre y email, **sin roles**; hasta que un admin le asigne uno, solo ve un aviso |
-| Único login local | **Una cuenta de admin, solo para desarrollo y pruebas**, sembrada por variable de entorno (U-21): no se versiona ni se despliega en producción |
+| Único login local | **Una cuenta de admin de desarrollo, solo para desarrollo y pruebas**, sembrada por variable de entorno (U-21): no se versiona ni se despliega en producción. Lleva los tres roles para probar el flujo completo sin SSO |
 | Sesión | Token opaco revocable (no JWT), **3 a la vez**, 1 h con renovación, 12 h máximo; se revoca al cambiar roles, bloquear o dar de baja |
 | Roles | Tabla `usuarios_roles (usuario_id, rol)`: **un usuario puede tener varios**; el permiso es la unión. Tres valores con `CHECK` |
 | Comprobación | Los roles se releen en cada petición: el token no arrastra rol |
@@ -71,9 +71,9 @@ La doble firma queda **en pausa** (18/11): A-07 (nadie revisa lo suyo) se retira
 
 Consecuencia para el modelo de @Marina: `usuarios.rol` sale y entra la **tabla `usuarios_roles`**; entra `usuarios.sso_subject` y `tokens_usuario` no se crea (no hay invitaciones ni reset, U-10 a U-15 retiradas). `usuarios.estado` se queda. **Las tablas nuevas son `usuarios_roles` y `sesiones_usuario`** (opción B, 18/11): la sesión es de la aplicación ([[0012-identidad-y-roles]]).
 
-El contrato de autenticación ya tiene el camino de producción: `GET /auth/sso/login` y `GET /auth/sso/callback`, marcadas como propuesta. Las rutas de contraseña quedan como bloque del admin local de desarrollo; la invitación y el reset se retiraron (U-10 a U-15). El callback no se implementa hasta que 0009 se acepte y el ICAT registre la aplicación OIDC.
+El contrato de autenticación ya tiene el camino de producción: `GET /auth/sso/login` y `GET /auth/sso/callback`, marcadas como propuesta. Las rutas de contraseña quedan como bloque del admin local de desarrollo; la invitación y el reset se retiraron (U-10 a U-15). **La implementación del SSO está en pausa** (26/11) con intención de retomarla cuando el ICAT registre la aplicación OIDC; el piloto arranca con la cuenta local de desarrollo, que lleva los tres roles.
 
-He dejado el contrato de autenticación como está a propósito: sus rutas de contraseña pasan a ser el camino del admin local de desarrollo, y el callback SSO es una ruta nueva. Esa parte no se escribe hasta que 0009 se acepte y el ICAT registre la aplicación OIDC.
+He dejado el contrato de autenticación como está a propósito: sus rutas de contraseña pasan a ser el camino del admin local de desarrollo, y el callback SSO es una ruta nueva. Esa parte no se escribe hasta que el ICAT registre la aplicación OIDC. Mientras dure la pausa, la cuenta local de desarrollo cubre el piloto completo con los tres roles.
 
 ## 6. Transacciones y concurrencia
 
@@ -100,7 +100,7 @@ La implementación pertenece al backend Python y a @Rubén. El endpoint `POST /d
 
 La segunda llamada a exportar sirve el fichero existente si su hash coincide y no vuelve a renderizar. Si el texto, el rango o el bloque están desincronizados, devuelve `409` y no escribe un PDF parcial.
 
-El OCR puede aportar geometría, Presidio puede aportar propuestas y el backend aplica las decisiones humanas. Ninguno compone el PDF: esa responsabilidad termina en `app/services/export.py` y su render de ReportLab.
+El OCR puede aportar geometría y Presidio puede aportar propuestas; ninguno compone el PDF. El backend aplica las decisiones humanas y compone el PDF en `app/services/export.py` con ReportLab.
 
 El hash del PDF pertenece a la versión en `versiones_documento.metadatos_proceso->>'hash_export'`; `documentos` solo conserva `exportado_en` (B8 resuelto).
 
@@ -146,9 +146,8 @@ Cada promesa del backend tiene su prueba; si no la tiene, no es una promesa:
 | Abierto | Quién | Qué bloquea |
 |---|---|---|
 | ~~[[0008-stack-backend]]~~ **Resuelta (23/11)**: [[0014-stack-backend-c-sharp-java-python]] acepta Python; C#/Java quedan como alternativas | — | — |
-| [[0009-identidad]]: SSO sin gestión de cuentas, admin local solo en desarrollo | @Kevin, @Marina, @Alex + registro OIDC del ICAT (1-2 semanas de terceros) | El login real y la primera ruta con permisos |
-| Modelo de datos ([[0010-modelo-de-datos]]): `usuarios_roles` (tabla N:M, decisión de @Marina) y sin `tokens_usuario` | @Marina | Editar `V15` ([[0015-identidad-en-v15]]) |
-| Sesión propia en `sesiones_usuario` ([[0012-identidad-y-roles]]) | @Rubén, @Kevin | `V15`: la otra tabla nueva ([[0015-identidad-en-v15]]) |
+| Registro OIDC del ICAT para [[0009-identidad]] | @Rubén, @Kevin + ICAT (1-2 semanas de terceros) | El login real; las rutas y el flujo ya están redactados |
+| Implementar identidad y sesiones de [[0012-identidad-y-roles]] | @Rubén, @Marina | Editar `V15`, vista, trigger y diccionario ([[0015-identidad-en-v15]]) |
 | OCR síncrono o por página (I5) | sin dueño | La forma de las rutas de OCR |
 | Frontera fina con el ETL (§2) | @Rubén y @Yaser | Quién escribe bloques y anotaciones |
 

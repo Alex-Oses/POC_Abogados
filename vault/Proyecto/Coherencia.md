@@ -1,15 +1,16 @@
 # Coherencia del proyecto — revisión del 16/11/2026
 
 - **Estado**: abierta. La BD (`V1`-`V15`) es **definitiva** desde el 19/11: no hay plan de migrarla, así que cada bloqueante se cierra en el contrato o queda fuera del alcance.
-- **Actualizado**: 20/11/2026. Los defectos comprobables viven en el [[Registro de errores]]; aquí quedan las contradicciones de producto.
+- **Actualizado**: 26/11/2026. Los defectos comprobables viven en el [[Registro de errores]]; aquí quedan las contradicciones de producto.
+- **Modelo de referencia**: `Modelo-ER-POC-ICAT-v0.3` (24/11), con el [diagrama](Modelo%20de%20datos.md) y el [diccionario](../../docs/architecture/data-dictionary.md). `V15` ya crea sus 14 tablas; las diferencias de columnas quedan como E-53.
 - **Autor**: @ia-opencode-ruben
-- **Alcance**: contrato v1 (`docs/api/endpoints.md`), reglas U/A (`docs/reglas/`), migraciones `V1`-`V15`, vistas y triggers, decisiones 0001-0012, `maqueta/index.html`, `README.md` y el plan de la [[Propuesta ICAT]].
+- **Alcance**: contrato v1 (`docs/api/endpoints.md`), reglas U/A (`docs/reglas/`), migraciones `V1`-`V15`, vistas y triggers, decisiones 0001-0016, `maqueta/index.html`, `README.md` y el plan de la [[Propuesta ICAT]].
 - **Qué es**: la lista de contradicciones entre lo que promete el producto, lo que pide la maqueta y lo que aguantan el contrato y el modelo.
 - **Qué no es**: no sustituye al [[Tablero]] ni al [[Registro de errores]]. Cada bloqueante se cierra con una decisión o una tarea, no editando esta nota.
 
 ## Veredicto
 
-La revisión del 16/11 encontró cuatro bloqueantes y nueve importantes. Hoy **no queda ningún bloqueante** y cinco importantes abiertos (I4-I8): B1 se cerró el 23/11 con [[0015-identidad-en-v15]]. Lo demás se cerró con decisiones (0004, 0005, 0007, 0009), con `V14`/`V15` o con el contrato. Lo que sobrevive no pide migraciones nuevas.
+La revisión del 16/11 encontró cuatro bloqueantes y nueve importantes. Hoy **no quedan bloqueantes de diseño**: B1 está implementado en `V15` (24/11, [[0015-identidad-en-v15]]) y queda recrear la base de desarrollo para probar el checksum. Quedan cinco importantes abiertos (I4-I8). Lo demás se cerró con decisiones (0004, 0005, 0007, 0009), con `V14`/`V15` o con el contrato. Lo que sobrevive no pide migraciones nuevas.
 
 ## Resuelto
 
@@ -18,7 +19,7 @@ La revisión del 16/11 encontró cuatro bloqueantes y nueve importantes. Hoy **n
 | 16/11 | **A-15 ya no usa `nivel_riesgo`.** La doble firma se dispara con `rgpd_especial = true` (art. 9-10 RGPD). Con el seed actual, `nivel_riesgo = alto` incluía DNI, nombre, dirección e IBAN, así que todo expediente acababa en `pendiente_visto_bueno` y la regla dejaba de ser excepcional. | `docs/reglas/aprobacion.md` §7, `docs/api/endpoints.md` §9, [[0005-reglas-usuarios-y-aprobacion]] regla 6 |
 | 16/11 | **La decisión del PDF final pasa de 0006 a 0007**: había dos 0006 en la bóveda y una era de Presidio. | [[0007-generacion-pdf-final]] |
 | 16/11 | **El stack del backend no estaba escrito en ningún sitio**: solo se deducía de las dependencias del PDF. Queda en Propuesta, con Python + FastAPI como recomendación y C# como alternativa evaluada. **Aceptada el 20/11 y reabierta el mismo día**: el ETL sale del backend y cae el argumento de un solo lenguaje; [[0014-stack-backend-c-sharp-java-python]] compara C#, Java y Python | [[0008-stack-backend]] |
-| 23/11 | **B1 cerrado en `V15`**: el SQL de la identidad (dos tablas, cinco columnas y la retirada de `rol`/`activo`) se añade al final de `V15`; `V13` sigue sin escribirse y la BD sigue siendo `V1`-`V15` | [[0015-identidad-en-v15]] |
+| 24/11 | **B1 implementado en `V15`**: el SQL de la identidad (dos tablas, cinco columnas y la retirada de `rol`/`activo`) está al final de `V15`; `V13` sigue sin escribirse y la BD sigue siendo `V1`-`V15`. Falta recrear y validar la base de desarrollo | [[0015-identidad-en-v15]] |
 | 19/11 | **README alineado con el contrato**: fuera `/user/register`, fuera la exportación a Word, árbol con `docs/api/`, `docs/reglas/` y `docs/export/`, migraciones `V1`-`V15` | `README.md` (H1, H2) |
 | 19/11 | **Arquitectura sin referencias muertas**: `er-diagram.md` (no existe) → `diagrama-bbdd-borrador.png`; «7 triggers» → 16 | `docs/architecture/README.md` (H4) |
 | 19/11 | **El semáforo por página y el original ya tienen ruta**: `GET /documents/{id}/pages` y `GET /documents/{id}/original` | `docs/api/endpoints.md` (B5) |
@@ -27,6 +28,7 @@ La revisión del 16/11 encontró cuatro bloqueantes y nueve importantes. Hoy **n
 | 20/11 | **El contrato deja de pedir columnas que no existen** (E-31, E-32, E-35, E-37): sin `es_actual`, con `confianza_promedio`, estados de página de `V14` y export idempotente | `docs/api/endpoints.md` (PR #41) |
 | 23/11 | **PDF final cerrado**: reconstrucción con ReportLab, modo layout/secuencial, hash en la versión y responsabilidad de @Rubén | [[0007-generacion-pdf-final]], `docs/export/pdf.md` |
 | 20/11 | **I2 y H5 cerrados**: la maqueta ya no promete «zones de la imatge esborrades» y `usuarios.md` ya no apunta a `V13` | `maqueta/index.html`, `docs/reglas/usuarios.md` (PR #41) |
+| 26/11 | **Documentación de esquema alineada con la v0.3**: diagrama de 14 entidades y 19 relaciones, ficha de base de datos, README y diccionario; el RGPD usa roles, sesiones, `eliminado_en` y la cadena de hash (E-04, E-05, E-07, E-08, E-13 y E-44) | [[Modelo de datos]], [[Base de datos]], `docs/architecture/` |
 
 ## Bloqueantes
 
@@ -34,9 +36,9 @@ No se puede implementar el contrato tal cual. Ordenados por lo que cuesta descub
 
 | # | Qué no cuadra | Evidencia | Cómo se cierra | Quién |
 |---|---|---|---|---|
-| B1 | **No hay dónde guardar la autenticación.** Falta la contraseña, el estado, el `sso_subject` y los roles; `usuarios` solo tiene `rol` de un valor y `activo boolean`. El diseño de [[0012-identidad-y-roles]] pide `estado` y `sso_subject` en `usuarios`, `usuarios_roles` para los roles (decisión de @Marina, 18/11) y `sesiones_usuario`; `tokens_usuario` no se crea | `V1__create_usuarios.sql` vs `docs/api/endpoints.md` §1; [[0005-reglas-usuarios-y-aprobacion]] §7 | **Resuelto (2026-11-23)**: [[0015-identidad-en-v15]] manda el SQL de 0012 al final de `V15` editada, sin `V13` ni `V16`. Queda implementarlo | @Rubén, @Marina |
+| B1 | **No hay dónde guardar la autenticación.** Falta la contraseña, el estado, el `sso_subject` y los roles; `usuarios` solo tiene `rol` de un valor y `activo boolean`. El diseño de [[0012-identidad-y-roles]] pide `estado` y `sso_subject` en `usuarios`, `usuarios_roles` para los roles (decisión de @Marina, 18/11) y `sesiones_usuario`; `tokens_usuario` no se crea | `V1__create_usuarios.sql` vs `docs/api/endpoints.md` §1; [[0005-reglas-usuarios-y-aprobacion]] §7 | **Resuelto (2026-11-24)**: [[0015-identidad-en-v15]] añade el SQL al final de `V15`, sin `V13` ni `V16`; vista, trigger y diccionario están alineados. Falta validar desde cero en desarrollo | @Rubén, @Marina |
 | B2 | **Dos sistemas de identidad.** La propuesta exige SSO Office 365; el contrato implementaba contraseñas locales con invitación por email, y no hay proveedor de correo decidido. Desde el 18/11 el contrato ya tiene las dos rutas SSO propuestas, las de contraseña marcadas como camino de desarrollo y la invitación y el reset retirados | [[Propuesta ICAT]] vs `docs/api/endpoints.md` §1 | **Resuelto (2026-11-20)**: 0009 aceptada (SSO + admin local solo de desarrollo, cuentas locales como alternativa). Queda el registro OIDC en el ICAT | @Rubén |
-| B3 | **`bloques_layout` ya existe** (`V14`), pero `anotaciones_entidad` no tiene `bloque_id`: sus offsets van sobre el texto completo de la versión | `docs/api/endpoints.md` §3-4 vs `V6__create_anotaciones_entidad.sql` | **Resuelto (19/11)**: el contrato cuenta los offsets sobre `contenido_texto` y ya no devuelve `bloque_id`. Sin cambios de BD | @Rubén |
+| B3 | **`bloques_layout` ya existe** (`V14`), pero `anotaciones_entidad` no tiene `bloque_id`: sus offsets van sobre el texto completo de la versión | `docs/api/endpoints.md` §3-4 vs `V6__create_anotaciones_entidad.sql` | **Resuelto (25/11)**: los offsets se cuentan sobre `bloques_layout.contenido` y `bloque_id` es obligatorio para exportar; `V15` añade la FK compuesta por versión (E-25). El texto de la versión sigue siendo el de origen | @Rubén |
 | B4 | **La cola de revisión no cabe en el modelo**: `revisiones.revisor_id` es `NOT NULL` y `estado` no admite `en_cola`; faltaban `asignado_a`, `asignado_en`, `fecha_limite` y `aviso_24h_enviado_en` | `V7__create_revisiones.sql` vs `docs/reglas/aprobacion.md` §10 | **Resuelto (17/11)**: `V15` renombra a `asignado_a`, lo deja nulo y añade `en_cola`. `fecha_limite` y `aviso_24h` existen pero **A-20 está retirada (18/11)** y se quedan sin uso | @Marina |
 | B5 | **Falta el lector del semáforo.** `V14` ya trae `num_paginas` y `paginas_documento`, pero no había endpoint que las devolviera ni ruta para ver el original | `docs/api/endpoints.md` (no existía `GET .../pages` ni `GET .../original`) | **Resuelto (19/11)**: el contrato añade `GET /documents/{id}/pages` y `GET /documents/{id}/original` (auditado). Sin cambios de BD | @Rubén |
 | B6 | **`expira_en` de 24 h mata el export.** La revisión tiene 48 h laborables de plazo y el export puede llegar días después; A-21 devuelve `404` a los endpoints de texto y PDF | `docs/reglas/aprobacion.md` §8 (A-21) vs §7 (A-16, A-18) | **Resuelto (17/11)**: `expira_en` fuera del expediente; A-21 lo deja como TTL de los temporales del OCR | @Rubén |
@@ -63,7 +65,7 @@ No se puede implementar el contrato tal cual. Ordenados por lo que cuesta descub
 |---|---|---|
 | H1 | ~~El README sigue listando `/user/register`, que ya no existe, y promete exportación a Word~~ **Resuelto (19/11)** | `README.md` §Endpoints, §Qué hace |
 | H2 | ~~El README no menciona `docs/api/`, `docs/reglas/` ni `docs/export/` en el árbol del repo~~ **Resuelto (19/11)** | `README.md` §Estructura |
-| H3 | RGPD: ~~usa `estado = 'eliminado'`, que no está en el CHECK~~ **el CHECK ya lo admite desde `V15`**. Siguen vivos el borrado en cascada de `anotaciones_entidad` (choca con A-18) y `usuarios.activo`; la acción por defecto y la retención son E-44 | `docs/architecture/rgpd-considerations.md` |
+| H3 | RGPD: ~~usa `estado = 'eliminado'`, que no está en el CHECK~~ **resuelto**, y ~~cita `usuarios.activo`~~ **resuelto** (26/11: `eliminado_en`, roles de `usuarios_roles`, `cerrado_en`, cadena de hash y `censurar`). Sigue vivo el borrado de `anotaciones_entidad` frente a A-18 | `docs/architecture/rgpd-considerations.md` (E-44) |
 | H4 | ~~El README de arquitectura cita `er-diagram.md` (no existe) y «7 triggers» (hay 15)~~ **Resuelto (19/11)**: apunta al PNG y dice 16 | `docs/architecture/README.md` |
 | H5 | ~~`usuarios.md` dice que `sesiones_usuario.creado_en` «ya existe»; la tabla no existe~~ **Resuelto (20/11, PR #41)**: `usuarios.md` §7 ya no apunta a `V13`, sino a editar una migración existente | `docs/reglas/usuarios.md` §7 |
 | H6 | ~~V12 siembra motores OCR en cloud, `preservar_formato_pdf = true`, `tiempo_max_revision_minutos = 60` y `version_esquema_bd = 1`~~ **Resuelto (20/11)**: `V15` corrige los cuatro (paddleocr-vl en local, `false`, clave borrada, versión 15) | `V15:141-161` |
@@ -95,7 +97,7 @@ Detalle menor pero elocuente: en la maqueta el «escaneo» es HTML, no una image
 ## Cómo se cierra
 
 0. **Stack** (H9): **cerrado** (23/11): [[0014-stack-backend-c-sharp-java-python]] acepta Python 3.12 + FastAPI. C# sería ventajoso si Presidio se separa como servicio independiente.
-1. **Identidad** (B1): **Resuelto (23/11)** con [[0015-identidad-en-v15]]: el SQL de 0012 va al final de `V15` editada, sin abrir migración. Queda implementarlo y los votos de @Kevin y @Alex en 0012; el alta de usuarios ya no está fuera del piloto.
+1. **Identidad** (B1): **Resuelto (24/11)** con [[0015-identidad-en-v15]]: el SQL de 0012 va al final de `V15` editada, sin abrir migración. Falta validar desde cero en desarrollo. La conformidad de @Kevin y @Alex se recoge por Teams y no bloquea la implementación.
 2. **Defectos que piden decisión**: E-33 (`regla_categorias` frente a `reglas_anonimizacion.configuracion`), E-38 (mapa de seudónimos), E-44 (retención y acción por defecto en el documento RGPD). E-39 queda corregido con `pypdf`. Los demás están en el [[Registro de errores]].
 3. **Maqueta** (I4, I8): el botón «Exportar PDF» de la revisión sigue activo antes de aprobar, y hay que decidir si la demo va con una o dos personas.
 
