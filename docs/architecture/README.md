@@ -91,6 +91,8 @@ flyway -url=jdbc:postgresql://host:5432/icat_anon \
 psql -d icat_anon -f docs/architecture/views.sql
 psql -d icat_anon -f docs/architecture/triggers.sql
 
-# 3. Particionado auditoría (una sola vez en prod, requiere pg_partman)
+# 3. Particionado auditoría (una sola vez en prod, requiere pg_partman).
+#    Recrea auditoria si aún no está particionada; la PK pasa a (id, creado_en)
+#    según la decisión 0017 (Propuesta). No edita las migraciones Flyway.
 psql -d icat_anon -f docs/architecture/partitioning.sql
 ```

@@ -1,6 +1,6 @@
 -- triggers.sql
 -- Triggers automáticos: updated_at, hash_anterior encadenado, validaciones
--- Ejecutar DESPUÉS de crear todas las tablas (V9) y ANTES de seeds (V11)
+-- Ejecutar DESPUÉS de las migraciones V1–V15 y de views.sql (orden del README de arquitectura)
 
 -- ============================================================
 -- Extensión requerida para hash
@@ -45,9 +45,10 @@ CREATE TRIGGER trg_revisiones_updated_at
 -- ============================================================
 CREATE OR REPLACE FUNCTION audit_compute_hash(row_data jsonb, prev_hash char(64))
 RETURNS CHAR(64) LANGUAGE sql IMMUTABLE AS $$
+    -- sha256() solo admite bytea: convert_to fija la codificación antes de hashear (E-01).
     SELECT encode(
         sha256(
-            (row_data || jsonb_build_object('prev_hash', prev_hash))::text
+            convert_to((row_data || jsonb_build_object('prev_hash', prev_hash))::text, 'UTF8')
         ),
         'hex'
     )::CHAR(64);
@@ -59,10 +60,11 @@ DECLARE
     last_hash CHAR(64);
     row_json  JSONB;
 BEGIN
-    -- Obtener hash de la fila anterior (la más reciente)
+    -- Obtener hash de la fila anterior (la más reciente).
+    -- La tabla se particiona por creado_en: orden estable por (creado_en, id) (E-17, decisión 0017).
     SELECT hash_anterior INTO last_hash
     FROM auditoria
-    ORDER BY id DESC
+    ORDER BY creado_en DESC, id DESC
     LIMIT 1;
 
     -- Construir JSON de la fila nueva (sin hash_anterior)

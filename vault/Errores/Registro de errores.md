@@ -6,6 +6,7 @@
 - **Actualizado:** 20/11/2026, tercera pasada: contrato contra `V1`-`V15`, export, RGPD y maqueta. Arreglados E-31, E-32, E-35, E-37, E-40, E-41, E-45, E-46, E-48, E-49 y E-50
 - **Actualizado (25/11/2026):** cerrados E-21, E-25 y E-52; offsets por bloque y correcciones del diseño del PDF final.
 - **Actualizado (26/11/2026):** documentación de esquema alineada con el modelo v0.3; corregidos E-04, E-05, E-07, E-08 y E-13, parcial E-44, y abierto E-53 con las contradicciones del documento v0.3.
+- **Actualizado (26/11/2026, segunda pasada):** cerrados los cuatro defectos P0 del SQL (E-01, E-03, E-16 y E-17); E-17 queda ligado a la decisión propuesta [[0017-particionado-auditoria]].
 - **Alcance:** los 41 ficheros versionados del repo (`README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/api/`, `docs/architecture/`, `docs/reglas/`, `docs/export/`, `docs/presidio.md`, `vault/`, `maqueta/`, `scripts/`) y, leídos enteros, las 14 migraciones (`V1`–`V12`, `V14`, `V15`), `views.sql`, `triggers.sql` y `partitioning.sql`.
 - **Para qué:** una sola lista de defectos, con evidencia, impacto y estado, para no reabrirlos ni volver a reportar lo descartado.
 - **Qué no es:** no sustituye al [[Tablero]] ni a [[Coherencia]]. Aquí van defectos comprobables; allí, decisiones y bloqueantes.
@@ -23,9 +24,9 @@
 
 | ID | Sev | Qué, en una línea | Dónde | Estado |
 |---|---|---|---|---|
-| E-01 | P0 | `sha256()` recibe `text` y solo admite `bytea`: `triggers.sql` no se puede crear | `triggers.sql:46-54` | abierto |
+| E-01 | P0 | `sha256()` recibe `text` y solo admite `bytea`: `triggers.sql` no se puede crear | `triggers.sql:46-54` | **corregido** (26/11: `convert_to(..., 'UTF8')`) |
 | E-02 | — | «El trigger de auto-estado lee `NEW.documento_id` en `revisiones`» | `triggers.sql:176` | **descartado** (V15 añade la columna) |
-| E-03 | P0 | `ALTER TABLE … PARTITION BY` no es SQL válido y el README manda ejecutarlo | `partitioning.sql:16` | abierto |
+| E-03 | P0 | `ALTER TABLE … PARTITION BY` no es SQL válido y el README manda ejecutarlo | `partitioning.sql:16` | **corregido** (26/11: recreación idempotente en `partitioning.sql`) |
 | E-04 | P1 | El diccionario documenta 5 de las 11 tablas y para en V12 | `data-dictionary.md` | **corregido** (26/11: 14 tablas + 19 relaciones) |
 | E-05 | P2 | El árbol de `docs/architecture/` sigue en una sola línea (los 16 triggers ya están) | `docs/architecture/README.md:9` | **corregido** (26/11) |
 | E-06 | — | «README raíz con V1–V12, `/user/register` y Word» | `README.md` | **corregido** (#37) |
@@ -38,8 +39,8 @@
 | E-13 | P2 | H3 de [[Coherencia]] cita `estado='eliminado'`, que V15 ya metió en el CHECK | `vault/Proyecto/Coherencia.md` | **corregido** (26/11) |
 | E-14 | P3 | Comentarios y `CHECK` siguen hablando de `supervisor`, que 0012 quita | `V1:7`, `V15:29,169` | bloqueado (0012) |
 | E-15 | P2 | `investigacion/` en minúsculas en [[Inicio]]; en la bóveda es `Investigacion/` | `vault/Inicio.md:20` | abierto |
-| E-16 | P0 | `partitioning.sql` llama a `partman` sobre `public.auditia`, que no existe | `partitioning.sql:52,58,61,67,70,73,81` | abierto |
-| E-17 | P0 | `auditoria` no se puede particionar por `creado_en`: su PK es solo `id` | `V8:3-13`, `partitioning.sql:9-12` | abierto |
+| E-16 | P0 | `partitioning.sql` llama a `partman` sobre `public.auditia`, que no existe | `partitioning.sql:52,58,61,67,70,73,81` | **corregido** (26/11: ocho apariciones) |
+| E-17 | P0 | `auditoria` no se puede particionar por `creado_en`: su PK es solo `id` | `V8:3-13`, `partitioning.sql:9-12` | **corregido** (26/11: PK `(id, creado_en)` en la recreación; [[0017-particionado-auditoria]] en Propuesta) |
 | E-18 | P1 | La cola ordena por `nivel_riesgo DESC`, y como es texto pone «alto» el último | `views.sql:102` | abierto |
 | E-19 | P1 | Tres `JOIN` internos esconden documentos en las vistas | `views.sql:42,43-49,197-204` | abierto |
 | E-20 | P1 | `entidades_confirmadas` no conoce las acciones nuevas de V15 | `views.sql:53` | abierto |
@@ -51,7 +52,7 @@
 | E-26 | P2 | `reglas_anonimizacion.codigo UNIQUE` deja la columna `version` sin sentido | `V5:5-6` | abierto |
 | E-27 | P2 | `usuarios.email UNIQUE` distingue mayúsculas: `Ana@` y `ana@` son dos cuentas | `V1:5` | abierto |
 | E-28 | P2 | `V15` da por existente un único `(version_id, numero_intento)` que `V7` no creó | `V15:87-88`, `V7` | abierto |
-| E-29 | P2 | `views.sql` dice ejecutarse tras V10, pero necesita columnas de V15 | `views.sql:3` | abierto |
+| E-29 | P2 | `views.sql` dice ejecutarse tras V10, pero necesita columnas de V15 | `views.sql:3` | **corregido** (26/11: comprobado; también arreglada la cabecera de `triggers.sql`) |
 | E-30 | P2 | `horas_media_estado` mide antigüedad, no tiempo en el estado | `views.sql:150,156-165` | abierto |
 | E-31 | P1 | `versiones_documento.es_actual` no existe y el contrato lo usa para la versión vigente | `endpoints.md:210,428` vs `V4` | **corregido** (20/11) |
 | E-32 | P1 | `pipeline_version` y `confianza_layout_promedio` no existen; la tabla solo tiene `confianza_promedio` | `endpoints.md:254-255,298` vs `V4:12` | **corregido** (20/11) |
@@ -94,31 +95,31 @@
   ```
 - **Qué pasa.** En PostgreSQL `sha256()` solo acepta `bytea`; con `text` devuelve `function sha256(text) does not exist`. Como la función es `LANGUAGE sql`, el error salta al crearla, no al usarla.
 - **Impacto.** `triggers.sql` aborta en la segunda función: no se crean el hash encadenado ni los 13 triggers que vienen después.
-- **Arreglo.** Envolver en `convert_to(... , 'UTF8')` antes del `sha256`.
-- **Estado.** abierto. Ya corregido en la copia de trabajo `Documents/Advocats/docs/architecture-postgresSQL/triggers.sql`, fuera de este repo.
+- **Arreglo (26/11).** Envuelto en `convert_to((row_data || jsonb_build_object('prev_hash', prev_hash))::text, 'UTF8')` antes del `sha256`, igual que hace `backend/app/db/queries/audit.sql:5`.
+- **Estado.** corregido el 26/11 en este repo. Sigue vivo E-23: el trigger y el backend construyen la fila de forma distinta.
 
 ### E-03 · `partitioning.sql` no es SQL válido
 
 - **Evidencia.** `docs/architecture/partitioning.sql:16-17` hace `ALTER TABLE auditoria PARTITION BY RANGE (creado_en);`, y `V8__create_auditoria.sql` crea la tabla sin `PARTITION BY`.
 - **Qué pasa.** PostgreSQL no convierte una tabla normal en particionada con `ALTER TABLE … PARTITION BY`: hay que recrearla. El fichero tiene el procedimiento correcto comentado en las líneas 10-12, pero lo que se ejecuta es el `ALTER`.
 - **Impacto.** El paso 3 del README de arquitectura falla siempre.
-- **Arreglo.** Dejar el `ALTER` comentado y ejecutar el camino de recreación, o marcar el fichero como «solo con `pg_partman` y tabla vacía».
-- **Estado.** abierto.
+- **Arreglo (26/11).** `partitioning.sql` ya no ejecuta el `ALTER`: recrea `auditoria` como tabla particionada solo si no lo está, copiando las filas y conservando secuencia, FK, índices, comentarios y trigger. No se edita `V8` (BD cerrada, 0011 y 0015).
+- **Estado.** corregido el 26/11. Sin motor local, la recreación está revisada solo por lectura.
 
 ### E-16 · El nombre de la tabla está mal escrito en siete llamadas a `pg_partman`
 
 - **Evidencia.** `partitioning.sql` crea el padre como `'public.auditoria'` (línea 31) y luego llama a `partman` sobre **`'public.auditia'`**: líneas 52, 58, 61, 67, 70, 73 y 81 (ocho apariciones, siete líneas). La línea 52 es la única que se ejecuta; el resto están comentadas, pero son las que el equipo copiará para operar.
 - **Impacto.** Aunque se arregle E-03, `run_maintenance` falla con «no existe la tabla padre»; y las consultas de verificación de particiones y retención tampoco devuelven nada.
-- **Arreglo.** `auditia` → `auditoria` en las ocho apariciones.
-- **Estado.** abierto.
+- **Arreglo (26/11).** `auditia` → `auditoria` en las ocho apariciones, incluido el nombre del job de `pg_cron` y las consultas de verificación.
+- **Estado.** corregido el 26/11.
 
 ### E-17 · `auditoria` no se puede particionar con esa clave primaria
 
 - **Evidencia.** `V8__create_auditoria.sql`: `id BIGSERIAL PRIMARY KEY`, y el particionado es `PARTITION BY RANGE (creado_en)`. El camino de recreación que sugiere `partitioning.sql:10` (`CREATE TABLE auditoria_partitioned (LIKE auditoria INCLUDING ALL) PARTITION BY RANGE (creado_en)`) copia también esa PK.
 - **Qué pasa.** En una tabla particionada, toda `PRIMARY KEY` o `UNIQUE` tiene que incluir la columna de particionado; si no, PostgreSQL rechaza el `CREATE`: *unique constraint on partitioned table must include all partitioning columns*. Pasa con el `ALTER` (E-03) y con el `LIKE … INCLUDING ALL`.
 - **Impacto.** El particionado no es aplicable sin cambiar la PK a `(id, creado_en)`. Y de paso, la cadena de hashes (E-23) ordena por `id`, que deja de ser único por sí solo.
-- **Arreglo.** PK `(id, creado_en)` en la tabla particionada y, en las consultas del hash, ordenar por `(creado_en, id)`. Hay que decidir si la numeración de `id` sigue siendo la secuencia global (lo es, `BIGSERIAL` sobre la tabla padre).
-- **Estado.** abierto.
+- **Arreglo (26/11).** La recreación de `partitioning.sql` define `PRIMARY KEY (id, creado_en)`; `triggers.sql` y `backend/app/db/queries/audit.sql` ordenan la cadena por `(creado_en DESC, id DESC)`. `id` sigue siendo `BIGSERIAL` con secuencia global. La propuesta [[0017-particionado-auditoria]] recoge el cambio de orden y queda a la espera de que una persona la acepte.
+- **Estado.** corregido el 26/11 en el código; decisión **Propuesta**. Pendiente de validar en PostgreSQL 16.
 
 ---
 
@@ -294,8 +295,8 @@
 
 - **Evidencia.** `views.sql:3` dice «Ejecutar DESPUÉS de V10__create_indexes.sql», pero la vista usa `r.asignado_a`, que nace en V15, y `documentos.requiere_visto_bueno` también es de V15.
 - **Impacto.** Quien siga esa línea ejecuta `views.sql` antes de V15 y recibe *column r.asignado_a does not exist*.
-- **Arreglo.** «Después de todas las migraciones (V15 incluida)». El README de arquitectura ya lo hace en el orden correcto: solo falla el comentario del propio fichero.
-- **Estado.** abierto.
+- **Arreglo (26/11).** `views.sql:3` ya decía «después de V15 y de los índices»; el registro no se había actualizado. La cabecera de `triggers.sql`, que sí seguía diciendo «V9 / antes de seeds», se alinea con el README.
+- **Estado.** corregido el 26/11.
 
 ### E-30 · `horas_media_estado` no mide lo que dice
 
