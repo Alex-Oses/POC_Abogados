@@ -46,3 +46,6 @@
   2. Destinatario: a) casilla al exportar con el correo de quien subió el documento, b) fijo por tipo en `.env`, c) ambos.
   3. Buzón remitente y datos SMTP.
 - Auditoría funcional de la web (agente Evidence Collector) y arreglos: subida duplicada ya no dice «acabada», justicia gratuita en catalán (tipos, aviso, nombre e ingresos con «Nom:»/«Ingressos:»), confirmación al enviar con documentación incompleta, eventos de auditoría legibles, estado visible en móvil, «seudónimos» solo con ese modo, guía fija abajo a la derecha y documentos huérfanos de antes de la cola marcados como fallidos. Sin cambiar: el resaltado del menú (las pantallas de flujo cuelgan de Safata y Exportat de Arxiu).
+- Pruebas (agente + API): cola de 7 ficheros con cancelar y recarga, edición con formato que persiste y llega a la anonimización, validar, Ctrl+→, avisos, JPG/PNG y rechazo 415. Arreglos: cancelado ya no sale como error, rechazados en aviso fijo, errores del backend traducidos.
+- Servidor: BD externa (`DATABASE_URL`) con `scripts/comprobar_bd.py`, `DOMINIO` con Let's Encrypt, producción sin `/docs`, fuentes locales (sin Google), logs en `logs/` y `diagnostico.sh` con claves tapadas. Instalación probada en un Ubuntu 24.04 limpio (contenedor): OK, y con BD mala falla con línea, comando y log.
+- `scripts/generar_pruebas.py`: 17 documentos ficticios en `pruebas/` (no se suben).

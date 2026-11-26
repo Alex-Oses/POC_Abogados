@@ -28,7 +28,7 @@ const RE_ID = /\b(?:\d{8}|[XYZ]\d{7})[A-Z]\b|\bES\d{2}(?: ?\d{4}){5}\b/g;
 
 // ---------- estado ----------
 const S = {
-    user: null, booting: true, docs: [], curDoc: null, cur: 1, mode: 'double', q: '', f: { estado: '', per: '', modo: '' }, sel: new Set(),
+    user: null, booting: true, docs: [], curDoc: null, cur: 1, mode: 'double', rej: [], q: '', f: { estado: '', per: '', modo: '' }, sel: new Set(),
     hl: null, pop: null, modal: null, toast: '', guideOpen: false,
     jg: null, jgId: '', an: null, anMode: 'esborrar', anonPage: 1, detOpen: false, original: false, anHl: null,
     exp: null, audit: [], summary: null, arxiu: [],
@@ -221,11 +221,12 @@ function followDoc(d) {
 // Varios ficheros: se encolan sin stream (202) y se sigue el progreso desde la safata.
 async function queueUploads(files) {
     for (const file of files) {
-        if (!/\.(pdf|png|jpe?g)$/i.test(file.name)) { toast(t('err_pdf')); continue; }
-        if (file.size > 20 * 1024 * 1024) { toast(t('err_size')); continue; }
+        // Los rechazados quedan en un aviso fijo: un toast se pisaría con el siguiente fichero.
+        if (!/\.(pdf|png|jpe?g)$/i.test(file.name)) { S.rej.push(file.name + ': ' + t('err_pdf')); continue; }
+        if (file.size > 20 * 1024 * 1024) { S.rej.push(file.name + ': ' + t('err_size')); continue; }
         const fd = new FormData();
         fd.append('file', file); fd.append('modo', S.mode === 'double' ? 'doble' : 'simple');
-        try { await api('/transform/document', { method: 'POST', body: fd }); toast('✓ ' + file.name + ' · ' + t('q_added')); } catch (e) { toast(file.name + ': ' + (e.code === 'DOCUMENTO_DUPLICADO' ? t('dup') : e.message)); }
+        try { await api('/transform/document', { method: 'POST', body: fd }); toast('✓ ' + file.name + ' · ' + t('q_added')); } catch (e) { S.rej.push(file.name + ': ' + (e.code === 'DOCUMENTO_DUPLICADO' ? t('dup') : e.message)); up(); }
     }
     loadList();
 }
@@ -612,7 +613,7 @@ const EST = { pendiente: ['n', 'e_pend'], ocr_procesando: ['n', 'transcrivint'],
     en_revision: ['w', 'anonimitzar'], eliminado: ['n', 'e_elim'], aprobado: ['ok', 'e_aprov'], rechazado: ['bad', 'e_rebut'], exportado: ['ok', 'exportat'] };
 function rowOf(d) {
     const [cls, k] = EST[d.estado] || ['n', d.estado];
-    const st = d._err ? ['bad', '✕ ' + t('q_error')] : d.estado === 'pendiente' ? ['n', t('q_cua') + (d.queue_position ? ` (${t('q_pos')} ${d.queue_position})` : '')]
+    const st = d._err === 'CANCELADO' ? ['n', t('q_cancelat')] : d._err ? ['bad', '✕ ' + t('q_error')] : d.estado === 'pendiente' ? ['n', t('q_cua') + (d.queue_position ? ` (${t('q_pos')} ${d.queue_position})` : '')]
         : d.estado === 'ocr_procesando' ? ['n', `${t('transcrivint')} ${d.pages_done || 0}/${d.num_paginas || '…'}`] : [cls, t(k)];
     const q = d.paginas_ilegibles > 0 ? ['bad', `✕ ${d.paginas_ilegibles} ${t('tornar')}`]
         : d.paginas_revisar > 0 ? ['w', `! ${d.paginas_revisar} ${t('revisar')}`] : ['ok', '✓ ' + t('fiable')];
@@ -668,11 +669,13 @@ function Rows({ rows, head }) {
                 <td>${chip(d.st[0], d.st[1])}<${QueueInfo} d=${d.raw} /></td><td>${RUNNING.includes(d.raw.estado) ? '' : chip(d.q[0], d.q[1])}</td><td>${d.r}</td></tr>`)}</tbody></table></div>`;
 }
 // Progreso, cancelar y reintentar de los documentos de la cola (dentro de una fila clicable: no propagar el clic).
+// Textos de error del backend que tienen traducción; el resto se muestra tal cual.
+const errText = e => (e === 'CANCELADO' ? t('q_cancelat') : /^Transcripción interrumpida/.test(e) ? t('q_interr') : e);
 function QueueInfo({ d }) {
     if (!d || !RUNNING.includes(d.estado)) return null;
     const stop = e => e.stopPropagation();
     const cancel = async e => { stop(e); try { await sendJ(`/documents/${d.id}/cancel`, 'POST'); toast(t('q_cancelat')); } catch (x) { fail(x); } loadList(); };
-    if (d._err) return html`<div className="doc-s">${d._err} <button type="button" className="btn" onClick=${e => { stop(e); document.getElementById('pdfFile').click(); }}>↻ ${t('q_retry')}</button></div>`;
+    if (d._err) return html`<div className="doc-s">${errText(d._err)} <button type="button" className="btn" onClick=${e => { stop(e); document.getElementById('pdfFile').click(); }}>↻ ${t('q_retry')}</button></div>`;
     return html`<div className="row" style=${{ gap: '6px', marginTop: '4px' }}>
         ${d.estado === 'ocr_procesando' && html`<progress max=${d.num_paginas || 1} value=${d.pages_done || 0} aria-label=${t('transcrivint')}></progress>`}
         ${d.estado === 'pendiente' && html`<button type="button" className="btn" onClick=${cancel}>${t('cancel')}</button>`}
@@ -715,6 +718,8 @@ function Safata() {
         <button type="button" className="drop" onClick=${pick} ...${drag}><b>${t('drop')}</b> ${t('drop2')} · ${t('max50')}</button>
         <input type="file" id="pdfFile" accept=".pdf,application/pdf,image/png,image/jpeg" multiple hidden onChange=${e => { upload(e.target.files); e.target.value = ''; }} />
         <div className="row" style=${{ marginBottom: '12px' }}><${Search} reload=${loadList} /><button type="button" className="btn pri" onClick=${pick}>＋ ${t('nou')}</button></div>
+        ${S.rej.length > 0 && html`<div className="banner bad row" role="alert"><div className="sp">${S.rej.map((m, i) => html`<div key=${i}>✕ ${m}</div>`)}</div>
+            <button type="button" className="btn" onClick=${() => { S.rej = []; up(); }}>${t('tancar')}</button></div>`}
         <${Filters} list=${S.docs} estados=${true} />
         ${(() => { const rows = filtra(S.docs); return rows.length ? html`<${ZipBar} rows=${rows} anon=${true} /><${Rows} rows=${rows.map(rowOf)} head=${true} />`
             : html`<${Empty} msg=${S.q || S.f.estado || S.f.per || S.f.modo ? t('sense_res') : t('buida')} />`; })()}
