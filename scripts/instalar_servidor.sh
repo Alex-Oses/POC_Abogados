@@ -43,7 +43,7 @@ echo "   Opciones: DOMINIO=${DOMINIO:-no} · BD externa=$([ -n "$BD_EXTERNA" ] &
 
 echo "== Paquetes del sistema"
 sudo apt-get update -y
-sudo apt-get install -y git curl python3 python3-venv python3-pip caddy
+sudo apt-get install -y git curl python3 python3-venv python3-pip caddy postgresql-client
 if [ -z "$BD_EXTERNA" ]; then
   command -v docker >/dev/null || curl -fsSL https://get.docker.com | sudo sh
   sudo docker compose version >/dev/null 2>&1 || sudo apt-get install -y docker-compose-plugin

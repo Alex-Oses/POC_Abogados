@@ -777,6 +777,8 @@ function setCur(n) { S.cur = n; S.hl = null; S.pop = null; up(); }
 function Revisio() {
     const d = S.curDoc;
     const [nat, setNat] = useState(null); // tamaño real del PNG: las cajas vienen en píxeles
+    // La miniatura actual siempre a la vista (con 20+ páginas la columna no cabe entera).
+    useEffect(() => { const el = document.querySelector('.thumbs .thumb.on'); if (el) el.scrollIntoView({ block: 'nearest' }); }, [S.cur, S.curDoc && S.curDoc.id]);
     useEffect(() => { const d = S.curDoc; if (d && d.id && d.pages) [S.cur, S.cur + 1].forEach(k => prefetchBoxes(d, d.pages[k])); });
     if (!d || !d.total || !d.id) return html`<${NoDoc} />`;
     const n = Math.min(S.cur, d.total), p = d.pages[n] || newPage(n), st = pstate(p), pend = pending(p);
@@ -818,6 +820,7 @@ function Revisio() {
             <a className="btn pri" href="#anonimitzar">${t('an_t')} →</a></div>`}
         <div className="rev">
             <div className="card thumbs" role="list" aria-label=${t('th_pag')}>
+                <div className="thumbs-h">${d.total} ${t('pag')} · ${docPages(d).filter(x => x.status === 'done').length} ${t('th_fetes')}</div>
                 ${range(d.total).map(k => { const s = pstate(d.pages[k]); return html`<button key=${k} type="button" data-p=${k} className=${'thumb' + (k === n ? ' on' : '')} aria-current=${k === n ? 'page' : undefined}
                     onClick=${() => setCur(k)} onKeyDown=${e => thumbKey(e, k)}><span className=${'dot ' + dot(s)}></span>${t('pag')} ${k}${s === 'v' ? ' ✓' : ''}</button>`; })}
             </div>

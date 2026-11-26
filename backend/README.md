@@ -22,6 +22,8 @@ La base de datos la manda Flyway (`docs/architecture/migrations/`). Este backend
 
 ## Servidor (acceso desde fuera de la red)
 
+Guía completa paso a paso: [docs/GUIA_SERVIDOR.md](../docs/GUIA_SERVIDOR.md).
+
 En un Ubuntu 24.04 limpio, desde la carpeta donde vaya la app:
 
 ```bash
