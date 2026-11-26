@@ -5,7 +5,7 @@ from psycopg.types.json import Jsonb
 
 from app.core.errors import AppError
 from app.db.queries import SQL
-from app.integrations.etl import extraer_ocr_documento
+from app.integrations.ocr import extraer_ocr_documento
 from app.integrations.storage import guardar_original, leer_original
 from app.services.audit import registrar_evento
 
