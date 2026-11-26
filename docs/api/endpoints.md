@@ -612,3 +612,31 @@ cualquier estado ──DELETE /documents/{id}──→ eliminado
 | Reglas / categorías | `reglas_anonimizacion`, `regla_categorias`, `categorias_sensibles` |
 | Configuración | `configuracion_sistema` |
 | Todo lo anterior | `auditoria` (una fila por cambio) |
+
+---
+
+## 11. Estado de implementación (backend Python, 26/11)
+
+Nota de implementación: no cambia el contrato de arriba. Lo que se añade fuera del contrato va marcado como **extra** y queda como propuesta.
+
+| Ruta | Estado |
+| --- | --- |
+| `POST /transform/document` | Hecha. Campo opcional `modo=simple\|doble` (por defecto `doble`, A-24). Con `Accept: application/x-ndjson` responde `200` en streaming, con una línea JSON por evento: `start`, `page` (una por página) y `done`, o `error`. Sin esa cabecera espera al final y responde `201` según el contrato. Si el OCR falla, el documento vuelve a `pendiente`. Duplicado del mismo creador: `409 DOCUMENTO_DUPLICADO`. |
+| `POST /transform/plain-text`, `POST /transform/build` | Hechas. |
+| `GET /documents` | Hecha, más los parámetros **extra** `q` (texto completo en español sobre la versión vigente y el nombre; devuelve `fragmento`) y los campos `paginas_revisar`, `paginas_ilegibles` y `exportado_en`. |
+| `GET /documents/{id}`, `/pages`, `/original`, `DELETE` | Hechas. `/pages` añade `texto`, `validada`, `diferencias` y `contraste_bruto` (0-255). |
+| **extra** `PATCH /documents/{id}/pages/{n}` | `{texto?, validada?}` → `204`. Solo en `ocr_completado`. |
+| **extra** `POST /documents/{id}/pages/{n}/ocr` | Multipart con `file` opcional (reescaneo) y `modo` → evento `page`. |
+| **extra** `GET /documents/{id}/pages/{n}/image` | PNG a 150 dpi renderizado desde el original cifrado; cada acceso se audita. |
+| Versiones y bloques | Hechas. Bloques sintéticos, uno por página (docs/export/pdf.md, modo secuencial). |
+| `POST /documents/{id}/anonymize` | Hecha. `regla_id` opcional (V1..V15 no siembran reglas: sin él se usan todas las categorías activas) y **extra** `modo` = `censurar\|borrar\|tachar\|etiqueta\|seudonimo\|iniciales`. |
+| `GET /documents/{id}/annotations`, `PATCH /annotations/{id}` | Hechas. **extra** `POST /documents/{id}/annotations` para el falso negativo. |
+| Revisión | `GET /reviews`, `POST /documents/{id}/reviews`, `claim`, `PATCH /reviews/{id}` (exige `If-Match`; sin él, `428`) y `reopen` están hechas. `assign` y `sign-off` no. |
+| `POST /documents/{id}/export` | Hecha (A-16 a A-18). |
+| **extra** `POST /documents/{id}/justicia-gratuita` y `/send` | Comprobación orientativa y marca de envío. El resultado se guarda en `documentos.metadatos_extras.justicia_gratuita`. |
+| `GET /rules`, `GET /categories` | Solo lectura, abierta a los tres roles. El alta y la edición no están hechas. |
+| `GET /audit` | Hecha. |
+| **extra** `GET /reports/summary` | Agregados del mes: páginas, tiempo medio de revisión, páginas reescaneadas, envíos de JG y documentos por estado. |
+| `/config` | No hecha. |
+
+Auth: además del Bearer, el login deja la cookie `icat_token` (HttpOnly, SameSite=Strict), que usan `<img>` y el visor del original.
