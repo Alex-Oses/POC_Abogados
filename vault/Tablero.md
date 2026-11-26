@@ -4,10 +4,19 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 ## Pendiente
 
-**Entrega viernes 27/11** (ver [[Equipo]]):
+**Entrega viernes 30/11** (ver [[Equipo]]):
 - [ ] Especificación funcional con criterios «cómo comprobarlo»
 - [ ] Pasar la [[Maqueta]] a Figma (html.to.design) y enlazar el prototipo · @Alex
 - [ ] Decidir el caso a presentar (justicia gratuita, anonimización o ambos)
+- [ ] BBDD
+- [ ] Backend (API)
+- [ ] Frontend
+- [ ] OCR funcionando en Ollama
+- [ ] Presidio anonimiza
+- [ ] Probar despliegue en el servidor de prueba
+- [ ] Conectar Frontend a servidor de prueba
+- [ ] Mirar de integrar yagmail
+- [ ] Investigar y trabajor sobre la demanda del sharepoint / checkpoint
 
 Resto:
 - [ ] Revisar el [[Registro de errores]] y decidir qué se corrige antes del 27/11: 34 defectos abiertos, 4 de ellos en el SQL (E-01, E-03, E-16 y E-17)
