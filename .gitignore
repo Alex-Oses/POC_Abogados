@@ -9,20 +9,12 @@ vault/.trash/
 
 __pycache__/
 *.pyc
-test_pdf_images_web/
-# Obsidian: configuración local de cada usuario; solo se comparte la lista de plugins
-vault/.obsidian/*
-!vault/.obsidian/community-plugins.json
-vault/.trash/
-
-# Documentos y datos reales: nunca al repo
-*.pdf
-.env
-
-__pycache__/
-*.pyc
 .venv/
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
 .playwright-mcp/
+test_pdf_images_web/
+
+# Ficheros de documentos del backend (originales cifrados y PDFs exportados)
+backend/storage/

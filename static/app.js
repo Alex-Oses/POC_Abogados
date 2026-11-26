@@ -1,5 +1,5 @@
-// Frontend React 18 (UMD + htm, sin build) servido por Flask. Aspecto y rutas de maqueta/index.html.
-// Estado global mutable `S` (como la maqueta) + `up()` para repintar. Datos reales: /ocr, /page, /export.
+﻿// Frontend React 18 (UMD + htm, sin build) servido por FastAPI. Aspecto y rutas de maqueta/index.html.
+// Estado global mutable `S` (como la maqueta) + `up()` para repintar. Todos los datos salen de /api/v1.
 const { useState, useEffect, useRef } = React;
 const html = htm.bind(React.createElement);
 const Frag = React.Fragment;
@@ -7,6 +7,7 @@ const L = window.L;
 let lang = 'ca';
 const t = k => (L[lang][k] ?? L.ca[k] ?? k);
 const range = n => Array.from({ length: n }, (_, k) => k + 1);
+const API = '/api/v1';
 
 // ---------- validadores (DNI/NIE e IBAN ES) ----------
 const DNI_L = 'TRWAGMYFPDXBNJZSQVHLCKE';
@@ -27,37 +28,72 @@ const RE_ID = /\b(?:\d{8}|[XYZ]\d{7})[A-Z]\b|\bES\d{2}(?: ?\d{4}){5}\b/g;
 
 // ---------- estado ----------
 const S = {
-    user: null, docs: [], curDoc: null, cur: 1, mode: 'single', q: '', audit: [],
+    user: null, booting: true, docs: [], curDoc: null, cur: 1, mode: 'single', q: '',
     hl: null, pop: null, modal: null, toast: '', guideOpen: false,
-    sent: false, exported: false, anMode: 'censurar', anonPage: 1, detOpen: false, original: false, anHl: null,
-    cats: { nom: 1, dni: 1, adreca: 1, contacte: 1, iban: 1, matricula: 0, menor: 1, salut: 1, magistrat: 1, juridica: 0 },
-    on: new Set(), off: new Set(),
+    jg: null, jgId: '', an: null, anMode: 'censurar', anonPage: 1, detOpen: false, original: false, anHl: null,
+    exp: null, audit: [], summary: null, arxiu: [],
 };
 let rerender = () => {};
 const up = () => rerender();
 const go = h => { location.hash = h; };
-function log(e) { S.audit.unshift(`${new Date().toLocaleTimeString('ca-ES')}  ${S.user ? S.user.name : '—'}  ${e}`); }
 let toastTimer = null;
 function toast(m) { S.toast = m; up(); clearTimeout(toastTimer); toastTimer = setTimeout(() => { S.toast = ''; up(); }, 2600); }
+const remember = id => { try { sessionStorage.setItem('icat_doc', id); } catch (e) { /* sin storage */ } };
+
+// ---------- API ----------
+// Cookie HttpOnly `icat_token` (misma origen): no hace falta guardar el token en JS.
+async function api(path, opts = {}) {
+    const r = await fetch(API + path, { credentials: 'same-origin', ...opts });
+    if (r.status === 401 && !path.startsWith('/user/login')) { S.user = null; go('#login'); up(); throw new Error(t('sessio_cad')); }
+    if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        const e = new Error((j.error && j.error.message) || (typeof j.detail === 'string' ? j.detail : 'HTTP ' + r.status));
+        e.code = j.error && j.error.code; e.status = r.status;
+        throw e;
+    }
+    return r;
+}
+const getJ = async p => (await api(p)).json();
+const sendJ = async (p, method, body, headers = {}) => {
+    const r = await api(p, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: body === undefined ? undefined : JSON.stringify(body) });
+    return r.status === 204 ? null : r.json();
+};
+const fail = e => toast('Error: ' + e.message);
+function download(blob, name) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const hhmm = iso => (iso ? new Date(iso).toLocaleString(lang === 'ca' ? 'ca-ES' : 'es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '');
 
 // ---------- modelo de página ----------
 const newPage = n => ({ n, status: 'q', fixes: {}, ver: 0 });
+// `ev` es un evento `page` del stream o una fila de GET /pages: mismos campos.
 function setPageData(p, ev) {
+    const txt = ev.texto || '';
+    let diff = ev.diferencias || null;
+    // Si el texto se editó después del OCR, las diferencias guardadas ya no casan: se descartan.
+    if (diff && diff.map(s => s.t).join('') !== txt) diff = null;
+    if (diff) {
+        const boxes = (ev.avisos || []).filter(a => a.tipo === 'doble_lectura');
+        let k = 0;
+        diff = diff.map(s => (s.diff ? { ...s, bbox: (boxes[k++] || {}).bbox || null } : s));
+    }
     Object.assign(p, {
-        status: 'done', text: ev.text || '', diff: ev.diff || null, time: ev.time, chars: ev.chars,
-        contrast: ev.contrast, quality: ev.quality || 'ok', fixes: {}, edit: undefined,
-        validated: false, esc: false, _segs: null, img: Date.now(),
+        status: 'done', text: txt, diff, time: ev.tiempo, contrast: ev.contraste_bruto ?? ev.contraste,
+        quality: ev.estado === 'ilegible' ? 'bad' : 'ok', fixes: {}, edit: undefined,
+        validated: !!ev.validada, esc: false, _segs: null, img: Date.now(),
     });
     p.ver++;
 }
-function splitInvalid(text, rect, out) {
+function splitInvalid(text, bbox, out) {
     let last = 0, m;
     RE_ID.lastIndex = 0;
     while ((m = RE_ID.exec(text))) {
         const iban = m[0].startsWith('ES'), alt = iban ? ibanFix(m[0]) : dniFix(m[0]);
         if (alt === null) continue;
         if (m.index > last) out.push({ t: text.slice(last, m.index) });
-        out.push({ t: m[0], kind: 'invalid', sub: iban ? 'iban' : 'dni', alt, rect });
+        out.push({ t: m[0], kind: 'invalid', sub: iban ? 'iban' : 'dni', alt, bbox });
         last = m.index + m[0].length;
     }
     if (last < text.length) out.push({ t: text.slice(last) });
@@ -66,12 +102,12 @@ function splitInvalid(text, rect, out) {
 function pageSegs(p) {
     if (p._segs) return p._segs;
     const out = [];
-    if (p.diff) p.diff.forEach(s => s.diff ? out.push({ t: s.t, kind: 'doubt', alt: s.other ?? '', rect: s.rect }) : splitInvalid(s.t, s.rect, out));
+    if (p.diff) p.diff.forEach(s => (s.diff ? out.push({ t: s.t, kind: 'doubt', alt: s.other ?? '', bbox: s.bbox }) : splitInvalid(s.t, null, out)));
     else splitInvalid(p.text || '', null, out);
     out.forEach((s, i) => { if (s.kind) s.id = 'w' + i; });
     return (p._segs = out);
 }
-const warns = p => (p && p.status === 'done' && p.quality !== 'bad' ? pageSegs(p).filter(s => s.kind) : []);
+const warns = p => (p && p.status === 'done' && p.quality !== 'bad' && !p.validated ? pageSegs(p).filter(s => s.kind) : []);
 const pending = p => warns(p).filter(s => !(s.id in p.fixes));
 function pstate(p) {
     if (!p || p.status !== 'done') return 'n';
@@ -83,6 +119,7 @@ function pstate(p) {
 const finalText = p => p.edit ?? pageSegs(p).map(s => (s.id in p.fixes ? p.fixes[s.id] : s.t)).join('');
 const docPages = d => range(d.total).map(n => d.pages[n]).filter(Boolean);
 const docAllDone = d => d.total > 0 && docPages(d).every(p => ['v', 'esc'].includes(pstate(p)));
+const editable = d => d && d.estado === 'ocr_completado';
 function nextAttention(d, from) {
     for (let k = 1; k <= d.total; k++) {
         const m = ((from - 1 + k) % d.total) + 1;
@@ -91,24 +128,71 @@ function nextAttention(d, from) {
     return null;
 }
 
-// ---------- llamadas al backend ----------
+// ---------- sesión ----------
+async function boot() {
+    try {
+        S.user = await getJ('/user/me');
+        let id = null;
+        try { id = sessionStorage.getItem('icat_doc'); } catch (e) { /* sin storage */ }
+        if (id) await loadDoc(id).catch(() => null);
+    } catch (e) { S.user = null; }
+    S.booting = false;
+    if (!S.user) go('#login');
+    up();
+}
+async function logout() {
+    try { await api('/user/logout', { method: 'POST' }); } catch (e) { /* ya caducada */ }
+    S.user = null; S.curDoc = null; S.an = null; S.jg = null; S.exp = null;
+    try { sessionStorage.removeItem('icat_doc'); } catch (e) { /* sin storage */ }
+    go('#login'); up();
+}
+
+// ---------- documentos ----------
+async function loadDoc(id) {
+    const [det, pg] = await Promise.all([getJ(`/documents/${id}`), getJ(`/documents/${id}/pages`)]);
+    const meta = (det.version_actual && det.version_actual.metadatos_proceso) || {};
+    const d = {
+        id, name: det.nombre_original, estado: det.estado, mode: meta.modo === 'simple' ? 'single' : 'double',
+        total: pg.items.length || det.num_paginas || 0, pages: {}, done: true, error: '', jg: det.justicia_gratuita,
+    };
+    pg.items.forEach(r => { const p = newPage(r.numero); setPageData(p, r); d.pages[r.numero] = p; });
+    S.curDoc = d; remember(id);
+    return d;
+}
+async function openDoc(row) {
+    try {
+        const d = await loadDoc(row.id);
+        S.cur = nextAttention(d, d.total) || 1; S.hl = null;
+        go(['ocr_completado'].includes(d.estado) ? '#revisio' : ['en_revision', 'aprobado'].includes(d.estado) ? '#anonimitzar' : d.estado === 'exportado' ? '#exportat' : '#revisio');
+    } catch (e) { fail(e); }
+}
+async function loadList() {
+    try {
+        const q = S.q.trim();
+        const j = await getJ('/documents?limit=100' + (q ? '&q=' + encodeURIComponent(q) : ''));
+        S.docs = j.items; up();
+    } catch (e) { fail(e); }
+}
+async function loadArxiu() {
+    try {
+        const q = S.q.trim();
+        const j = await getJ('/documents?estado=exportado&limit=100' + (q ? '&q=' + encodeURIComponent(q) : ''));
+        S.arxiu = j.items; up();
+    } catch (e) { fail(e); }
+}
+
 function startUpload(file) {
     if (!file) return;
-    if (!/\.pdf$/i.test(file.name)) return toast(t('err_pdf'));
-    if (file.size > 50 * 1024 * 1024) return toast(t('err_size'));
-    const doc = {
-        name: file.name, mode: S.mode, uploadId: null, total: 0, pages: {}, stats: null, error: '', done: false,
-        at: new Date().toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' }),
-    };
-    S.docs.unshift(doc); S.curDoc = doc; S.cur = 1;
-    log(`Pujat ${file.name} (${S.mode})`);
+    if (!/\.(pdf|png|jpe?g)$/i.test(file.name)) return toast(t('err_pdf'));
+    if (file.size > 20 * 1024 * 1024) return toast(t('err_size'));
+    const doc = { id: null, name: file.name, mode: S.mode, estado: 'ocr_procesando', total: 0, pages: {}, stats: null, error: '', done: false };
+    S.curDoc = doc; S.cur = 1;
     go('#processant'); up();
     const fd = new FormData();
-    fd.append('pdf', file); fd.append('mode', S.mode);
+    fd.append('file', file); fd.append('modo', S.mode === 'double' ? 'doble' : 'simple');
     // Respuesta NDJSON: una línea por evento (start, page, done, error).
-    fetch('/ocr', { method: 'POST', body: fd })
+    api('/transform/document', { method: 'POST', body: fd, headers: { Accept: 'application/x-ndjson' } })
         .then(async r => {
-            if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'HTTP ' + r.status); }
             const reader = r.body.getReader(), dec = new TextDecoder();
             let buf = '';
             for (;;) {
@@ -125,57 +209,54 @@ function startUpload(file) {
             if (buf.trim()) onEvent(doc, JSON.parse(buf));
             doc.done = true; up();
         })
-        .catch(e => { doc.error = e.message; doc.done = true; up(); });
+        .catch(e => { doc.error = e.code === 'DOCUMENTO_DUPLICADO' ? t('dup') : e.message; doc.done = true; up(); });
 }
 function onEvent(doc, ev) {
     if (ev.type === 'start') {
-        doc.uploadId = ev.upload_id; doc.total = ev.total_pages;
+        doc.id = ev.id; doc.total = ev.total_pages; remember(ev.id);
         range(doc.total).forEach(n => { doc.pages[n] = newPage(n); });
         if (doc.pages[1]) doc.pages[1].status = 'run';
     } else if (ev.type === 'page') {
-        const p = doc.pages[ev.page] || (doc.pages[ev.page] = newPage(ev.page));
+        const p = doc.pages[ev.numero] || (doc.pages[ev.numero] = newPage(ev.numero));
         setPageData(p, ev);
-        const nx = doc.pages[ev.page + 1];
+        const nx = doc.pages[ev.numero + 1];
         if (nx && nx.status === 'q') nx.status = 'run';
     } else if (ev.type === 'done') {
-        doc.stats = ev; doc.done = true;
-        log(`OCR completat ${doc.name} (${doc.total} pàg.)`);
+        doc.stats = ev; doc.done = true; doc.estado = ev.estado;
     } else if (ev.type === 'error') {
-        doc.error = ev.error; doc.done = true;
+        doc.error = ev.message; doc.done = true;
     }
     up();
 }
 async function reOcr(d, n, file) {
     const p = d.pages[n], fd = new FormData();
-    fd.append('mode', d.mode);
+    fd.append('modo', d.mode === 'double' ? 'doble' : 'simple');
     if (file) fd.append('file', file);
     p.status = 'run'; S.hl = null; up();
     try {
-        const r = await fetch(`/page/${d.uploadId}/${n}/ocr`, { method: 'POST', body: fd });
-        const j = await r.json().catch(() => ({}));
-        if (!r.ok || j.error) throw new Error(j.error || 'HTTP ' + r.status);
-        setPageData(p, j);
-        log(file ? `Pàg. ${n} reescanejada (fitxer pujat) ${d.name}` : `Pàg. ${n} transcrita de nou ${d.name}`);
+        setPageData(p, await (await api(`/documents/${d.id}/pages/${n}/ocr`, { method: 'POST', body: fd })).json());
         toast('✓ ' + (file ? t('esc_ok') : t('retranscriure')));
-    } catch (e) {
-        p.status = 'done';
-        toast('Error: ' + e.message);
-    }
+    } catch (e) { p.status = 'done'; fail(e); }
     up();
 }
-async function exportPdf(d) {
+// Guardado de la transcripción: PATCH con retardo para no enviar cada tecla.
+const saveTimers = {};
+function saveText(d, p) {
+    if (!editable(d)) return;
+    clearTimeout(saveTimers[p.n]);
+    saveTimers[p.n] = setTimeout(() => {
+        sendJ(`/documents/${d.id}/pages/${p.n}`, 'PATCH', { texto: finalText(p) }).catch(fail);
+    }, 800);
+}
+async function exportDoc(id, name) {
     try {
-        const pages = range(d.total).map(n => { const p = d.pages[n]; return p && p.status === 'done' && p.quality !== 'bad' ? finalText(p) : ''; });
-        const r = await fetch('/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: d.name, pages }) });
-        if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'HTTP ' + r.status); }
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(await r.blob());
-        a.download = d.name.replace(/\.pdf$/i, '') + '_transcrit.pdf';
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-        log(`Exportat ${d.name} (${d.total} pàg.)`);
-        toast('⤓ ' + a.download);
-    } catch (e) { toast('Error: ' + e.message); }
+        const r = await api(`/documents/${id}/export`, { method: 'POST' });
+        const blob = await r.blob();
+        const fname = (name || 'document').replace(/\.[^.]+$/, '') + '_anonimizado.pdf';
+        S.exp = { id, name: fname, hash: r.headers.get('X-Document-Hash'), blob };
+        S.audit = (await getJ(`/audit?entidad_id=${id}&limit=100`)).items;
+        go('#exportat'); up();
+    } catch (e) { fail(e); }
 }
 
 // ---------- revisión: avisos en el texto ----------
@@ -196,6 +277,7 @@ function buildText(el, p) {
     el.replaceChildren();
     const segs = pageSegs(p);
     let changed = false;
+    if (!p.text && p.edit === undefined) { el.append(t('buit')); return; }
     if (p.edit === undefined) {
         segs.forEach(s => el.append(s.kind ? warnNode(s, p) : s.t));
     } else {
@@ -210,10 +292,10 @@ function buildText(el, p) {
     }
     if (changed) setTimeout(up);
 }
-function onTextInput(p, el) {
+function onTextInput(d, p, el) {
     p.edit = el.innerText;
     for (const s of pending(p)) if (!el.querySelector(`[data-wid="${s.id}"]`)) p.fixes[s.id] = '';
-    if (!p.editLogged) { p.editLogged = true; log(`Correcció manual pàg. ${p.n}`); }
+    saveText(d, p);
     up();
 }
 function openWarn(el, p) {
@@ -222,7 +304,7 @@ function openWarn(el, p) {
     up();
 }
 function applyFix(p, id, val, manual) {
-    const s = pageSegs(p).find(x => x.id === id), tx = document.getElementById('txt');
+    const tx = document.getElementById('txt');
     const el = tx && tx.querySelector(`[data-wid="${id}"]`);
     p.fixes[id] = val;
     if (el) {
@@ -230,7 +312,7 @@ function applyFix(p, id, val, manual) {
         ['contenteditable', 'tabindex', 'role', 'aria-label'].forEach(a => el.removeAttribute(a));
     }
     if (tx) p.edit = tx.innerText;
-    log(manual ? `Edició manual «${s.t}» (pàg. ${p.n})` : `Corregit «${s.t}» → «${val}» (pàg. ${p.n})`);
+    saveText(S.curDoc, p);
     S.pop = null; up();
     if (manual && el) {
         tx.focus();
@@ -242,21 +324,28 @@ function setHl(v) {
     if (JSON.stringify(v) === JSON.stringify(S.hl)) return;
     S.hl = v; up();
 }
-function hoverWarn(target, p) {
+function hoverWarn(target, p, d) {
     const w = target.closest && target.closest('[data-wid]');
     const s = w && pageSegs(p).find(x => x.id === w.dataset.wid);
-    setHl(s ? s.rect || 'none' : null);
+    if (!s) return setHl(null);
+    if (s.bbox || s.bbox === false) return setHl(s.bbox || 'none');
+    // Sin caja del OCR (escaneo o aviso de DNI/IBAN): se pide al backend dónde está en la imagen.
+    S.hlWant = s.id;
+    getJ(`/documents/${d.id}/pages/${p.n}/locate?q=${encodeURIComponent(s.t.trim())}`)
+        .then(r => { s.bbox = r.bbox || false; if (S.hlWant === s.id) setHl(s.bbox || 'none'); })
+        .catch(() => { s.bbox = false; });
 }
 
-function TextPane({ p }) {
+function TextPane({ d, p }) {
     const ref = useRef(null);
+    const ed = editable(d);
     useEffect(() => { buildText(ref.current, p); }, []); // el padre usa key = doc+pàgina+versió
-    return html`<div className="text" id="txt" ref=${ref} contentEditable="true" spellCheck=${false}
-        onInput=${() => onTextInput(p, ref.current)}
-        onClick=${e => { const w = e.target.closest('[data-wid]'); if (w && !(w.dataset.wid in p.fixes)) openWarn(w, p); }}
-        onKeyDown=${e => { const w = e.target.dataset && e.target.dataset.wid; if (w && (e.key === 'Enter' || e.key === ' ') && !(w in p.fixes)) { e.preventDefault(); openWarn(e.target, p); } }}
-        onMouseOver=${e => hoverWarn(e.target, p)} onMouseLeave=${() => setHl(null)}
-        onFocus=${e => hoverWarn(e.target, p)}></div>`;
+    return html`<div className="text" id="txt" ref=${ref} contentEditable=${ed ? 'true' : 'false'} spellCheck=${false}
+        onInput=${() => onTextInput(d, p, ref.current)}
+        onClick=${e => { const w = e.target.closest('[data-wid]'); if (ed && w && !(w.dataset.wid in p.fixes)) openWarn(w, p); }}
+        onKeyDown=${e => { const w = e.target.dataset && e.target.dataset.wid; if (ed && w && (e.key === 'Enter' || e.key === ' ') && !(w in p.fixes)) { e.preventDefault(); openWarn(e.target, p); } }}
+        onMouseOver=${e => hoverWarn(e.target, p, d)} onMouseLeave=${() => { S.hlWant = null; setHl(null); }}
+        onFocus=${e => hoverWarn(e.target, p, d)}></div>`;
 }
 
 // ---------- piezas comunes ----------
@@ -267,39 +356,54 @@ function Lang({ style }) {
     </div>`;
 }
 const Logo = () => html`<div className="logo"><b>ICA<i>T</i></b><small>Il·lustre Col·legi de l'Advocacia de Tarragona</small></div>`;
-function logout() { log('Tancament de sessió'); S.user = null; S.curDoc = null; go('#login'); up(); }
-function Shell({ active, demo, children }) {
+const ROLS = { transcriptor: 'r_trans', revisor: 'r_rev', admin: 'r_admin' };
+function Shell({ active, children }) {
+    const u = S.user, full = `${u.nombre} ${u.apellidos}`.trim();
+    const ini = full.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
     return html`<${Frag}>
     <header>
         <a href="#landing" className="logo-a" aria-label=${t('inici')}><${Logo} /></a>
         <nav aria-label="Principal">${[['safata', '#safata'], ['jg', '#jg'], ['arxiu', '#arxiu'], ['informes', '#informes']].map(([k, h]) =>
             html`<a key=${k} href=${h} className=${active === k ? 'on' : ''} aria-current=${active === k ? 'page' : undefined}>${t(k)}</a>`)}</nav>
         <${Lang} />
-        <div className="user">${t('rol')} <span className="avatar" title=${S.user.email} aria-hidden="true">${S.user.ini}</span>
+        <div className="user"><span><b>${full}</b><br />${u.roles.map(r => t(ROLS[r] || r)).join(' · ')}</span>
+            <span className="avatar" title=${u.email} aria-hidden="true">${ini}</span>
             <button type="button" className="btn" onClick=${logout}>${t('sortir')}</button></div>
     </header>
-    <main>${children}${demo && html`<p className="ficticio">${t('ficticia')}</p>`}</main>
+    <main>${children}</main>
     <//>`;
 }
 const NoDoc = () => html`<${Shell} active="safata"><div className="card" style=${{ padding: '28px', textAlign: 'center' }}>
     <p>${t('no_doc')}</p><a className="btn pri" href="#safata">‹ ${t('safata')}</a></div><//>`;
+const Empty = ({ msg }) => html`<div className="card" style=${{ padding: '28px', textAlign: 'center' }}><p className="doc-s">${msg}</p></div>`;
 const chip = (cls, txt) => html`<span className=${'chip ' + cls}>${txt}</span>`;
-function StatsKpis({ s }) {
+function StatsKpis({ d }) {
+    const s = d.stats;
     if (!s) return null;
-    const k = [[s.total_pages, 'st_total'], [s.total_time + ' s', 'st_time'], [s.avg_time_per_page + ' s', 'st_avg'], [s.pages_per_hour_estimate, 'st_ph'], [s.total_chars, 'st_chars']];
+    const n = d.total || 1;
+    const k = [[d.total, 'st_total'], [s.total_time + ' s', 'st_time'], [(s.total_time / n).toFixed(2) + ' s', 'st_avg'],
+        [s.total_time ? Math.round((3600 * d.total) / s.total_time) : '—', 'st_ph'], [s.total_chars, 'st_chars']];
     return html`<div className="kpis k5">${k.map(([v, l]) => html`<div key=${l} className="card kpi"><b>${v}</b><span>${t(l)}</span></div>`)}</div>`;
+}
+// Fragmento de ts_headline: solo se interpretan <b>…</b>; el resto se pinta como texto.
+function Snippet({ s }) {
+    if (!s) return null;
+    return html`<div className="doc-s">…${s.split(/(<b>.*?<\/b>)/g).map((x, i) => (x.startsWith('<b>') ? html`<mark key=${i}>${x.slice(3, -4)}</mark>` : x))}…</div>`;
 }
 
 // ---------- login y landing ----------
 function Login() {
-    const [email, setEmail] = useState('demo@icat.cat');
-    const [pass, setPass] = useState('demo');
-    const submit = e => {
-        e.preventDefault();
-        const name = email.split('@')[0];
-        S.user = { email, name, ini: name.slice(0, 2).toUpperCase() };
-        log('Inici de sessió');
-        go('#landing'); up();
+    const [email, setEmail] = useState('');
+    const [pass, setPass] = useState('');
+    const [err, setErr] = useState('');
+    const [busy, setBusy] = useState(false);
+    const submit = async e => {
+        e.preventDefault(); setErr(''); setBusy(true);
+        try {
+            await sendJ('/user/login', 'POST', { email, password: pass });
+            S.user = await getJ('/user/me');
+            go('#landing'); up();
+        } catch (x) { setErr(x.status === 401 ? t('login_err') : x.message); setBusy(false); }
     };
     return html`<div className="card login">
         <${Logo} />
@@ -307,11 +411,10 @@ function Login() {
         <form onSubmit=${submit}>
             <label className="fld">${t('correu')}<input type="email" value=${email} onChange=${e => setEmail(e.target.value)} required autoComplete="username" /></label>
             <label className="fld">${t('contrasenya')}<input type="password" value=${pass} onChange=${e => setPass(e.target.value)} required autoComplete="current-password" /></label>
-            <button className="btn pri wide" type="submit">${t('login_b')}</button>
+            ${err && html`<div className="banner bad" role="alert">${err}</div>`}
+            <button className="btn pri wide" type="submit" disabled=${busy}>${t('login_b')}</button>
         </form>
-        <p className="sub" style=${{ marginTop: '10px' }}>${t('login_n')}</p>
         <p className="banner ok" style=${{ marginTop: '22px' }}>🔒 ${t('local')}</p>
-        <p className="doc-s">${t('demo_cred')}</p>
         <${Lang} style=${{ display: 'inline-flex', marginTop: '12px' }} />
     </div>`;
 }
@@ -328,61 +431,46 @@ function Landing() {
 }
 
 // ---------- safata / arxiu ----------
-const FAKE = () => [
-    { id: 'JG-2026-1184', t: 'Sol·licitud justícia gratuïta', s: 'Expedient complet: DNI, nòmines, IRPF', tipo: t('jg'), p: 23, st: S.sent ? t('enviat') : t('transcrit'), q: S.sent ? ['ok', '✓ ' + t('validat')] : ['w', '! 4 ' + t('revisar')], r: '10:31', go: '#jg' },
-    { id: 'Queixa 2026/311', t: 'Escrit de la persona usuària', s: 'Escanejat per fax', tipo: 'Deontologia', p: 3, st: t('transcrit'), q: ['bad', '✕ ' + t('tornar')], r: '09:15' },
-    { id: 'Sentència 70/2020', t: 'Resolució per publicar', s: 'Formació i jurisprudència', tipo: 'Arxiu', p: 4, st: S.exported ? t('exportat') : t('anonimitzar'), q: ['ok', '✓ ' + t('fiable')], r: '09:05', go: '#anonimitzar', arx: S.exported },
-    { id: 'Dictamen honoraris 2026/057', t: 'Minuta', s: "Taula d'honoraris i taxació", tipo: 'Honoraris', p: 6, st: t('transcrivint') + ' 4/6', q: ['ok', '✓ ' + t('fiable')], r: '09:58', prog: 66 },
-    { id: 'Fòrum Jurídic núm. 12 (1998)', t: 'Hemeroteca', s: "Digitalització de l'hemeroteca", tipo: 'Arxiu', p: 64, st: t('transcrit'), q: ['ok', '✓ ' + t('fiable')], r: 'Ahir', arx: true },
-];
-function realRow(d) {
-    const pg = docPages(d), done = pg.filter(p => p.status === 'done').length, sts = pg.map(pstate);
-    const allV = docAllDone(d), nW = pg.reduce((a, p) => a + pending(p).length, 0), nBad = sts.filter(s => s === 'bad').length;
-    const st = !d.done ? `${t('transcrivint')} ${done}/${d.total || '…'}` : d.error ? 'Error' : allV ? t('validat') : t('transcrit');
-    const q = d.error ? ['bad', '✕ Error'] : nBad ? ['bad', `✕ ${nBad} ${t('tornar')}`] : nW ? ['w', `! ${nW} ${t('revisar')}`] : allV ? ['ok', '✓ ' + t('validat')] : ['ok', '✓ ' + t('fiable')];
-    return {
-        id: d.name, t: t(d.mode === 'double' ? 'm_double' : 'm_single'), s: d.error || `${t('local')}`, tipo: 'PDF', p: d.total || '…', st, q, r: d.at,
-        prog: d.total ? Math.round((done / d.total) * 100) : 0, arx: allV, real: true,
-        full: pg.filter(p => p.status === 'done').map(finalText).join(' '),
-        open: () => { S.curDoc = d; S.cur = (d.done && nextAttention(d, d.total)) || 1; S.hl = null; go(d.done && !d.error ? '#revisio' : '#processant'); },
-    };
+const EST = { pendiente: ['n', 'e_pend'], ocr_procesando: ['n', 'transcrivint'], ocr_completado: ['ok', 'transcrit'], anonimizando: ['n', 'e_anon'],
+    en_revision: ['w', 'anonimitzar'], eliminado: ['n', 'e_elim'], aprobado: ['ok', 'e_aprov'], rechazado: ['bad', 'e_rebut'], exportado: ['ok', 'exportat'] };
+function rowOf(d) {
+    const [cls, k] = EST[d.estado] || ['n', d.estado];
+    const q = d.paginas_ilegibles > 0 ? ['bad', `✕ ${d.paginas_ilegibles} ${t('tornar')}`]
+        : d.paginas_revisar > 0 ? ['w', `! ${d.paginas_revisar} ${t('revisar')}`] : ['ok', '✓ ' + t('fiable')];
+    return { id: d.id, title: d.nombre_original, frag: d.fragmento, p: d.num_paginas ?? '…', st: [cls, t(k)], q, r: hhmm(d.creado_en),
+        open: ['pendiente', 'ocr_procesando', 'anonimizando'].includes(d.estado) ? null : () => openDoc(d) };
 }
 function Rows({ rows, head }) {
     return html`<div className="card"><table>
-        ${head && html`<thead><tr><th></th><th>${t('th_doc')}</th><th>${t('th_tipus')}</th><th>${t('th_pag')}</th><th>${t('th_estat')}</th><th>${t('th_q')}</th><th>${t('th_reb')}</th></tr></thead>`}
-        <tbody>${rows.map((d, i) => {
-            const open = d.open || (d.go && (() => go(d.go)));
-            return html`<tr key=${d.id + i} className=${open ? 'click' : ''} tabIndex=${open ? 0 : undefined}
-                onClick=${open || undefined} onKeyDown=${e => { if (open && e.key === 'Enter') open(); }}>
+        ${head && html`<thead><tr><th></th><th>${t('th_doc')}</th><th>${t('th_pag')}</th><th>${t('th_estat')}</th><th>${t('th_q')}</th><th>${t('th_reb')}</th></tr></thead>`}
+        <tbody>${rows.map(d => html`<tr key=${d.id} className=${d.open ? 'click' : ''} tabIndex=${d.open ? 0 : undefined}
+                onClick=${d.open || undefined} onKeyDown=${e => { if (d.open && e.key === 'Enter') d.open(); }}>
                 <td style=${{ width: '44px' }}><div className="tile" style=${{ minHeight: 0, padding: '4px', width: '30px' }}><div className="pg" style=${{ margin: 0, height: '28px', width: '20px' }}></div></div></td>
-                <td><div className="doc-t">${d.id} · ${d.t}</div><div className="doc-s">${d.s}</div></td><td>${d.tipo}</td><td>${d.p}</td>
-                <td><div className="bar"><i style=${{ width: (d.prog ?? 100) + '%' }}></i></div><span className="doc-s">${d.st}</span></td>
-                <td>${chip(d.q[0], d.q[1])}</td><td>${d.r}</td></tr>`;
-        })}</tbody></table></div>`;
+                <td><div className="doc-t">${d.title}</div><${Snippet} s=${d.frag} /></td><td>${d.p}</td>
+                <td>${chip(d.st[0], d.st[1])}</td><td>${chip(d.q[0], d.q[1])}</td><td>${d.r}</td></tr>`)}</tbody></table></div>`;
 }
-const matchQ = d => { const q = S.q.trim().toLowerCase(); return !q || (d.id + d.t + d.s + (d.full || '')).toLowerCase().includes(q); };
-function Search() {
-    return html`<input className="search" value=${S.q} placeholder=${t('cerca')} aria-label=${t('cerca')} onChange=${e => { S.q = e.target.value; up(); }} />`;
+let searchTimer = null;
+function Search({ reload }) {
+    return html`<input className="search" value=${S.q} placeholder=${t('cerca')} aria-label=${t('cerca')}
+        onChange=${e => { S.q = e.target.value; up(); clearTimeout(searchTimer); searchTimer = setTimeout(reload, 350); }} />`;
 }
 function Safata() {
+    useEffect(() => { loadList(); }, []);
     const pick = () => document.getElementById('pdfFile').click();
-    const realPages = S.docs.flatMap(docPages);
-    const nDone = realPages.filter(p => p.status === 'done').length;
-    const nW = realPages.filter(p => pstate(p) === 'w').length, nBad = realPages.filter(p => pstate(p) === 'bad').length;
+    const today = new Date().toDateString(), sum = k => S.docs.reduce((a, d) => a + (Number(d[k]) || 0), 0);
     const drag = {
         onDragEnter: e => { e.preventDefault(); e.currentTarget.classList.add('over'); },
         onDragOver: e => { e.preventDefault(); e.currentTarget.classList.add('over'); },
         onDragLeave: e => e.currentTarget.classList.remove('over'),
         onDrop: e => { e.preventDefault(); e.currentTarget.classList.remove('over'); startUpload(e.dataTransfer.files[0]); },
     };
-    const rows = [...S.docs.map(realRow), ...FAKE()].filter(matchQ);
-    return html`<${Shell} active="safata" demo=${true}>
+    return html`<${Shell} active="safata">
         <h1>${t('safata_t')}</h1><p className="sub">${t('safata_s')} ${t('local')}</p>
         <div className="kpis">
-            <div className="card kpi"><b>${37 + S.docs.length}</b><span>${t('k1')}</span></div>
-            <div className="card kpi"><b>${389 + nDone}</b><span>${t('k2')}</span></div>
-            <div className="card kpi"><b style=${{ color: 'var(--w)' }}>${13 + nW}</b><span>${t('k3')}</span></div>
-            <div className="card kpi"><b style=${{ color: 'var(--p)' }}>${2 + nBad}</b><span>${t('k4')}</span></div>
+            <div className="card kpi"><b>${S.docs.filter(d => new Date(d.creado_en).toDateString() === today).length}</b><span>${t('k1')}</span></div>
+            <div className="card kpi"><b>${sum('num_paginas')}</b><span>${t('k2')}</span></div>
+            <div className="card kpi"><b style=${{ color: 'var(--w)' }}>${sum('paginas_revisar')}</b><span>${t('k3')}</span></div>
+            <div className="card kpi"><b style=${{ color: 'var(--p)' }}>${sum('paginas_ilegibles')}</b><span>${t('k4')}</span></div>
         </div>
         <div className="mselect" role="radiogroup" aria-label=${t('mode_l')}>
             ${['single', 'double'].map(m => html`<label key=${m} className=${'mopt' + (S.mode === m ? ' on' : '')}>
@@ -390,17 +478,18 @@ function Safata() {
                 ${t('m_' + m)}${m === 'double' ? ' · ' + t('m_double_n') : ''}</label>`)}
         </div>
         <button type="button" className="drop" onClick=${pick} ...${drag}><b>${t('drop')}</b> ${t('drop2')} · ${t('max50')}</button>
-        <input type="file" id="pdfFile" accept=".pdf,application/pdf" hidden onChange=${e => { startUpload(e.target.files[0]); e.target.value = ''; }} />
-        <div className="row" style=${{ marginBottom: '12px' }}><${Search} /><button type="button" className="btn pri" onClick=${pick}>＋ ${t('nou')}</button></div>
-        <${Rows} rows=${rows} head=${true} />
+        <input type="file" id="pdfFile" accept=".pdf,application/pdf,image/png,image/jpeg" hidden onChange=${e => { startUpload(e.target.files[0]); e.target.value = ''; }} />
+        <div className="row" style=${{ marginBottom: '12px' }}><${Search} reload=${loadList} /><button type="button" className="btn pri" onClick=${pick}>＋ ${t('nou')}</button></div>
+        ${S.docs.length ? html`<${Rows} rows=${S.docs.map(rowOf)} head=${true} />` : html`<${Empty} msg=${S.q ? t('sense_res') : t('buida')} />`}
     <//>`;
 }
 function Arxiu() {
-    const rows = [...S.docs.map(realRow), ...FAKE()].filter(d => d.arx).filter(matchQ);
-    return html`<${Shell} active="arxiu" demo=${true}>
+    useEffect(() => { loadArxiu(); }, []);
+    return html`<${Shell} active="arxiu">
         <h1>${t('arxiu_t')}</h1><p className="sub">${t('arxiu_s')}</p>
-        <div style=${{ marginBottom: '12px' }}><${Search} /></div>
-        <${Rows} rows=${rows} />
+        <div style=${{ marginBottom: '12px' }}><${Search} reload=${loadArxiu} /></div>
+        ${S.arxiu.length ? html`<${Rows} rows=${S.arxiu.map(d => ({ ...rowOf(d), r: hhmm(d.exportado_en), open: () => exportDoc(d.id, d.nombre_original) }))} head=${true} />`
+            : html`<${Empty} msg=${S.q ? t('sense_res') : t('arxiu_buit')} />`}
     <//>`;
 }
 
@@ -432,9 +521,9 @@ function Processant() {
                 ${bad.length > 0 && chip('bad', `✕ ${bad.length} ${t('sum_bad2')} (${t('pag')} ${bad.join(', ')})`)}
                 <span className="sp"></span>
                 <a className="btn" href="#safata">${t('tornar_safata')}</a>
-                ${d.total > 0 && html`<a className="btn pri" href="#revisio" onClick=${() => { S.cur = nextAttention(d, d.total) || 1; }}>${t('obrir')} →</a>`}
+                ${d.total > 0 && !d.error && html`<a className="btn pri" href="#revisio" onClick=${() => { S.cur = nextAttention(d, d.total) || 1; }}>${t('obrir')} →</a>`}
             </div>
-            <${StatsKpis} s=${d.stats} />
+            <${StatsKpis} d=${d} />
         </div>`}
     <//>`;
 }
@@ -443,18 +532,22 @@ function Processant() {
 function setCur(n) { S.cur = n; S.hl = null; S.pop = null; up(); }
 function Revisio() {
     const d = S.curDoc;
-    if (!d || !d.total) return html`<${NoDoc} />`;
+    const [nat, setNat] = useState(null); // tamaño real del PNG: las cajas vienen en píxeles
+    if (!d || !d.total || !d.id) return html`<${NoDoc} />`;
     const n = Math.min(S.cur, d.total), p = d.pages[n] || newPage(n), st = pstate(p), pend = pending(p);
     const totalW = docPages(d).reduce((a, x) => a + pending(x).length, 0), allDone = docAllDone(d);
-    const hl = S.hl, done = p.status === 'done';
-    const box = Array.isArray(hl) && {
-        left: hl[0] * 100 + '%', top: hl[1] * 100 + '%', width: (hl[2] - hl[0]) * 100 + '%', height: (hl[3] - hl[1]) * 100 + '%',
+    const hl = S.hl, done = p.status === 'done', ed = editable(d);
+    const box = hl && hl.ancho && nat && {
+        left: (hl.x / nat[0]) * 100 + '%', top: (hl.y / nat[1]) * 100 + '%', width: (hl.ancho / nat[0]) * 100 + '%', height: (hl.alto / nat[1]) * 100 + '%',
     };
-    const validate = () => {
-        p.validated = true;
-        log(`Validada pàg. ${n} ${d.name}`);
-        toast('✓ ' + t('validat'));
-        setCur(nextAttention(d, n) || n);
+    const validate = async () => {
+        clearTimeout(saveTimers[n]);
+        try {
+            await sendJ(`/documents/${d.id}/pages/${n}`, 'PATCH', { texto: finalText(p), validada: true });
+            p.validated = true;
+            toast('✓ ' + t('validat'));
+            setCur(nextAttention(d, n) || n);
+        } catch (e) { fail(e); }
     };
     const thumbKey = (e, k) => {
         if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
@@ -468,152 +561,253 @@ function Revisio() {
             <a href="#safata" className="btn">‹ ${t('safata')}</a><b>${d.name}</b><span>(${t('pag')} ${n} ${t('de')} ${d.total})</span>
             ${totalW > 0 && chip('w', `! ${t('revisar_n')}: ${totalW} ${t('avisos')}`)}
             <span className="sp"></span>
-            <button type="button" className="btn" disabled=${!done || !d.uploadId} onClick=${() => reOcr(d, n)}>↻ ${t('retranscriure')}</button>
-            <button type="button" className="btn" onClick=${() => exportPdf(d)}>⤓ ${t('exportar_pdf')}</button>
+            <button type="button" className="btn" disabled=${!done || !ed} onClick=${() => reOcr(d, n)}>↻ ${t('retranscriure')}</button>
+            ${!ed && html`<a className="btn" href="#anonimitzar">${t('an_t')} →</a>`}
             ${st === 'bad'
-                ? html`<button type="button" className="btn pri" onClick=${() => { S.modal = { type: 'esc', d, n }; up(); }}>${t('marcar_esc')}</button>`
-                : html`<button type="button" className="btn pri" disabled=${!done || pend.length > 0 || st === 'v' || st === 'esc'} title=${pend.length ? t('resol') : undefined} onClick=${validate}>✓ ${st === 'v' ? t('validat') : t('validar')}</button>`}
+                ? html`<button type="button" className="btn pri" disabled=${!ed} onClick=${() => { S.modal = { type: 'esc', d, n }; up(); }}>${t('marcar_esc')}</button>`
+                : html`<button type="button" className="btn pri" disabled=${!ed || !done || pend.length > 0 || st === 'v' || st === 'esc'} title=${pend.length ? t('resol') : undefined} onClick=${validate}>✓ ${st === 'v' ? t('validat') : t('validar')}</button>`}
         </div>
+        ${!ed && html`<div className="banner w">${t('no_edit')}</div>`}
         ${allDone && html`<div className="banner ok row">✓ ${t('doc_ok')}<span className="sp"></span>
-            <a className="btn" href="#safata">${t('nova')}</a><a className="btn pri" href="#jg">${t('comprovar')} →</a></div>`}
+            <a className="btn" href="#safata">${t('nova')}</a><a className="btn" href="#jg" onClick=${() => { S.jgId = d.id; S.jg = null; }}>${t('comprovar')} →</a>
+            <a className="btn pri" href="#anonimitzar">${t('an_t')} →</a></div>`}
         <div className="rev">
             <div className="card thumbs" role="list" aria-label=${t('th_pag')}>
                 ${range(d.total).map(k => { const s = pstate(d.pages[k]); return html`<button key=${k} type="button" data-p=${k} className=${'thumb' + (k === n ? ' on' : '')} aria-current=${k === n ? 'page' : undefined}
                     onClick=${() => setCur(k)} onKeyDown=${e => thumbKey(e, k)}><span className=${'dot ' + dot(s)}></span>${t('pag')} ${k}${s === 'v' ? ' ✓' : ''}</button>`; })}
             </div>
             <div className="scan card">
-                ${d.uploadId && html`<div className=${'pimg' + (hl === 'none' ? ' outline' : '') + (st === 'bad' ? ' ilegible' : '')}>
-                    <img src=${`/page/${d.uploadId}/${n}.png?v=${p.img || 0}`} alt=${`${t('pag')} ${n}`} />
+                <div className=${'pimg' + (hl === 'none' ? ' outline' : '') + (st === 'bad' ? ' ilegible' : '')}>
+                    <img src=${`${API}/documents/${d.id}/pages/${n}/image?v=${p.img || 0}`} alt=${`${t('pag')} ${n}`}
+                        onLoad=${e => setNat([e.currentTarget.naturalWidth, e.currentTarget.naturalHeight])} />
                     ${box && html`<span className="hlbox" style=${box}></span>`}
-                </div>`}
+                </div>
             </div>
             <div className="card rtxt">
-                <div className="tool"><b style=${{ color: 'var(--t)' }}>Text</b> · ${t('desat')} <span className="sp"></span>${t('seg')}</div>
+                <div className="tool"><b style=${{ color: 'var(--t)' }}>Text</b> · ${ed ? t('desat') : t('nomes_lect')}
+                    ${done && p.quality !== 'bad' && html`<span className=${'chip ' + (p.diff ? (p.diff.some(x => x.diff) ? 'bad' : 'ok') : 'n')}>${p.diff ? `${t('dues_l')} · ${p.diff.filter(x => x.diff).length} ${t('difs')}` : t('una_l')}</span>`}
+                    <span className="sp"></span>${done ? `${t('contrast')} ${p.contrast ?? '—'}` : ''} · ${t('seg')}</div>
                 ${!done ? html`<div style=${{ padding: '20px' }} className="doc-s">${p.status === 'run' ? html`<span className="spin" aria-hidden="true"></span> ${t('pend_pag')}` : t('en_cua')}</div>`
-                : st === 'bad' || (p.quality === 'bad' && p.esc) ? html`<div style=${{ padding: '20px' }}><div className="banner bad"><b>✕ ${t('il_t')}</b> (${t('contrast').toLowerCase()} ${p.contrast} < 80)<br />${t('il_s2')}</div>
+                : st === 'bad' || (p.quality === 'bad' && p.esc) ? html`<div style=${{ padding: '20px' }}><div className="banner bad"><b>✕ ${t('il_t')}</b> (${t('contrast').toLowerCase()} ${p.contrast + ' < 80'})<br />${t('il_s2')}</div>
                     ${p.esc && html`<div className="banner w">${t('marcar_esc')} ✓</div>`}</div>`
-                : html`<${TextPane} key=${d.at + d.name + n + '-' + p.ver} p=${p} />`}
+                : html`<${TextPane} key=${d.id + n + '-' + p.ver} d=${d} p=${p} />`}
                 ${hl === 'none' && html`<div className="tool foot doc-s">${t('no_capa')}</div>`}
             </div>
         </div>
-        <div className="legend"><span><span className="doubt">94</span> ${t('lg_w')}</span><span><span className="invalid">8192…</span> ${t('lg_bad')}</span>
-            <span className="sp"></span><span>${done ? `${t('qual')}: ${p.quality === 'bad' ? '✕' : '✓'} ${t('contrast').toLowerCase()} ${p.contrast ?? '—'}` : ''}</span></div>
     <//>`;
 }
 
 // ---------- justícia gratuïta ----------
+async function runJg(id) {
+    S.jgId = id; S.jg = { loading: true }; up();
+    try {
+        const [res, det] = await Promise.all([sendJ(`/documents/${id}/justicia-gratuita`, 'POST'), getJ(`/documents/${id}`)]);
+        S.jg = { ...res, id, name: det.nombre_original, sent: (det.justicia_gratuita || {}).enviado_en || null };
+    } catch (e) { S.jg = null; fail(e); }
+    up();
+}
+async function sendJg() {
+    try {
+        const r = await sendJ(`/documents/${S.jg.id}/justicia-gratuita/send`, 'POST');
+        S.jg.sent = r.enviado_en; toast('✓ ' + t('env_ok')); up();
+    } catch (e) { fail(e); }
+}
 function JG() {
-    const ck = [['ok', 'DNI / NIE dels 3 membres', '3 documents · lletres de control correctes', t('complet')],
-        ['ok', "Certificat d'empadronament", 'Inclou els 3 membres · Ajuntament de Tarragona', t('complet')],
-        ['w', 'Darreres 12 nòmines', 'Trobades 10 de 12 · falten agost i setembre de 2026', t('incomplet')],
-        ['ok', "Declaració d'IRPF 2025", 'Base imposable general: 18.742,30 €', t('complet')],
-        ['bad', "Certificat de béns de l'Ajuntament", 'Pàg. 22 il·legible · cal tornar-la a escanejar', t('falta')],
-        ['ok', 'Notificació del jutjat', 'Procediment verbal 1547/2026 · Jutjat de 1a Instància núm. 4', t('complet')]];
+    useEffect(() => { if (!S.docs.length) loadList(); if (S.jgId && (!S.jg || S.jg.id !== S.jgId)) runJg(S.jgId); }, []);
+    const j = S.jg, ready = j && !j.loading;
+    const opts = S.docs.filter(d => d.num_paginas);
     const col = c => (c === 'ok' ? 'var(--ok)' : c === 'w' ? 'var(--w)' : 'var(--p)');
-    return html`<${Shell} active="jg" demo=${true}>
-        <h1>JG-2026-1184 · ${t('jg_t')}</h1><p className="sub">${t('jg_s')}</p>
-        ${S.sent && html`<div className="banner ok row">✓ ${t('env_ok')}<span className="sp"></span><a className="btn pri" href="#anonimitzar">${t('seg_anon')} →</a></div>`}
+    const cls = e => (e === 'presente' ? 'ok' : e === 'incompleto' ? 'w' : 'bad');
+    const lbl = e => t(e === 'presente' ? 'complet' : e === 'incompleto' ? 'incomplet' : e === 'ilegible' ? 'il_t' : 'falta');
+    const det = x => [x.paginas.length ? `${t('pag')} ${x.paginas.join(', ')}` : '', x.detalle || '', x.meses && x.meses.length ? x.meses.join(', ') : '',
+        x.paginas_ilegibles.length ? `${t('pag')} ${x.paginas_ilegibles.join(', ')}: ${t('il_t').toLowerCase()}` : ''].filter(Boolean).join(' · ');
+    const da = ready && j.datos;
+    const eur = v => (v == null ? '—' : v.toLocaleString(lang === 'ca' ? 'ca-ES' : 'es-ES', { minimumFractionDigits: 2 }) + ' €');
+    return html`<${Shell} active="jg">
+        <h1>${ready ? j.name + ' · ' : ''}${t('jg_t')}</h1><p className="sub">${t('jg_s2')}</p>
+        <div className="row" style=${{ marginBottom: '12px' }}>
+            <select className="search" aria-label=${t('tria_doc')} value=${S.jgId} onChange=${e => { if (e.target.value) runJg(e.target.value); }}>
+                <option value="">${t('tria_doc')}</option>
+                ${opts.map(d => html`<option key=${d.id} value=${d.id}>${d.nombre_original} (${d.num_paginas} ${t('pag')})</option>`)}
+            </select>
+        </div>
+        ${!j && html`<${Empty} msg=${opts.length ? t('tria_doc') : t('buida')} />`}
+        ${j && j.loading && html`<div className="card" style=${{ padding: '20px' }}><span className="spin" aria-hidden="true"></span> ${t('comprovant')}</div>`}
+        ${ready && html`<${Frag}>
+        ${j.sent && html`<div className="banner ok row">✓ ${t('env_ok')} (${hhmm(j.sent)})<span className="sp"></span><a className="btn pri" href="#anonimitzar" onClick=${() => { S.an = null; }}>${t('an_t')} →</a></div>`}
         <div className="grid2">
-            <div className="card"><div className="box-h">${t('aportada')}</div>${ck.map(([c, a, b, s]) => html`<div key=${a} className="check">
-                <span className="ic" style=${{ color: col(c) }}>${c === 'ok' ? '✓' : c === 'w' ? '!' : '✕'}</span><div className="sp"><div>${a}</div><div className="doc-s">${b}</div></div>${chip(c, s)}</div>`)}</div>
+            <div className="card"><div className="box-h">${t('aportada')}</div>${j.documentos.map(x => { const c = cls(x.estado); return html`<div key=${x.tipo} className="check">
+                <span className="ic" style=${{ color: col(c) }}>${c === 'ok' ? '✓' : c === 'w' ? '!' : '✕'}</span><div className="sp"><div>${x.nombre}${x.requerido ? '' : ' · ' + t('opcional')}</div><div className="doc-s">${det(x)}</div></div>${chip(c, lbl(x.estado))}</div>`; })}
+                ${j.paginas_sin_clasificar.length > 0 && html`<div className="check doc-s">${t('sense_classif')}: ${t('pag')} ${j.paginas_sin_clasificar.join(', ')}</div>`}
+            </div>
             <div className="card"><div className="box-h">${t('dades')}</div>
-                <div className="kv"><span>${t('sol')}</span><b>Lucía Martínez Peña</b><span>DNI</span><b>47851236N <span style=${{ color: 'var(--ok)' }}>✓</span></b>
-                    <span>${t('ingressos')}</span><b>18.742,30 € (IRPF 2025)</b><span>${t('membres')}</span><b>3</b><span>${t('proc')}</span><b>Verbal 1547/2026</b><span>${t('domicili')}</span><b>C/ Major 112, 43003 Tarragona</b></div>
-                <div style=${{ padding: '0 18px' }}><div className="banner w"><b>${t('orient')}</b> ${t('orient2')}</div></div>
+                <div className="kv"><span>${t('sol')}</span><b>${da.solicitante || '—'}</b>
+                    <span>DNI</span><b>${da.dni || '—'} ${da.dni && html`<span style=${{ color: da.dni_valido ? 'var(--ok)' : 'var(--p)' }}>${da.dni_valido ? '✓' : '✕'}</span>`}</b>
+                    <span>${t('ingressos')}</span><b>${eur(da.ingresos_anuales)}</b><span>${t('membres')}</span><b>${da.miembros_unidad_familiar ?? '—'}</b>
+                    <span>${t('proc')}</span><b>${da.procedimiento || '—'}</b><span>${t('domicili')}</span><b>${da.domicilio || '—'}</b></div>
+                <div style=${{ padding: '0 18px' }}><div className="banner w"><b>${t('orient')}</b> ${j.aviso}</div>
+                    ${j.completo ? html`<div className="banner ok">✓ ${t('jg_complet')}</div>` : html`<div className="banner bad">${t('jg_falta')}</div>`}</div>
                 <div className="row" style=${{ padding: '6px 18px 18px' }}>
-                    <button type="button" className="btn" onClick=${() => { S.modal = { type: 'dem' }; up(); }}>${t('demanar')}</button>
-                    <button type="button" className="btn pri" disabled=${S.sent} onClick=${() => { S.sent = true; log('JG-2026-1184 enviat a tramitació'); toast('✓ ' + t('env_ok')); }}>${t('enviar_tram')}</button>
+                    <button type="button" className="btn" disabled=${!j.requerimiento} onClick=${() => { S.modal = { type: 'dem', text: j.requerimiento }; up(); }}>${t('demanar')}</button>
+                    <button type="button" className="btn pri" disabled=${!!j.sent} onClick=${sendJg}>${t('enviar_tram')}</button>
                 </div>
             </div>
-        </div>
+        </div><//>`}
     <//>`;
 }
 
 // ---------- anonimitzar ----------
-const SENTP = [
-    [['h', 'TRIBUNAL SUPERIOR DE JUSTICIA, SALA DE LO CONTENCIOSO-ADMINISTRATIVO'], ['p', 'SENTENCIA N.º 70/2020'],
-        ['p', 'Procedimiento ordinario 1014/2019. Magistrado-Juez: Ilmo. Sr. D. ', ['Fernando Ruiz Calvo', 'magistrat'], '.'],
-        ['p', 'ANTECEDENTES DE HECHO. PRIMERO.- Por la representación procesal de D. ', ['Raúl Gómez Cañizares', 'nom'], ', con DNI ', ['22633920B', 'dni'], ' y domicilio en ', ['calle Mayor, n.º 112, 43003 Tarragona', 'adreca'], ', se presentó demanda en reclamación de 606.336,74 €, más los intereses legales.'],
-        ['p', 'La actora aporta correo ', ['raul.gomez@ejemplo.com', 'contacte'], ' y teléfono ', ['612 345 678', 'contacte'], ', y solicita el pago en la cuenta ', ['ES91 2100 0418 4502 0005 1332', 'iban'], '.'],
-        ['p', 'SEGUNDO.- El vehículo matrícula ', ['4821 KLM', 'matricula'], ' fue retirado por la grúa municipal. El menor ', ['Pablo Gómez Ruiz', 'menor'], ', hijo de ', ['Raúl Gómez Cañizares', 'nom'], ', sufrió ', ['una fractura de muñeca', 'salut'], '.'],
-        ['p', 'TERCERO.- ', ['Raúl Gómez Cañizares', 'nom'], ' reiteró su petición mediante escrito de 3 de marzo de 2020.'],
-        ['p', 'FALLO: Que debo ESTIMAR y ESTIMO la demanda, condenando a ', ['Construcciones Levante, S.L.', 'juridica'], ' al pago de las costas.']],
-    [['p', 'CUARTO.- La demandante, D.ª ', ['Lucía Martínez Peña', 'nom'], ', con DNI ', ['43123456Z', 'dni'], ' y domicilio en ', ['calle Sant Antoni, n.º 8, 43003 Tarragona', 'adreca'], ', interpuso reclamación previa el 12 de mayo de 2019.'],
-        ['p', 'La parte demandada sostiene que el pago se hizo en la cuenta ', ['ES91 2100 0418 4502 0005 1332', 'iban'], '.'],
-        ['p', 'QUINTO.- Practicada la prueba, queda acreditado que el vehículo matrícula ', ['4821 KLM', 'matricula'], ' fue trasladado al depósito municipal.']],
-    [['p', 'SEXTO.- Consta en autos el informe de la empresa ', ['Construcciones Levante, S.L.', 'juridica'], ', firmado por D. ', ['Raúl Gómez Cañizares', 'nom'], '.'],
-        ['p', 'SÉPTIMO.- Para aclarar los hechos se contactó con la actora en el teléfono ', ['612 345 678', 'contacte'], ' y por correo ', ['raul.gomez@ejemplo.com', 'contacte'], '.']],
-    [['p', 'OCTAVO.- La cuantía del procedimiento asciende a 606.336,74 € y no se aprecian dudas sobre la legitimación de D. ', ['Raúl Gómez Cañizares', 'nom'], '.'],
-        ['p', 'NOVENO.- Notifíquese esta resolución a las partes, con la advertencia de que cabe recurso de apelación.'],
-        ['p', 'Así lo pronuncia, manda y firma D. ', ['Fernando Ruiz Calvo', 'magistrat'], ', Magistrado-Juez.']],
-];
-const ENTS = [];
-// Cada entidad pasa a ser su id dentro de ANP.
-const ANP = SENTP.map((pg, pi) => pg.map(([k, ...xs]) => [k, xs.map(x => (Array.isArray(x) ? ENTS.push({ v: x[0], c: x[1], id: ENTS.length, p: pi + 1 }) - 1 : x))]));
-const CATS = ['nom', 'dni', 'adreca', 'contacte', 'iban', 'matricula', 'menor', 'salut', 'magistrat', 'juridica'];
-const TAG = { nom: 'PERSONA', dni: 'DNI', adreca: 'ADREÇA', contacte: 'CONTACTE', iban: 'IBAN', matricula: 'MATRÍCULA', menor: 'MENOR', salut: 'DADA DE SALUT', magistrat: 'MAGISTRAT', juridica: 'EMPRESA' };
-const PEOPLE = ['nom', 'magistrat', 'menor'];
-const isOn = e => S.on.has(e.id) || (S.cats[e.c] && !S.off.has(e.id));
-const uniq = a => a.filter((v, k) => a.indexOf(v) === k);
-function label(e) {
-    const people = PEOPLE.includes(e.c), n = uniq(ENTS.filter(x => x.c === e.c).map(x => x.v)).indexOf(e.v);
-    if (S.anMode === 'pseudonim' && (people || e.c === 'juridica'))
-        return (e.c === 'juridica' ? 'Empresa ' : 'Persona ') + String.fromCharCode(65 + uniq(ENTS.filter(x => PEOPLE.includes(x.c) || x.c === e.c).map(x => x.v)).indexOf(e.v));
-    if (S.anMode === 'inicials' && people) return e.v.split(' ').map(w => w[0] + '.').join(' ');
-    return `[${TAG[e.c]}${people ? ' ' + (n + 1) : ''}]`;
+// Modo de la maqueta → modo del endpoint y accion_aplicada (V15).
+const MODES = { censurar: ['censurar', 'censurar'], esborrar: ['borrar', 'eliminado'], tatxar: ['tachar', 'tachado'],
+    etiqueta: ['etiqueta', 'etiqueta'], pseudonim: ['seudonimo', 'pseudonimizado'], inicials: ['iniciales', 'iniciales'] };
+const modeOf = accion => Object.keys(MODES).find(k => MODES[k][1] === accion) || 'censurar';
+const isOn = a => a.decision_revisor !== 'falso_positivo' && a.accion_aplicada !== 'mantenido';
+// Igual que anonymize.sustitucion del backend, pero con la tabla de seudónimos de todo el documento.
+function pseudo(list) {
+    const tab = {}, out = {};
+    list.forEach(a => {
+        const key = a.categoria + '|' + a.texto_original.toLowerCase().split(/\s+/).join(' ');
+        if (!(key in tab)) {
+            const n = Object.keys(tab).filter(k => k.startsWith(a.categoria + '|')).length;
+            tab[key] = a.categoria === 'NOMBRE_PERSONA' ? `Persona ${String.fromCharCode(65 + (n % 26))}${n < 26 ? '' : Math.floor(n / 26)}` : `[${a.categoria} ${n + 1}]`;
+        }
+        out[a.id] = tab[key];
+    });
+    return out;
 }
-function entTip(el, e) {
+// Flujo del backend: anonimizar (ocr_completado) → abrir revisión → tomarla → decidir anotaciones.
+async function loadAn(id) {
+    S.an = { loading: true, id }; up();
+    try {
+        let det = await getJ(`/documents/${id}`);
+        if (det.estado === 'ocr_completado') {
+            await sendJ(`/documents/${id}/anonymize`, 'POST', { modo: MODES[S.anMode][0] });
+            det = await getJ(`/documents/${id}`);
+        }
+        if (!['en_revision', 'aprobado', 'exportado'].includes(det.estado)) throw new Error(t('an_no') + ' (' + det.estado + ')');
+        let rev = null;
+        if (det.estado === 'en_revision') {
+            const all = (await getJ('/reviews?limit=100')).items.filter(r => r.documento_id === id);
+            rev = all.find(r => r.estado === 'en_proceso') || all.find(r => r.estado === 'en_cola');
+            if (!rev) rev = await sendJ(`/documents/${id}/reviews`, 'POST');
+            if (rev.estado === 'en_cola') rev = await sendJ(`/reviews/${rev.id}/claim`, 'POST');
+        }
+        const [an, pg, cats] = await Promise.all([getJ(`/documents/${id}/annotations`), getJ(`/documents/${id}/pages`), getJ('/categories?activa=true')]);
+        const texts = {};
+        pg.items.forEach(p => { texts[p.numero] = p.texto || ''; });
+        const anns = an.items;
+        if (anns.length) S.anMode = modeOf((anns.find(isOn) || anns[0]).accion_aplicada);
+        S.an = { id, name: det.nombre_original, estado: det.estado, rev, anns, texts, total: pg.items.length, cats: cats.items };
+        S.anonPage = Math.min(S.anonPage, S.an.total) || 1;
+        S.curDoc = S.curDoc && S.curDoc.id === id ? S.curDoc : null; remember(id);
+    } catch (e) { S.an = { error: e.message, id }; }
+    up();
+}
+const anEditable = () => S.an && S.an.estado === 'en_revision' && S.an.rev;
+// Aplica la decisión a varias anotaciones (PATCH /annotations/{id}) y guarda lo que devuelve el backend.
+async function decide(list, on, mode = S.anMode) {
+    if (!anEditable()) return toast(t('an_ro'));
+    const ps = mode === 'pseudonim' ? pseudo(S.an.anns) : {};
+    try {
+        await Promise.all(list.map(async a => {
+            const body = on ? { decision_revisor: 'confirmado', accion_aplicada: MODES[mode][1] } : { decision_revisor: 'falso_positivo' };
+            if (on && ps[a.id]) body.texto_sustitucion = ps[a.id];
+            Object.assign(a, await sendJ(`/annotations/${a.id}`, 'PATCH', body));
+        }));
+    } catch (e) { fail(e); }
+    up();
+}
+const toggleEnt = (a, all) => decide(all ? S.an.anns.filter(x => x.texto_original === a.texto_original) : [a], !isOn(a));
+async function setMode(m) {
+    if (!anEditable()) return toast(t('an_ro'));
+    S.anMode = m; up();
+    await decide(S.an.anns.filter(isOn), true, m);
+}
+async function confirmExport() {
+    const A = S.an;
+    try {
+        if (A.estado === 'en_revision') {
+            const open = A.anns.filter(a => !a.decision_revisor);
+            if (open.length) await decide(open, true);
+            const rev = (await getJ('/reviews?limit=100')).items.find(r => r.id === A.rev.id);
+            await sendJ(`/reviews/${A.rev.id}`, 'PATCH', { estado: 'aprobado' }, { 'If-Match': rev.actualizado_en });
+        }
+        S.an = null;
+        await exportDoc(A.id, A.name);
+    } catch (e) { fail(e); }
+}
+function entTip(el, a) {
     const r = el.getBoundingClientRect();
-    S.pop = { type: 'ent', e, left: r.left + scrollX, top: r.bottom + scrollY + 8 }; up();
+    S.pop = { type: 'ent', a, left: r.left + scrollX, top: r.bottom + scrollY + 8 }; up();
 }
-function toggleEnt(e, all) {
-    const ids = all ? ENTS.filter(x => x.v === e.v).map(x => x.id) : [e.id], on = !isOn(e);
-    ids.forEach(id => { if (on) { S.on.add(id); S.off.delete(id); } else { S.off.add(id); S.on.delete(id); } });
-    up();
-}
-function Ent({ e }) {
+function Ent({ a }) {
     const tagged = ['etiqueta', 'pseudonim', 'inicials'].includes(S.anMode);
-    const cls = S.original ? 'orig' : !isOn(e) ? 'off' : tagged ? 'm-tag' : 'm-' + S.anMode;
-    const hlt = S.anHl && (S.anHl.c === e.c || S.anHl.e === e.id);
-    const tip = ev => { if (!S.original) entTip(ev.currentTarget, e); };
+    const on = isOn(a), cls = S.original ? 'orig' : !on ? 'off' : tagged ? 'm-tag' : 'm-' + S.anMode;
+    const hlt = S.anHl && (S.anHl.c === a.categoria || S.anHl.e === a.id);
+    const tip = ev => { if (!S.original) entTip(ev.currentTarget, a); };
     const untip = () => { if (S.pop && S.pop.type === 'ent') { S.pop = null; up(); } };
-    return html`<button type="button" className=${'ent ' + cls + (hlt ? ' hlt' : '')} data-e=${e.id}
-        aria-label=${!S.original && isOn(e) ? t('c_' + e.c) : undefined}
-        onClick=${ev => toggleEnt(e, ev.shiftKey)} onMouseEnter=${tip} onMouseLeave=${untip} onFocus=${tip} onBlur=${untip}>${!S.original && isOn(e) && tagged ? label(e) : e.v}</button>`;
+    return html`<button type="button" className=${'ent ' + cls + (hlt ? ' hlt' : '')} data-e=${a.id}
+        aria-label=${!S.original && on ? a.categoria : undefined}
+        onClick=${ev => toggleEnt(a, ev.shiftKey)} onMouseEnter=${tip} onMouseLeave=${untip} onFocus=${tip} onBlur=${untip}>${!S.original && on && tagged ? a.texto_sustitucion : a.texto_original}</button>`;
 }
-function hoverListEnt(e) {
-    S.anHl = { e: e.id };
-    if (e.p !== S.anonPage) S.anonPage = e.p;
+// Texto de la página partido por las anotaciones (offsets sobre el texto del bloque). Nunca HTML.
+function pageParts(n) {
+    const txt = S.an.texts[n] || '', out = [];
+    let pos = 0;
+    S.an.anns.filter(a => a.pagina_numero === n).sort((x, y) => x.inicio_offset - y.inicio_offset).forEach(a => {
+        if (a.inicio_offset < pos) return;
+        if (a.inicio_offset > pos) out.push(txt.slice(pos, a.inicio_offset));
+        out.push(html`<${Ent} key=${a.id} a=${a} />`);
+        pos = a.fin_offset;
+    });
+    out.push(txt.slice(pos));
+    return out;
+}
+function hoverListEnt(a) {
+    S.anHl = { e: a.id };
+    if (a.pagina_numero !== S.anonPage) S.anonPage = a.pagina_numero;
     up();
-    setTimeout(() => { const b = document.querySelector(`.ent[data-e="${e.id}"]`); if (b) b.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
+    setTimeout(() => { const b = document.querySelector(`.ent[data-e="${a.id}"]`); if (b) b.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
 }
 function Anonimitzar() {
-    const count = c => ENTS.filter(e => e.c === c).length, onN = ENTS.filter(isOn).length;
-    const page = (d) => { S.anonPage = Math.min(ANP.length, Math.max(1, S.anonPage + d)); up(); };
-    return html`<${Shell} active="arxiu" demo=${true}>
+    useEffect(() => {
+        const id = (S.curDoc && S.curDoc.id) || (S.an && S.an.id) || S.jgId;
+        if (id && (!S.an || S.an.id !== id || S.an.error)) loadAn(id);
+    }, []);
+    const A = S.an;
+    if (!A) return html`<${NoDoc} />`;
+    if (A.loading) return html`<${Shell} active="safata"><div className="card" style=${{ padding: '20px' }}><span className="spin" aria-hidden="true"></span> ${t('an_carrega')}</div><//>`;
+    if (A.error) return html`<${Shell} active="safata"><div className="banner bad">Error: ${A.error}</div><a className="btn" href="#safata">‹ ${t('safata')}</a><//>`;
+    const onN = A.anns.filter(isOn).length, ed = anEditable();
+    const byCat = {};
+    A.anns.forEach(a => { (byCat[a.categoria] = byCat[a.categoria] || []).push(a); });
+    const catName = c => (A.cats.find(x => x.codigo === c) || {}).nombre || c;
+    const page = dd => { S.anonPage = Math.min(A.total, Math.max(1, S.anonPage + dd)); up(); };
+    return html`<${Shell} active="safata">
         <div className="card row wrap" style=${{ padding: '10px 14px', marginBottom: '12px' }}>
-            <a href="#safata" className="btn">‹ ${t('safata')}</a><b>${t('an_t')} · Sentència 70/2020</b><span>(${t('pag')} ${S.anonPage} ${t('de')} ${ANP.length})</span>
+            <a href="#safata" className="btn">‹ ${t('safata')}</a><b>${t('an_t')} · ${A.name}</b><span>(${t('pag')} ${S.anonPage} ${t('de')} ${A.total})</span>
             <button type="button" className="btn" aria-label="‹" disabled=${S.anonPage === 1} onClick=${() => page(-1)}>‹</button>
-            <button type="button" className="btn" aria-label="›" disabled=${S.anonPage === ANP.length} onClick=${() => page(1)}>›</button>
+            <button type="button" className="btn" aria-label="›" disabled=${S.anonPage === A.total} onClick=${() => page(1)}>›</button>
             <span className="sp"></span>
-            <button type="button" className="btn" onClick=${() => { S.original = !S.original; if (S.original) log('Consulta vista original Sentència 70/2020'); up(); }}>${S.original ? t('vista_an') : t('vista')}</button>
+            <button type="button" className="btn" onClick=${() => { S.original = !S.original; up(); }}>${S.original ? t('vista_an') : t('vista')}</button>
             <button type="button" className="btn pri" onClick=${() => { S.modal = { type: 'expan' }; up(); }}>⤓ ${t('exp_an')}</button>
         </div>
+        ${!ed && html`<div className="banner w">${t('an_ro')}</div>`}
         <div className="anon">
-            <div className="card doc">${ANP[S.anonPage - 1].map(([k, xs], i) => React.createElement(k === 'h' ? 'h4' : 'p', { key: i },
-                xs.map((x, j) => (typeof x === 'number' ? html`<${Ent} key=${j} e=${ENTS[x]} />` : x))))}</div>
-            <aside className="card side"><h3>${t('an_panel')}</h3><div className="doc-s">${ENTS.length} ${t('detect')} · ${onN} ${t('anonim')}</div>
+            <div className="card doc" style=${{ whiteSpace: 'pre-wrap' }}>${A.texts[S.anonPage] ? pageParts(S.anonPage) : html`<span className="doc-s">${t('buit')}</span>`}</div>
+            <aside className="card side"><h3>${t('an_panel')}</h3><div className="doc-s">${A.anns.length} ${t('detect')} · ${onN} ${t('anonim')}</div>
                 <h5>${t('com')}</h5>
-                <div className="modes">${['censurar', 'esborrar', 'tatxar', 'etiqueta', 'pseudonim', 'inicials'].map(m => html`<button key=${m} type="button" className=${S.anMode === m ? 'on' : ''} aria-pressed=${S.anMode === m} onClick=${() => { S.anMode = m; up(); }}>${t('m_' + m)}</button>`)}</div>
+                <div className="modes">${Object.keys(MODES).map(m => html`<button key=${m} type="button" className=${S.anMode === m ? 'on' : ''} aria-pressed=${S.anMode === m} disabled=${!ed} onClick=${() => setMode(m)}>${t('m_' + m)}</button>`)}</div>
                 ${S.anMode === 'tatxar' && html`<div className="banner w" style=${{ marginTop: '8px' }}>${t('tatxar_av')}</div>`}
                 <h5>${t('que')}</h5>
-                ${CATS.map(c => html`<label key=${c} className="cat" onMouseEnter=${() => { S.anHl = { c }; up(); }} onMouseLeave=${() => { S.anHl = null; up(); }}>
-                    <input type="checkbox" checked=${!!S.cats[c]} disabled=${c === 'menor' || c === 'salut'}
+                ${!A.anns.length && html`<div className="doc-s">${t('cap_dada')}</div>`}
+                ${Object.keys(byCat).map(c => { const all = byCat[c], chk = all.some(isOn); return html`<label key=${c} className="cat" onMouseEnter=${() => { S.anHl = { c }; up(); }} onMouseLeave=${() => { S.anHl = null; up(); }}>
+                    <input type="checkbox" checked=${chk} disabled=${!ed}
                         onFocus=${() => { S.anHl = { c }; up(); }} onBlur=${() => { S.anHl = null; up(); }}
-                        onChange=${e => { S.cats[c] = e.target.checked ? 1 : 0; S.on.clear(); S.off.clear(); up(); }} />${t('c_' + c)}<em>${count(c)}</em></label>`)}
+                        onChange=${e => decide(all, e.target.checked)} />${catName(c)}<em>${all.length}</em></label>`; })}
                 <details open=${S.detOpen} onToggle=${e => { S.detOpen = e.currentTarget.open; }}><summary>${t('veure')} (${onN})</summary>
-                    <ul>${ENTS.filter(isOn).map(e => html`<li key=${e.id} onMouseEnter=${() => hoverListEnt(e)} onMouseLeave=${() => { S.anHl = null; up(); }}>
-                        <span>■ ${e.v.length > 24 ? e.v.slice(0, 24) + '…' : e.v}</span><span className="doc-s">${TAG[e.c]}</span></li>`)}</ul>
+                    <ul>${A.anns.filter(isOn).map(a => html`<li key=${a.id} onMouseEnter=${() => hoverListEnt(a)} onMouseLeave=${() => { S.anHl = null; up(); }}>
+                        <span>■ ${a.texto_original.length > 24 ? a.texto_original.slice(0, 24) + '…' : a.texto_original}</span><span className="doc-s">${a.categoria}</span></li>`)}</ul>
                 </details>
             </aside>
         </div>
@@ -621,32 +815,40 @@ function Anonimitzar() {
 }
 function AuditCard({ style }) {
     return html`<div className="card" style=${style}><div className="box-h">${t('registre')}</div>
-        <div className="audit">${S.audit.length ? S.audit.map((a, i) => html`<div key=${i}>${a}</div>`) : t('cap')}</div></div>`;
+        <div className="audit">${S.audit.length ? S.audit.map(a => html`<div key=${a.id}>${hhmm(a.creado_en)}  ${a.evento}  ${a.entidad_tipo || ''} ${a.detalle && a.detalle.pagina ? t('pag') + ' ' + a.detalle.pagina : ''}</div>`) : t('cap')}</div></div>`;
 }
 function Exportat() {
-    return html`<${Shell} active="arxiu" demo=${true}>
+    const E = S.exp;
+    useEffect(() => { if (!E && S.curDoc && S.curDoc.estado === 'exportado') exportDoc(S.curDoc.id, S.curDoc.name); }, []);
+    if (!E) return html`<${NoDoc} />`;
+    return html`<${Shell} active="arxiu">
         <div className="card" style=${{ padding: '28px', maxWidth: '720px', margin: '0 auto' }}>
-            <div className="banner ok"><b>✓ ${t('exp_t')}</b> · Sentència_70-2020_anonimitzada.pdf · ${t('exp_s')}</div>
+            <div className="banner ok"><b>✓ ${t('exp_t')}</b> · ${E.name} · ${t('exp_s')}</div>
+            <p className="doc-s" style=${{ wordBreak: 'break-all' }}>SHA-256: <code>${E.hash}</code></p>
             <ul style=${{ lineHeight: 2 }}>${['g1', 'g2', 'g3', 'g4'].map(g => html`<li key=${g}>${t(g)}</li>`)}</ul>
-            <div className="row"><button type="button" className="btn pri" onClick=${() => toast('⤓ Sentència_70-2020_anonimitzada.pdf')}>⤓ ${t('descarregar')}</button><a className="btn" href="#safata">${t('tornar_safata')}</a></div>
+            <div className="row"><button type="button" className="btn pri" onClick=${() => { download(E.blob, E.name); toast('⤓ ' + E.name); }}>⤓ ${t('descarregar')}</button><a className="btn" href="#safata">${t('tornar_safata')}</a></div>
         </div>
         <${AuditCard} style=${{ maxWidth: '720px', margin: '16px auto 0' }} />
     <//>`;
 }
 function Informes() {
-    const pg = S.docs.flatMap(docPages).filter(p => p.status === 'done');
-    const avg = pg.length ? (pg.reduce((a, p) => a + (p.time || 0), 0) / pg.length).toFixed(2) : '—';
-    return html`<${Shell} active="informes" demo=${true}>
-        <h1>${t('inf_t')}</h1><p className="sub">${t('inf_s')}</p>
-        <div className="kpis"><div className="card kpi"><b>8.214</b><span>${t('i1')}</span></div><div className="card kpi"><b>38 s</b><span>${t('i2')}</span></div>
-            <div className="card kpi"><b>2,1 %</b><span>${t('i3')}</span></div><div className="card kpi"><b>${146 + (S.sent ? 1 : 0)}</b><span>${t('i4')}</span></div></div>
-        <h5 className="box-h" style=${{ padding: '8px 0' }}>${t('sessio')}</h5>
+    useEffect(() => {
+        Promise.all([getJ('/reports/summary'), getJ('/audit?limit=50')])
+            .then(([s, a]) => { S.summary = s; S.audit = a.items; up(); }).catch(fail);
+    }, []);
+    const s = S.summary;
+    return html`<${Shell} active="informes">
+        <h1>${t('inf_t')}</h1><p className="sub">${t('inf_s2')}</p>
+        ${!s ? html`<div className="card" style=${{ padding: '20px' }}><span className="spin" aria-hidden="true"></span></div>` : html`<${Frag}>
+        <div className="kpis"><div className="card kpi"><b>${s.paginas_mes}</b><span>${t('i1')}</span></div>
+            <div className="card kpi"><b>${s.tiempo_medio_revision_seg == null ? '—' : s.tiempo_medio_revision_seg + ' s'}</b><span>${t('i2b')}</span></div>
+            <div className="card kpi"><b>${s.paginas_reescaneadas}</b><span>${t('i3b')}</span></div><div className="card kpi"><b>${s.jg_enviados}</b><span>${t('i4')}</span></div></div>
         <div className="kpis">
-            <div className="card kpi"><b>${S.docs.length}</b><span>${t('s_docs')}</span></div>
-            <div className="card kpi"><b>${pg.length}</b><span>${t('s_pag')}</span></div>
-            <div className="card kpi"><b>${pg.filter(p => p.validated).length}</b><span>${t('s_val')}</span></div>
-            <div className="card kpi"><b>${avg}</b><span>${t('s_avg')}</span></div>
+            <div className="card kpi"><b>${s.documentos_mes}</b><span>${t('s_docs')}</span></div>
+            <div className="card kpi"><b>${s.exportados_mes}</b><span>${t('exp_mes')}</span></div>
         </div>
+        <div className="card row wrap" style=${{ padding: '12px 18px', marginBottom: '16px' }}>${Object.entries(s.documentos_por_estado || {}).map(([k, v]) => html`<span key=${k}>${chip((EST[k] || ['n'])[0], `${t((EST[k] || [0, k])[1])}: ${v}`)}</span>`)}</div>
+        <//>`}
         <${AuditCard} />
     <//>`;
 }
@@ -657,9 +859,9 @@ function Pop() {
     useEffect(() => { if (P.type === 'warn') { const b = ref.current && ref.current.querySelector('button'); if (b) b.focus(); } }, [P]);
     const style = { left: Math.max(8, Math.min(P.left, innerWidth - 320)) + 'px', top: P.top + 'px' };
     if (P.type === 'ent') {
-        const e = P.e, n = ENTS.filter(x => x.v === e.v).length;
-        return html`<div className="pop" role="tooltip" style=${style}><b>${t('c_' + e.c)}</b>«${e.v}» · ${t('apareix')} ${n} ${n > 1 ? t('vegades') : 'vegada'}
-            <div className="doc-s">${isOn(e) ? t('tip_on') : t('tip_off')}</div><div className="doc-s">🔒 ${t('registrada')}</div></div>`;
+        const a = P.a, n = S.an ? S.an.anns.filter(x => x.texto_original === a.texto_original).length : 1;
+        return html`<div className="pop" role="tooltip" style=${style}><b>${a.categoria}</b>«${a.texto_original}» · ${t('apareix')} ${n} ${n > 1 ? t('vegades') : t('vegada')}
+            <div className="doc-s">${isOn(a) ? t('tip_on') : t('tip_off')}</div><div className="doc-s">🔒 ${t('registrada')}</div></div>`;
     }
     const s = pageSegs(P.p).find(x => x.id === P.id);
     if (!s) return null;
@@ -676,6 +878,7 @@ function Modal() {
     const M = S.modal, ref = useRef(null);
     const [file, setFile] = useState(null);
     const [ok, setOk] = useState(false);
+    const [txt, setTxt] = useState(M.text || '');
     useEffect(() => { const f = ref.current && ref.current.querySelector('input,textarea,button'); if (f) f.focus(); }, []);
     const close = () => { S.modal = null; up(); };
     let body;
@@ -684,17 +887,19 @@ function Modal() {
         body = html`<h2>${t('esc_t')}</h2><p>${t('esc_s')} (${t('pag')} ${n}).</p>
             <input type="file" accept=".pdf,image/*" style=${{ width: '100%' }} onChange=${e => setFile(e.target.files[0] || null)} />
             <div className="row" style=${{ marginTop: '16px' }}><span className="sp"></span><button type="button" className="btn" onClick=${close}>${t('cancel')}</button>
-                <button type="button" className="btn" onClick=${() => { p.esc = true; log(`Pàg. ${n} marcada per tornar a escanejar ${d.name}`); S.modal = null; S.cur = nextAttention(d, n) || n; up(); }}>${t('marcar_esc')}</button>
+                <button type="button" className="btn" onClick=${() => { p.esc = true; S.modal = null; S.cur = nextAttention(d, n) || n; up(); }}>${t('marcar_esc')}</button>
                 <button type="button" className="btn pri" disabled=${!file} onClick=${() => { S.modal = null; reOcr(d, n, file); }}>${t('pujar_pag')}</button></div>`;
     } else if (M.type === 'dem') {
-        body = html`<h2>${t('msg_t')}</h2><textarea style=${{ width: '100%', height: '190px', font: '14px/1.5 Roboto', border: '1px solid var(--line)', borderRadius: '6px', padding: '10px' }} defaultValue=${t('msg')}></textarea>
+        body = html`<h2>${t('msg_t')}</h2><textarea aria-label=${t('msg_t')} style=${{ width: '100%', height: '190px', font: '14px/1.5 Roboto', border: '1px solid var(--line)', borderRadius: '6px', padding: '10px' }} value=${txt} onChange=${e => setTxt(e.target.value)}></textarea>
             <div className="row" style=${{ marginTop: '14px' }}><span className="sp"></span><button type="button" className="btn" onClick=${close}>${t('cancel')}</button>
-                <button type="button" className="btn pri" onClick=${() => { close(); log('Requeriment enviat a la sol·licitant (UNITRAM)'); toast('✓ ' + t('req_ok')); }}>${t('enviar')}</button></div>`;
+                <button type="button" className="btn pri" onClick=${() => { close(); navigator.clipboard.writeText(txt).then(() => toast('✓ ' + t('req_copiat')), () => toast(t('req_nocopia'))); }}>${t('copiar')}</button></div>`;
     } else {
+        const pend = S.an ? S.an.anns.filter(a => !a.decision_revisor).length : 0;
         body = html`<h2>${t('conf_t')}</h2><p>${t('conf_1')}</p>
+            ${pend > 0 && html`<p className="banner w">${pend} ${t('pend_conf')}</p>`}
             <label className="cat"><input type="checkbox" checked=${ok} onChange=${e => setOk(e.target.checked)} /> ${t('conf_c')}</label>
             <div className="row" style=${{ marginTop: '16px' }}><span className="sp"></span><button type="button" className="btn" onClick=${close}>${t('cancel')}</button>
-                <button type="button" className="btn pri" disabled=${!ok} onClick=${() => { S.modal = null; S.exported = true; log(`Exportat Sentència 70/2020 anonimitzada (mode: ${S.anMode}, ${ENTS.filter(isOn).length} dades)`); go('#exportat'); }}>${t('exportar')}</button></div>`;
+                <button type="button" className="btn pri" disabled=${!ok} onClick=${() => { S.modal = null; up(); confirmExport(); }}>${t('exportar')}</button></div>`;
     }
     return html`<div className="modal-bg"><div className="modal" role="dialog" aria-modal="true" ref=${ref}>${body}</div></div>`;
 }
@@ -713,7 +918,7 @@ function onKey(ev) {
     if (ev.ctrlKey && ev.key === 'ArrowRight' && location.hash === '#revisio' && S.curDoc) {
         ev.preventDefault();
         const w = document.querySelector('#txt .doubt, #txt .invalid'), p = S.curDoc.pages[S.cur];
-        if (w) { w.focus(); openWarn(w, p); } else { const n = nextAttention(S.curDoc, S.cur); if (n) setCur(n); }
+        if (w && editable(S.curDoc)) { w.focus(); openWarn(w, p); } else { const n = nextAttention(S.curDoc, S.cur); if (n) setCur(n); }
     }
 }
 function onDocClick(ev) {
@@ -727,9 +932,11 @@ function App() {
         addEventListener('hashchange', onHash);
         document.addEventListener('keydown', onKey);
         document.addEventListener('click', onDocClick);
+        boot();
         return () => { removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onDocClick); };
     }, []);
-    let r = location.hash.slice(1) || 'login';
+    if (S.booting) return html`<div className="card login"><${Logo} /><p><span className="spin" aria-hidden="true"></span></p></div>`;
+    let r = location.hash.slice(1) || (S.user ? 'landing' : 'login');
     if (!VIEWS[r] || !S.user) r = 'login';
     document.documentElement.lang = lang;
     return html`<${Frag}>

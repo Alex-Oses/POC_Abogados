@@ -13,3 +13,11 @@
 
 ## Bloqueos / preguntas
 - Justicia gratuita y anonimización siguen con datos ficticios de la maqueta.
+
+## Hecho (tarde)
+- Backend FastAPI real en `backend/` (sobre #48): documentos, OCR en streaming, páginas, revisión, justicia gratuita, anonimización con Presidio, export con hash, archivo con búsqueda, informes y auditoría, todo en PostgreSQL sin tocar V1..V15. `ruff` limpio y `pytest` 12/12 con BD.
+- Frontend conectado a `/api/v1` sin datos ficticios; probado con Playwright con OCR simulado y con PaddleOCR-VL real.
+- Despliegue decidido: todo en un servidor de Azure (pendiente de los datos de la VM). Preguntas de esquema para @Rubén y @Marina en el tablero.
+
+## Siguiente
+- Cola de OCR para dejar PDF transcribiéndose de noche y script de despliegue en Azure.

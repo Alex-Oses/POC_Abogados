@@ -1,131 +1,298 @@
+import json
+from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
+from fastapi.responses import Response, StreamingResponse
 from psycopg import Connection
+from pydantic import BaseModel, Field
 
 from app.api.deps import connection, require_role
-from app.schemas.common import PaginatedOut
-from app.schemas.documents import (
-    BlockOut,
-    DocumentOut,
-    PageOut,
-    TransformBuildIn,
-    TransformPlainTextIn,
-    VersionOut,
-)
-from app.services import documents as doc_service
+from app.core.errors import AppError
+from app.db.queries import SQL
+from app.services import anonymize, audit, export, jg
+from app.services import documents as service
 
 router = APIRouter(tags=["documentos"])
+T = require_role("transcriptor")
+TR = require_role("transcriptor", "revisor")
+R = require_role("revisor")
+Modo = Literal["censurar", "borrar", "tachar", "etiqueta", "seudonimo", "iniciales"]
 
 
-@router.post("/transform/document", response_model=DocumentOut, status_code=201)
-def transform_document(
-    titulo: str = Form(...),
-    archivo: UploadFile = File(...),
-    usuario: dict = Depends(require_role("transcriptor")),
+class IdIn(BaseModel):
+    id: UUID
+
+
+class PaginaIn(BaseModel):
+    texto: str | None = Field(default=None, max_length=200_000)
+    validada: bool | None = None
+
+
+class AnonimizarIn(BaseModel):
+    regla_id: UUID | None = None
+    modo: Modo = "censurar"
+
+
+class AnotacionIn(BaseModel):
+    accion_aplicada: Literal["censurar", "etiqueta", "iniciales", "pseudonimizado", "eliminado",
+                             "mantenido", "tachado"] | None = None
+    texto_sustitucion: str | None = Field(default=None, max_length=500)
+    decision_revisor: Literal["confirmado", "modificado", "falso_positivo", "falso_negativo"]
+    observaciones_revisor: str | None = Field(default=None, max_length=2000)
+
+
+class AnotacionNuevaIn(BaseModel):
+    bloque_id: UUID
+    categoria_id: UUID
+    inicio_offset: int = Field(ge=0)
+    fin_offset: int = Field(gt=0)
+    accion_aplicada: Literal["censurar", "etiqueta", "iniciales", "pseudonimizado", "eliminado",
+                             "tachado"] | None = None
+    texto_sustitucion: str | None = Field(default=None, max_length=500)
+
+
+def _pdf(datos: bytes, nombre: str, inline: bool = False, cabeceras: dict | None = None):
+    modo = "inline" if inline else "attachment"
+    return Response(datos, media_type="application/pdf", headers={
+        "Content-Disposition": f'{modo}; filename="{nombre}"', **(cabeceras or {})})
+
+
+# --- Subida y transformaciones --------------------------------------------------------------
+
+@router.post("/transform/document", status_code=201)
+async def subir(
+    request: Request,
+    file: UploadFile = File(...),
+    modo: Literal["simple", "doble"] = Form("doble"),
+    usuario: dict = Depends(T),
+):
+    """Sube y transcribe. Con `Accept: application/x-ndjson` devuelve el progreso en streaming."""
+    datos = await file.read()
+    subido = service.registrar_subida(file.filename or "documento", datos, usuario, request)
+    flujo = service.flujo_ocr(subido["id"], subido["mime"], datos, modo == "doble",
+                              usuario["usuario_id"], request)
+    if "application/x-ndjson" in request.headers.get("accept", ""):
+        lineas = (json.dumps(e, ensure_ascii=False, default=str) + "\n" for e in flujo)
+        return StreamingResponse(lineas, media_type="application/x-ndjson")
+    ultimo = None
+    for evento in flujo:
+        ultimo = evento
+    if ultimo["type"] == "error":
+        raise AppError(ultimo["code"], ultimo["message"], 500)
+    return {"id": ultimo["id"], "num_paginas": ultimo["num_paginas"], "estado": ultimo["estado"]}
+
+
+@router.post("/transform/plain-text")
+def plain_text(datos: IdIn, usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
+    doc = service.obtener(conexion, datos.id, usuario)
+    if not doc["v_id"]:
+        raise AppError("SIN_TEXTO", "El documento no tiene versión", 422)
+    version = doc["v_id"]
+    if doc["v_tipo"] == "final_aprobado":
+        version = doc["v_meta"]["version_revisada_id"]
+    return {"result": "\n\n".join(anonymize.texto_plano(conexion, version, version))}
+
+
+@router.post("/transform/build")
+def build(datos: IdIn, usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
+    doc = service.obtener(conexion, datos.id, usuario)
+    return _pdf(export.vista_previa(conexion, doc), "vista_previa.pdf", inline=True)
+
+
+# --- Documentos -----------------------------------------------------------------------------
+
+@router.get("/documents")
+def listar(
+    estado: str | None = None,
+    q: str | None = Query(default=None, max_length=200),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    usuario: dict = Depends(TR),
     conexion: Connection = Depends(connection),
 ):
-    contenido = archivo.file.read()
-    return doc_service.subir_documento(
-        conexion, usuario, titulo, contenido, archivo.filename or "documento.pdf"
-    )
+    filas = conexion.execute(SQL["docs_listar"], {
+        "estado": estado, "q": (q or "").strip() or None,
+        "solo_de": None if service.es_revisor(usuario) else usuario["usuario_id"],
+        "limit": limit, "offset": (page - 1) * limit}).fetchall()
+    total = filas[0]["total"] if filas else 0
+    for fila in filas:
+        fila.pop("total")
+    return {"items": filas, "page": page, "limit": limit, "total": total}
 
 
-@router.post("/transform/plain-text", response_model=VersionOut, status_code=201)
-def transform_plain_text(
-    body: TransformPlainTextIn,
-    usuario: dict = Depends(require_role("transcriptor", "revisor")),
-    conexion: Connection = Depends(connection),
-):
-    return doc_service.transformar_texto_plano(
-        conexion, usuario, body.titulo, body.texto, body.documento_id
-    )
-
-
-@router.post("/transform/build", response_model=VersionOut, status_code=201)
-def transform_build(
-    body: TransformBuildIn,
-    usuario: dict = Depends(require_role("transcriptor", "revisor")),
-    conexion: Connection = Depends(connection),
-):
-    return doc_service.construir_version(conexion, usuario, body.documento_id, body.texto)
-
-
-@router.get("/documents", response_model=PaginatedOut[DocumentOut])
-def list_documents(
-    page: int = Query(default=1, ge=1),
-    limit: int = Query(default=20, ge=1, le=100),
-    usuario: dict = Depends(require_role("transcriptor", "revisor")),
-    conexion: Connection = Depends(connection),
-):
-    return doc_service.listar_documentos(conexion, page, limit)
-
-
-@router.get("/documents/{documento_id}", response_model=DocumentOut)
-def get_document(
-    documento_id: UUID,
-    usuario: dict = Depends(require_role("transcriptor", "revisor")),
-    conexion: Connection = Depends(connection),
-):
-    return doc_service.obtener_documento(conexion, documento_id)
-
-
-@router.get("/documents/{documento_id}/pages", response_model=list[PageOut])
-def get_document_pages(
-    documento_id: UUID,
-    usuario: dict = Depends(require_role("transcriptor", "revisor")),
-    conexion: Connection = Depends(connection),
-):
-    return doc_service.listar_paginas(conexion, documento_id)
-
-
-@router.get("/documents/{documento_id}/original")
-def get_document_original(
-    documento_id: UUID,
-    usuario: dict = Depends(require_role("transcriptor", "revisor")),
-    conexion: Connection = Depends(connection),
-):
-    contenido = doc_service.obtener_original(conexion, usuario, documento_id)
-    return Response(content=contenido, media_type="application/pdf")
+@router.get("/documents/{documento_id}")
+def detalle(documento_id: UUID, usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
+    return service.detalle(service.obtener(conexion, documento_id, usuario))
 
 
 @router.delete("/documents/{documento_id}", status_code=204)
-def delete_document(
-    documento_id: UUID,
-    usuario: dict = Depends(require_role("transcriptor", "admin")),
-    conexion: Connection = Depends(connection),
-):
-    doc_service.eliminar_documento(conexion, usuario, documento_id)
-    return Response(status_code=204)
+def eliminar(documento_id: UUID, request: Request,
+             usuario: dict = Depends(require_role("transcriptor", "admin")),
+             conexion: Connection = Depends(connection)) -> None:
+    doc = service.obtener(conexion, documento_id, usuario)
+    if "admin" not in usuario["roles"] and doc["creado_por"] != usuario["usuario_id"]:
+        raise AppError("FORBIDDEN", "Solo el dueño o un admin borra", 403)
+    conexion.execute(SQL["doc_eliminar"], {"id": documento_id})
+    audit.registrar(conexion, "DOCUMENTO_ELIMINADO", request=request,
+                    usuario_id=usuario["usuario_id"], entidad_tipo="documento",
+                    entidad_id=documento_id, detalle={"estado_anterior": doc["estado"]})
 
 
-@router.get("/documents/{documento_id}/versions", response_model=list[VersionOut])
-def list_versions(
-    documento_id: UUID,
-    usuario: dict = Depends(require_role("revisor")),
-    conexion: Connection = Depends(connection),
-):
-    return doc_service.listar_versiones(conexion, documento_id)
+@router.get("/documents/{documento_id}/original")
+def original(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
+             conexion: Connection = Depends(connection)):
+    doc = service.obtener(conexion, documento_id, usuario)
+    datos = service._original(doc)
+    audit.registrar(conexion, "ORIGINAL_CONSULTADO", request=request,
+                    usuario_id=usuario["usuario_id"], entidad_tipo="documento",
+                    entidad_id=documento_id, detalle={})
+    return Response(datos, media_type=doc["mime_type"],
+                    headers={"Content-Disposition": "inline", "Cache-Control": "no-store"})
 
 
-@router.get("/documents/{documento_id}/versions/{numero_version}", response_model=VersionOut)
-def get_version(
-    documento_id: UUID,
-    numero_version: int,
-    usuario: dict = Depends(require_role("revisor")),
-    conexion: Connection = Depends(connection),
-):
-    return doc_service.obtener_version(conexion, documento_id, numero_version)
+# --- Páginas --------------------------------------------------------------------------------
+
+@router.get("/documents/{documento_id}/pages")
+def paginas(documento_id: UUID, usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
+    doc = service.obtener(conexion, documento_id, usuario)
+    return {"items": service.paginas(conexion, doc)}
 
 
-@router.get(
-    "/documents/{documento_id}/versions/{numero_version}/blocks",
-    response_model=list[BlockOut],
-)
-def get_version_blocks(
-    documento_id: UUID,
-    numero_version: int,
-    usuario: dict = Depends(require_role("revisor")),
-    conexion: Connection = Depends(connection),
-):
-    return doc_service.listar_bloques(conexion, documento_id, numero_version)
+@router.patch("/documents/{documento_id}/pages/{numero}", status_code=204)
+def editar_pagina(documento_id: UUID, numero: int, datos: PaginaIn, request: Request,
+                  usuario: dict = Depends(TR), conexion: Connection = Depends(connection)) -> None:
+    doc = service.obtener(conexion, documento_id, usuario)
+    service.editar_pagina(conexion, doc, numero, datos.texto, datos.validada, usuario, request)
+
+
+@router.post("/documents/{documento_id}/pages/{numero}/ocr")
+async def releer_pagina(documento_id: UUID, numero: int, request: Request,
+                        file: UploadFile | None = File(None),
+                        modo: Literal["simple", "doble"] = Form("doble"),
+                        usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
+    fichero = await file.read() if file else None
+    doc = service.obtener(conexion, documento_id, usuario)
+    return service.releer_pagina(conexion, doc, numero, fichero or None, modo == "doble",
+                                 usuario, request)
+
+
+@router.get("/documents/{documento_id}/pages/{numero}/image")
+def imagen_pagina(documento_id: UUID, numero: int, request: Request, usuario: dict = Depends(TR),
+                  conexion: Connection = Depends(connection)):
+    doc = service.obtener(conexion, documento_id, usuario)
+    png = service.imagen_pagina(doc, numero)
+    audit.registrar(conexion, "ORIGINAL_CONSULTADO", request=request,
+                    usuario_id=usuario["usuario_id"], entidad_tipo="documento",
+                    entidad_id=documento_id, detalle={"pagina": numero})
+    return Response(png, media_type="image/png", headers={"Cache-Control": "private, no-store"})
+
+
+@router.get("/documents/{documento_id}/pages/{numero}/locate")
+def localizar(documento_id: UUID, numero: int, q: str = Query(..., max_length=200),
+              usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
+    """Caja (píxeles de la imagen a 150 dpi) de un texto en la página, o null."""
+    doc = service.obtener(conexion, documento_id, usuario)
+    return {"bbox": service.localizar(doc, numero, q)}
+
+
+# --- Versiones y bloques --------------------------------------------------------------------
+
+@router.get("/documents/{documento_id}/versions")
+def versiones(documento_id: UUID, usuario: dict = Depends(R), conexion: Connection = Depends(connection)):
+    service.obtener(conexion, documento_id, usuario)
+    return {"items": conexion.execute(SQL["versiones_listar"],
+                                      {"documento_id": documento_id}).fetchall()}
+
+
+def _version(conexion, documento_id, numero, usuario):
+    service.obtener(conexion, documento_id, usuario)
+    fila = conexion.execute(SQL["version_por_numero"],
+                            {"documento_id": documento_id, "numero": numero}).fetchone()
+    if not fila:
+        raise AppError("VERSION_NO_ENCONTRADA", "La versión no existe", 404)
+    return fila
+
+
+@router.get("/documents/{documento_id}/versions/{numero}")
+def version(documento_id: UUID, numero: int, usuario: dict = Depends(R),
+            conexion: Connection = Depends(connection)):
+    return _version(conexion, documento_id, numero, usuario)
+
+
+@router.get("/documents/{documento_id}/versions/{numero}/blocks")
+def bloques(documento_id: UUID, numero: int, page: int = Query(1, ge=1),
+            limit: int = Query(100, ge=1, le=500), pagina: int | None = None,
+            usuario: dict = Depends(R), conexion: Connection = Depends(connection)):
+    fila = _version(conexion, documento_id, numero, usuario)
+    version_id = fila["metadatos_proceso"].get("version_revisada_id", fila["id"])
+    filas = conexion.execute(SQL["bloques_version"], {
+        "version_id": version_id, "pagina": pagina, "limit": limit,
+        "offset": (page - 1) * limit}).fetchall()
+    total = filas[0]["total"] if filas else 0
+    items = [{
+        "id": b["id"], "pagina_numero": b["pagina_numero"], "orden_lectura": b["orden_lectura"],
+        "etiqueta": b["etiqueta"], "confianza": b["confianza"], "forma": b["forma"],
+        "bbox": {"x": b["bbox_x"], "y": b["bbox_y"], "ancho": b["bbox_ancho"], "alto": b["bbox_alto"]},
+        "puntos": b["puntos"], "pagina": {"ancho": b["pagina_ancho"], "alto": b["pagina_alto"]},
+        "contenido": b["contenido"], "calidad_semaforo": b["calidad_semaforo"]} for b in filas]
+    return {"items": items, "page": page, "limit": limit, "total": total}
+
+
+# --- Anonimización y anotaciones ------------------------------------------------------------
+
+@router.post("/documents/{documento_id}/anonymize", status_code=201)
+def anonimizar(documento_id: UUID, datos: AnonimizarIn, request: Request,
+               usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
+    doc = service.obtener(conexion, documento_id, usuario)
+    return anonymize.anonimizar(conexion, doc, datos.regla_id, datos.modo, usuario, request)
+
+
+@router.get("/documents/{documento_id}/annotations")
+def anotaciones(documento_id: UUID, version: UUID | None = None, categoria: UUID | None = None,
+                pendientes: bool = False, usuario: dict = Depends(R),
+                conexion: Connection = Depends(connection)):
+    service.obtener(conexion, documento_id, usuario)
+    return {"items": conexion.execute(SQL["anotaciones_listar"], {
+        "documento_id": documento_id, "version_id": version, "categoria_id": categoria,
+        "pendientes": pendientes}).fetchall()}
+
+
+@router.post("/documents/{documento_id}/annotations", status_code=201)
+def anotacion_nueva(documento_id: UUID, datos: AnotacionNuevaIn, request: Request,
+                    usuario: dict = Depends(R), conexion: Connection = Depends(connection)):
+    doc = service.obtener(conexion, documento_id, usuario)
+    return anonymize.crear_manual(conexion, doc, datos.model_dump(), usuario, request)
+
+
+@router.patch("/annotations/{anotacion_id}")
+def decidir(anotacion_id: UUID, datos: AnotacionIn, request: Request, usuario: dict = Depends(R),
+            conexion: Connection = Depends(connection)):
+    return anonymize.decidir(conexion, anotacion_id, datos.model_dump(exclude_unset=True),
+                             usuario, request)
+
+
+# --- Justicia gratuita (fuera del contrato) -------------------------------------------------
+
+@router.post("/documents/{documento_id}/justicia-gratuita")
+def comprobar_jg(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
+                 conexion: Connection = Depends(connection)):
+    return jg.comprobar(conexion, service.obtener(conexion, documento_id, usuario), usuario, request)
+
+
+@router.post("/documents/{documento_id}/justicia-gratuita/send")
+def enviar_jg(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
+              conexion: Connection = Depends(connection)):
+    return jg.enviar(conexion, service.obtener(conexion, documento_id, usuario), usuario, request)
+
+
+# --- Export ---------------------------------------------------------------------------------
+
+@router.post("/documents/{documento_id}/export")
+def exportar(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
+             conexion: Connection = Depends(connection)):
+    doc = service.obtener(conexion, documento_id, usuario)
+    if not service.es_revisor(usuario) and doc["creado_por"] != usuario["usuario_id"]:
+        raise AppError("FORBIDDEN", "Solo el dueño o un revisor exporta", 403)
+    pdf, huella, nombre = export.exportar(conexion, documento_id, usuario, request)
+    return _pdf(pdf, nombre, cabeceras={"X-Document-Hash": huella})
