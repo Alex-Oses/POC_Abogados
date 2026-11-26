@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api.v1 import auth, users
+from app.api.v1 import admin, anonymize, auth, documents, export, review, rules, users
 from app.core.logging import log, setup_logging
 from app.db.pool import pool, tx
 from app.middleware import audit
@@ -40,6 +40,12 @@ install_error_handlers(app)
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
+app.include_router(documents.router, prefix="/api/v1")
+app.include_router(review.router, prefix="/api/v1")
+app.include_router(anonymize.router, prefix="/api/v1")
+app.include_router(export.router, prefix="/api/v1")
+app.include_router(rules.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["operación"])
