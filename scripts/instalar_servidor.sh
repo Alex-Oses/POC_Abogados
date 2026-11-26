@@ -26,6 +26,21 @@ MODELO="hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF:latest"
 USUARIO="$(id -un)"
 IP_LAN="$(hostname -I | awk '{print $1}')"
 
+# --- Log: todo lo que sale por pantalla va también a logs/instalacion-FECHA.log --------------
+mkdir -p "$BASE/logs"
+LOG="$BASE/logs/instalacion-$(date +%Y%m%d-%H%M%S).log"
+exec > >(tee -a "$LOG") 2>&1
+fallo() {
+  echo
+  echo "ERROR en la línea $1 (código $2): $3"
+  echo "Envía este fichero para arreglarlo: $LOG"
+  echo "Y si puedes, el diagnóstico completo:  bash $APP/scripts/diagnostico.sh $BASE"
+}
+trap 'fallo $LINENO $? "$BASH_COMMAND"' ERR
+echo "== Instalación $(date -Is) · rama $RAMA"
+echo "   Sistema: $(. /etc/os-release && echo "$PRETTY_NAME") · $(uname -r) · $(nproc) CPU · $(free -h | awk '/Mem:/{print $2}') RAM · disco libre $(df -h "$BASE" | awk 'NR==2{print $4}')"
+echo "   Opciones: DOMINIO=${DOMINIO:-no} · BD externa=$([ -n "$BD_EXTERNA" ] && echo sí || echo no) · OCR_MOCK=$OCR_MOCK"
+
 echo "== Paquetes del sistema"
 sudo apt-get update -y
 sudo apt-get install -y git curl python3 python3-venv python3-pip caddy
@@ -58,7 +73,9 @@ if [ ! -f .env ]; then
       -e "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=$PASS|" \
       -e "s|^OCR_MOCK=.*|OCR_MOCK=$OCR_MOCK|" .env.example > .env
   chmod 600 .env
-  echo "   Admin: admin@icat.local / $PASS   (guardado en $APP/backend/.env; cámbiala al entrar)"
+  # La contraseña no va al log: se guarda aparte, solo legible por el usuario.
+  ( umask 077; echo "admin@icat.local  $PASS" > "$BASE/admin_password.txt" )
+  echo "   Admin: admin@icat.local · contraseña en $BASE/admin_password.txt (bórralo tras apuntarla)"
 fi
 if [ -n "$BD_EXTERNA" ]; then
   sed -i "s|^DATABASE_URL=.*|DATABASE_URL=$BD_EXTERNA|" .env
@@ -147,6 +164,8 @@ URL="${URL:-https://${IP_PUB:-$IP_LAN}/}"
 cat > "$BASE/arrancar.sh" <<EOF
 #!/usr/bin/env bash
 set -e
+exec > >(tee -a "$BASE/logs/manejo.log") 2>&1
+echo "== arrancar \$(date -Is)"
 [ -z "$BD_EXTERNA" ] && (cd "$APP" && sudo docker compose up -d db)
 sudo systemctl start ollama 2>/dev/null || true
 sudo systemctl start icat-app caddy
@@ -154,6 +173,8 @@ echo "App en $URL"
 EOF
 cat > "$BASE/parar.sh" <<EOF
 #!/usr/bin/env bash
+exec > >(tee -a "$BASE/logs/manejo.log") 2>&1
+echo "== parar \$(date -Is)"
 sudo systemctl stop icat-app
 [ -z "$BD_EXTERNA" ] && (cd "$APP" && sudo docker compose stop db)
 echo "Parada."
@@ -161,7 +182,11 @@ EOF
 cat > "$BASE/actualizar.sh" <<EOF
 #!/usr/bin/env bash
 set -e
+exec > >(tee -a "$BASE/logs/manejo.log") 2>&1
+echo "== actualizar \$(date -Is)"
+trap 'echo "ERROR en actualizar.sh: \$BASH_COMMAND · envía $BASE/logs/manejo.log o ejecuta $BASE/diagnostico.sh"' ERR
 git -C "$APP" pull --ff-only
+git -C "$APP" log --oneline -1
 "$APP/backend/.venv/bin/pip" install -q -e "$APP/backend"
 sudo systemctl restart icat-app
 echo "Actualizada. Ojo: migraciones nuevas V16+ no se aplican solas a una base ya creada."
@@ -170,7 +195,12 @@ cat > "$BASE/logs.sh" <<EOF
 #!/usr/bin/env bash
 sudo journalctl -u icat-app -f
 EOF
-chmod +x "$BASE"/{arrancar,parar,actualizar,logs}.sh
+cat > "$BASE/diagnostico.sh" <<EOF
+#!/usr/bin/env bash
+# Junta en un solo fichero lo necesario para arreglar un fallo. Sin contraseñas ni claves.
+exec bash "$APP/scripts/diagnostico.sh" "$BASE"
+EOF
+chmod +x "$BASE"/{arrancar,parar,actualizar,logs,diagnostico}.sh
 
 if command -v ufw >/dev/null && sudo ufw status | grep -q active; then
   sudo ufw allow 80/tcp && sudo ufw allow 443/tcp
@@ -178,6 +208,7 @@ fi
 
 "$BASE/arrancar.sh"
 echo
-echo "Listo. Manejo: $BASE/arrancar.sh · parar.sh · actualizar.sh · logs.sh"
+echo "Listo. Manejo: $BASE/arrancar.sh · parar.sh · actualizar.sh · logs.sh · diagnostico.sh"
+echo "Log de esta instalación: $LOG"
 echo "Acceso desde fuera: abre los puertos 80 y 443 hacia este servidor (Azure: grupo de seguridad de red, NSG)."
 echo "SharePoint (opcional): rellena SHAREPOINT_* en $APP/backend/.env y ejecuta $BASE/actualizar.sh (decisión 0019)."

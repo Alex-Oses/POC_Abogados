@@ -20,6 +20,23 @@ La base de datos la manda Flyway (`docs/architecture/migrations/`). Este backend
 
 `GET /health` responde `503` mientras no haya base de datos; el resto de rutas también, salvo las que rechazan antes por falta de token (`401`).
 
+## Servidor (acceso desde fuera de la red)
+
+En un Ubuntu 24.04 limpio, desde la carpeta donde vaya la app:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/Alex-Oses/POC_Abogados/feat/backend-documentos/scripts/instalar_servidor.sh
+DOMINIO=icat-poc.westeurope.cloudapp.azure.com DATABASE_URL=postgresql://usuario:clave@host-de-marina:5432/icat bash instalar_servidor.sh
+```
+
+- `DATABASE_URL` (opcional): la BD de Marina. Sin ella monta PostgreSQL 16 en Docker con V1..V15 + vistas. Antes de arrancar pasa `scripts/comprobar_bd.py` (tablas, columnas, versión y permisos).
+- `DOMINIO` (recomendado): certificado real de Let's Encrypt. En Azure, la IP pública da un nombre gratis (Configuración > etiqueta DNS). Sin dominio usa un certificado propio y el navegador avisa.
+- Abrir 80 y 443 en el grupo de seguridad de red (NSG) de Azure.
+- Sin IA externa: OCR (Ollama, solo en 127.0.0.1), Presidio, spaCy y RapidOCR corren en el servidor. Las fuentes también se sirven desde él. Internet solo hace falta al instalar.
+- Deja `arrancar.sh`, `parar.sh`, `actualizar.sh` y `logs.sh`. La app arranca sola al encender (systemd).
+- **Si algo falla:** la instalación queda en `logs/instalacion-FECHA.log` y arrancar/parar/actualizar en `logs/manejo.log`. `bash diagnostico.sh` junta en `logs/diagnostico-FECHA.txt` sistema, servicios, salud, BD, Ollama, puertos y los últimos logs de la app y de Caddy, con claves y contraseñas tapadas. Ese es el fichero que hay que enviar. La contraseña del admin queda en `admin_password.txt`, nunca en los logs.
+- Documentos de prueba ficticios: `backend/.venv/bin/python scripts/generar_pruebas.py` → `pruebas/`.
+
 ## Qué está implementado
 
 - Fundación: configuración, errores con la forma del contrato, logs JSON con `request_id`, pool de `psycopg`, transacción por petición.
