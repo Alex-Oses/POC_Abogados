@@ -188,6 +188,14 @@ def imagen_pagina(documento_id: UUID, numero: int, request: Request, usuario: di
     return Response(png, media_type="image/png", headers={"Cache-Control": "private, no-store"})
 
 
+@router.get("/documents/{documento_id}/pages/{numero}/locate")
+def localizar(documento_id: UUID, numero: int, q: str = Query(..., max_length=200),
+              usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
+    """Caja (píxeles de la imagen a 150 dpi) de un texto en la página, o null."""
+    doc = service.obtener(conexion, documento_id, usuario)
+    return {"bbox": service.localizar(doc, numero, q)}
+
+
 # --- Versiones y bloques --------------------------------------------------------------------
 
 @router.get("/documents/{documento_id}/versions")

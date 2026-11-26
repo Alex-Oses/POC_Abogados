@@ -1,6 +1,6 @@
 ﻿// Textos de la interfaz (ca/es). Base copiada de maqueta/index.html.
 window.L = {
-ca:{safata:"Safata",jg:"Justícia gratuïta",arxiu:"Arxiu",informes:"Informes",rol:"Secretaria tècnica",
+ca:{ dues_l:"2 lectures",difs:"diferències",una_l:"1 lectura",safata:"Safata",jg:"Justícia gratuïta",arxiu:"Arxiu",informes:"Informes",rol:"Secretaria tècnica",
  login_t:"Transcripció de documents escanejats",login_b:"Accedir amb el compte del Col·legi", local:"Tot es processa al servidor del Col·legi: cap document surt de l'ICAT.",
  safata_t:"Safata de documents",safata_s:"Documents escanejats pendents de revisar.",k1:"documents avui",k2:"pàgines transcrites",k3:"pàgines per revisar",k4:"per tornar a escanejar",
  drop:"Arrossega aquí PDF o imatges",drop2:"o selecciona fitxers · també s'importen automàticament de la carpeta d'escaneig de recepció",cerca:"Cerca per nom, DNI, núm. d'expedient o text…",nou:"Nou document",
@@ -28,7 +28,7 @@ ca:{safata:"Safata",jg:"Justícia gratuïta",arxiu:"Arxiu",informes:"Informes",r
  arxiu_t:"Arxiu",arxiu_s:"Documents validats i exportats. Cerca de text complet.",inf_t:"Informes",inf_s:"Volum i temps (funcionalitat desitjable · fase 2).",
  i1:"pàgines aquest mes",i2:"temps mitjà de revisió per pàgina",i3:"pàgines tornades a escanejar",i4:"expedients JG enviats",
  guia:"Guia de la demo", c_nom:"Noms de persones físiques",c_dni:"DNI, NIE i passaport",c_adreca:"Adreces",c_contacte:"Telèfons i correus",c_iban:"Comptes bancaris (IBAN)",c_matricula:"Matrícules",c_menor:"Menors d'edat",c_salut:"Dades de salut i especials",c_magistrat:"Magistrats i funcionaris",c_juridica:"Persones jurídiques"},
-es:{safata:"Bandeja",jg:"Justicia gratuita",arxiu:"Archivo",informes:"Informes",rol:"Secretaría técnica",
+es:{ dues_l:"2 lecturas",difs:"diferencias",una_l:"1 lectura",safata:"Bandeja",jg:"Justicia gratuita",arxiu:"Archivo",informes:"Informes",rol:"Secretaría técnica",
  login_t:"Transcripción de documentos escaneados",login_b:"Acceder con la cuenta del Colegio", local:"Todo se procesa en el servidor del Colegio: ningún documento sale del ICAT.",
  safata_t:"Bandeja de documentos",safata_s:"Documentos escaneados pendientes de revisar.",k1:"documentos hoy",k2:"páginas transcritas",k3:"páginas por revisar",k4:"para volver a escanear",
  drop:"Arrastra aquí PDF o imágenes",drop2:"o selecciona ficheros · también se importan solos desde la carpeta del escáner de recepción",cerca:"Busca por nombre, DNI, n.º de expediente o texto…",nou:"Nuevo documento",

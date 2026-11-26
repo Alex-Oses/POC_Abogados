@@ -90,6 +90,53 @@ def leer(png: bytes, temperatura: float = 0, capa: str = "") -> tuple[float, str
     return time.time() - inicio, respuesta.get("response", "").strip()
 
 
+def variante(png: bytes) -> bytes:
+    """Misma página preparada de otra forma para la segunda lectura."""
+    from PIL import Image, ImageOps
+
+    im = Image.open(io.BytesIO(png)).convert("L")
+    im = im.resize((int(im.width * 1.35), int(im.height * 1.35)), Image.LANCZOS)
+    salida = io.BytesIO()
+    ImageOps.autocontrast(im, cutoff=1).save(salida, "PNG")
+    return salida.getvalue()
+
+
+_LINEAS: dict[str, list] = {}  # shortcut: caché en memoria por hash de la imagen; se pierde al reiniciar
+
+
+def localizar(png: bytes, pdf: bytes | None, numero: int, texto: str) -> dict | None:
+    """Caja en píxeles de `texto` en la página: capa de texto del PDF o, en escaneos,
+    líneas de RapidOCR (PaddleOCR-VL no da coordenadas) con la palabra situada por proporción."""
+    texto = texto.strip()
+    if not texto:
+        return None
+    if pdf:
+        caja = cajas(pdf, numero, [[texto] + texto.split()], DPI / 72)[0]
+        if caja:
+            return caja
+    import hashlib
+
+    clave = hashlib.sha256(png).hexdigest()
+    if clave not in _LINEAS:
+        from rapidocr_onnxruntime import RapidOCR
+
+        _LINEAS[clave] = RapidOCR()(png)[0] or []
+    norm = lambda x: re.sub(r"\W", "", x).lower()  # RapidOCR junta palabras
+    buscados = [norm(texto)] + [norm(w) for w in texto.split() if len(norm(w)) >= 3]
+    for buscado in filter(None, buscados):
+        for puntos, linea, _conf in _LINEAS[clave]:
+            n = norm(linea)
+            i = n.find(buscado)
+            if i < 0:
+                continue
+            xs, ys = [p[0] for p in puntos], [p[1] for p in puntos]
+            x0, x1 = min(xs), max(xs)
+            a, b = i / len(n), (i + len(buscado)) / len(n)
+            return {"x": round(x0 + (x1 - x0) * a, 1), "y": round(min(ys), 1),
+                    "ancho": round((x1 - x0) * (b - a), 1), "alto": round(max(ys) - min(ys), 1)}
+    return None
+
+
 def diferencias(a: str, b: str) -> list[dict]:
     """Trozos del primer texto marcando los que no coinciden con la segunda lectura."""
     ta = re.findall(r"\S+\s*", a)
@@ -140,7 +187,9 @@ def procesar_pagina(pagina: dict, numero: int, doble: bool, pdf: bytes | None) -
     if legible:  # página mala: el modelo inventaría texto, así que no se lee
         t, texto = leer(pagina["png"], 0, pagina["capa"])
         if doble:
-            t2, texto2 = leer(pagina["png"], 0.3, pagina["capa"])
+            # A-24: la segunda lectura es independiente: otra imagen (más resolución, gris y
+            # contraste estirado). Con la misma imagen el modelo repite la lectura palabra a palabra.
+            t2, texto2 = leer(variante(pagina["png"]), 0.3, pagina["capa"])
             t += t2
             diff = diferencias(texto, texto2)
             dudas = [s for s in diff if s["diff"]]

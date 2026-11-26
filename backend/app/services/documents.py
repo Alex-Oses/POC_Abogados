@@ -214,6 +214,15 @@ def imagen_pagina(doc: dict, numero: int) -> bytes:
     return png
 
 
+def localizar(doc: dict, numero: int, texto: str) -> dict | None:
+    png = imagen_pagina(doc, numero)
+    pdf = None
+    if doc["mime_type"] == "application/pdf" and not storage.existe(
+            f"{doc['id']}/reescaneo_{numero}.png"):
+        pdf = _original(doc)
+    return ocr.localizar(png, pdf, numero, texto)
+
+
 def releer_pagina(conexion: Connection, doc: dict, numero: int, fichero: bytes | None,
                   doble: bool, usuario: dict, request) -> dict:
     """Vuelve a leer una página; con `fichero` (PDF o imagen) la sustituye antes (reescaneo)."""

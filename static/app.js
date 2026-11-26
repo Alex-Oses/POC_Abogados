@@ -324,10 +324,16 @@ function setHl(v) {
     if (JSON.stringify(v) === JSON.stringify(S.hl)) return;
     S.hl = v; up();
 }
-function hoverWarn(target, p) {
+function hoverWarn(target, p, d) {
     const w = target.closest && target.closest('[data-wid]');
     const s = w && pageSegs(p).find(x => x.id === w.dataset.wid);
-    setHl(s ? s.bbox || 'none' : null);
+    if (!s) return setHl(null);
+    if (s.bbox || s.bbox === false) return setHl(s.bbox || 'none');
+    // Sin caja del OCR (escaneo o aviso de DNI/IBAN): se pide al backend dónde está en la imagen.
+    S.hlWant = s.id;
+    getJ(`/documents/${d.id}/pages/${p.n}/locate?q=${encodeURIComponent(s.t.trim())}`)
+        .then(r => { s.bbox = r.bbox || false; if (S.hlWant === s.id) setHl(s.bbox || 'none'); })
+        .catch(() => { s.bbox = false; });
 }
 
 function TextPane({ d, p }) {
@@ -338,8 +344,8 @@ function TextPane({ d, p }) {
         onInput=${() => onTextInput(d, p, ref.current)}
         onClick=${e => { const w = e.target.closest('[data-wid]'); if (ed && w && !(w.dataset.wid in p.fixes)) openWarn(w, p); }}
         onKeyDown=${e => { const w = e.target.dataset && e.target.dataset.wid; if (ed && w && (e.key === 'Enter' || e.key === ' ') && !(w in p.fixes)) { e.preventDefault(); openWarn(e.target, p); } }}
-        onMouseOver=${e => hoverWarn(e.target, p)} onMouseLeave=${() => setHl(null)}
-        onFocus=${e => hoverWarn(e.target, p)}></div>`;
+        onMouseOver=${e => hoverWarn(e.target, p, d)} onMouseLeave=${() => { S.hlWant = null; setHl(null); }}
+        onFocus=${e => hoverWarn(e.target, p, d)}></div>`;
 }
 
 // ---------- piezas comunes ----------
@@ -578,7 +584,9 @@ function Revisio() {
                 </div>
             </div>
             <div className="card rtxt">
-                <div className="tool"><b style=${{ color: 'var(--t)' }}>Text</b> · ${ed ? t('desat') : t('nomes_lect')} <span className="sp"></span>${t('seg')}</div>
+                <div className="tool"><b style=${{ color: 'var(--t)' }}>Text</b> · ${ed ? t('desat') : t('nomes_lect')}
+                    ${done && p.quality !== 'bad' && html`<span className=${'chip ' + (p.diff ? (p.diff.some(x => x.diff) ? 'bad' : 'ok') : 'n')}>${p.diff ? `${t('dues_l')} · ${p.diff.filter(x => x.diff).length} ${t('difs')}` : t('una_l')}</span>`}
+                    <span className="sp"></span>${done ? `${t('contrast')} ${p.contrast ?? '—'}` : ''} · ${t('seg')}</div>
                 ${!done ? html`<div style=${{ padding: '20px' }} className="doc-s">${p.status === 'run' ? html`<span className="spin" aria-hidden="true"></span> ${t('pend_pag')}` : t('en_cua')}</div>`
                 : st === 'bad' || (p.quality === 'bad' && p.esc) ? html`<div style=${{ padding: '20px' }}><div className="banner bad"><b>✕ ${t('il_t')}</b> (${t('contrast').toLowerCase()} ${p.contrast + ' < 80'})<br />${t('il_s2')}</div>
                     ${p.esc && html`<div className="banner w">${t('marcar_esc')} ✓</div>`}</div>`
@@ -586,8 +594,6 @@ function Revisio() {
                 ${hl === 'none' && html`<div className="tool foot doc-s">${t('no_capa')}</div>`}
             </div>
         </div>
-        <div className="legend"><span><span className="doubt">94</span> ${t('lg_w')}</span><span><span className="invalid">8192…</span> ${t('lg_bad')}</span>
-            <span className="sp"></span><span>${done ? `${t('qual')}: ${p.quality === 'bad' ? '✕' : '✓'} ${t('contrast').toLowerCase()} ${p.contrast ?? '—'}` : ''}</span></div>
     <//>`;
 }
 
