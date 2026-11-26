@@ -4,6 +4,8 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 ## Pendiente
 
+- [ ] 27/11: instalar y probar en el servidor con `docs/GUIA_SERVIDOR.md` (lista de comprobación al final) · @Alex-Oses
+
 - [ ] Envío por correo del PDF exportado (anonimizado o transcrito) a quien lo deba recibir. Pendiente de hablar el 27/11: ver [[2026-11-26-ia-claude-alex]] · @Alex-Oses
 
 **Entrega viernes 27/11** (ver [[Equipo]]):

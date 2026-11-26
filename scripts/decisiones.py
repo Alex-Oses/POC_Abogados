@@ -37,7 +37,7 @@ def lee(ruta):
 
 
 def campo(texto, nombre):
-    m = re.search(rf"\*\*{nombre}\*\*:\s*(.+)|^\s*-\s*\*\*{nombre}\*\*:?\s*(.+)$", texto, re.M)
+    m = re.search(rf"\*\*{nombre}\*\*:\s*(.+)|^\s*-\s*\*\*{nombre}\*\*:?\s*(.+)$", texto, re.MULTILINE)
     if not m:
         return ""
     return (m.group(1) or m.group(2) or "").strip()
@@ -68,7 +68,7 @@ def decisiones():
 
 def lineas(seccion, empieza_por=None, contiene=None):
     texto = lee(RAIZ / "vault/Tablero.md")
-    bloque = re.search(rf"^## {seccion}\n(.*?)(?=\n## |\Z)", texto, re.S | re.M)
+    bloque = re.search(rf"^## {seccion}\n(.*?)(?=\n## |\Z)", texto, re.DOTALL | re.MULTILINE)
     for linea in (bloque.group(1).splitlines() if bloque else []):
         linea = linea.strip()
         if empieza_por and not linea.startswith(empieza_por):
@@ -94,7 +94,7 @@ def main():
         if any(enlace in linea for enlace in ya_en_tabla):
             continue  # ya sale arriba como decisión
         tarea = re.sub(r"^- \[ \]\s*", "", linea)
-        tarea = re.sub(rf"\s*·\s*@\w+(\s+@\w+)*\s*$", "", tarea)
+        tarea = re.sub(r"\s*·\s*@\w+(\s+@\w+)*\s*$", "", tarea)
         filas.append((tarea, "**tu decisión**", "[[Tablero]] § Pendiente"))
 
     if not filas:

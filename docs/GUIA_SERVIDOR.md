@@ -156,3 +156,21 @@ Problemas habituales:
 - **El certificado no se emite con `DOMINIO`.** El dominio tiene que apuntar a la IP pública y el puerto 80 debe estar abierto, porque Let's Encrypt lo usa para comprobarlo. Mira `./diagnostico.sh`, apartado Caddy.
 - **`NO LISTA` en la base de datos.** Falta algo en la base de datos de Marina (tabla, columna o permiso). El mensaje dice qué.
 - **Los documentos se quedan en «En cua».** El OCR no está listo. En el diagnóstico, el apartado «Ollama» debe listar el modelo `PaddleOCR-VL`. Si el servidor no pudo descargarlo, copia la carpeta de modelos desde un PC que lo tenga (en Windows, `%USERPROFILE%\.ollama\models`) a `/usr/share/ollama/.ollama/models` y reinicia con `sudo systemctl restart ollama`.
+
+## Lista de comprobación para la prueba en el servidor
+
+Con los documentos de `pruebas/` (ver `pruebas/README.md`). Si algo no va, apunta el número y ejecuta `./diagnostico.sh`.
+
+1. La web abre desde un portátil fuera de la red, con candado (HTTPS) y sin avisos si se usó `DOMINIO`.
+2. Login como admin y con un usuario creado con `crear_usuario.py`.
+3. Subir `01_dni.pdf` con doble transcripción: pasa a «Transcrit» y en la bandeja sale «Pujat per» y «Doble transcripció».
+4. Subir a la vez del 02 al 14: se ponen en cola, avanzan y acaban. Apunta cuánto tarda cada página con el OCR real.
+5. `17_no_es_pdf.pdf` sale en el aviso rojo de rechazados y no frena a los demás.
+6. Abrir `10_pagina_ilegible.pdf`: la página 2 sale como ilegible.
+7. En Revisió, editar texto con negrita o color, recargar y comprobar que sigue; validar páginas.
+8. Justícia gratuïta con `08` (completo) y `09` (le falta documentación): la vista previa y el aviso de lo que falta.
+9. Anonimizar `06_contrato_datos_personales.pdf`, exportar y abrir el `_anon.pdf`: no debe verse ningún nombre, DNI, IBAN, teléfono ni correo.
+10. «PDF transcrit» de cualquier documento: baja `<nombre>_trans.pdf`.
+11. Filtros de la bandeja y ZIP de varios documentos.
+12. Reiniciar el servidor (`sudo reboot`): la app vuelve sola y los documentos a medias siguen en la cola.
+13. `copia_seguridad.sh` crea la copia en `copias/`.

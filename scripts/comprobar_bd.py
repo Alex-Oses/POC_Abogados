@@ -30,7 +30,7 @@ def url() -> str:
     if os.getenv("DATABASE_URL"):
         return os.environ["DATABASE_URL"]
     env = Path(__file__).resolve().parents[1] / "backend" / ".env"
-    m = re.search(r"^DATABASE_URL=(.+)$", env.read_text(encoding="utf-8"), re.M) if env.exists() else None
+    m = re.search(r"^DATABASE_URL=(.+)$", env.read_text(encoding="utf-8"), re.MULTILINE) if env.exists() else None
     if not m:
         sys.exit("ERROR: falta la URL de la base de datos")
     return m.group(1).strip()

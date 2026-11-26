@@ -15,6 +15,15 @@ Rama `feat/backend-documentos`. Sin cambios de esquema de BD: no hay migraciones
 - **Despliegue**: `scripts/instalar_servidor.sh` (Ubuntu 24.04: Docker + Postgres con el modelo de Marina V1..V15 + vistas, Ollama, app como servicio systemd, Caddy con HTTPS por IP). Deja `arrancar.sh`, `parar.sh`, `actualizar.sh` y `logs.sh`.
 - **Tests**: `test_cola_ocr_bd.py`, `test_richtext.py`, `test_sharepoint.py`; el flujo completo cubre «subido por», `_trans`, `_anon` y ZIP. 25/25 con BD.
 
+## Añadido (tarde-noche)
+
+- **Guía del servidor**: `docs/GUIA_SERVIDOR.md`, con lista de comprobación para la prueba.
+- **Instalador**: BD externa (`DATABASE_URL`, la de Marina) comprobada con `scripts/comprobar_bd.py`; `DOMINIO` con Let's Encrypt; producción sin `/docs`; logs en `logs/` y `diagnostico.sh` con claves tapadas. Probado en un Ubuntu 24.04 limpio.
+- **Scripts**: `crear_usuario.py` (altas mientras no haya SSO), `copia_seguridad.sh` y `generar_pruebas.py`.
+- **Documentos de prueba**: 17 ficticios en `pruebas/` (único sitio donde se admiten PDF en el repo).
+- **Fuentes locales**: sin Google Fonts; la web no llama a terceros.
+- **Arreglos de la auditoría**: subida duplicada, justicia gratuita en catalán, eventos legibles, cancelados sin error, rechazados en aviso fijo y miniaturas de revisión.
+
 ## Cambiado
 
 - **Doble transcripción** seleccionada por defecto.
@@ -34,4 +43,4 @@ Rama `feat/backend-documentos`. Sin cambios de esquema de BD: no hay migraciones
 - Envío por correo tras exportar: decidir el 27/11 (ver [[2026-11-26-ia-claude-alex]]).
 - Probar SharePoint con un tenant real y el script en el servidor de Azure (abrir 80/443 en el NSG).
 - @Marina: confirmar que en el servidor no se aplican `triggers.sql` ni `partitioning.sql` (#52).
-- Revisión funcional de la web (auditoría en curso): arreglos pendientes.
+- Probar en el servidor real (27/11) con la lista de la guía.

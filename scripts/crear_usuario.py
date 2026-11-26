@@ -16,10 +16,10 @@ BACKEND = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND))
 os.chdir(BACKEND)  # la configuración lee .env de la carpeta actual: funciona se lance desde donde se lance
 
-import psycopg  # noqa: E402
+import psycopg
 
-from app.core.config import settings  # noqa: E402  (lee backend/.env)
-from app.core.security import hash_password  # noqa: E402
+from app.core.config import settings
+from app.core.security import hash_password
 
 ROLES = {"transcriptor", "revisor", "admin"}
 
