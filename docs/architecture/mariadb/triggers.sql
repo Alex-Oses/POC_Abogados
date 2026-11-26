@@ -289,6 +289,8 @@ BEGIN
                 ELSE
                     SET v_estado = 'aprobado';
                 END IF;
+            -- E-56: sin ELSE, un tipo 'original' provoca "Case not found".
+            ELSE SET v_estado = NULL;
         END CASE;
     ELSEIF p_rev_estado IS NOT NULL THEN
         CASE p_rev_estado
@@ -300,6 +302,7 @@ BEGIN
                     SET v_estado = 'aprobado';
                 END IF;
             WHEN 'rechazado_con_cambios' THEN SET v_estado = 'rechazado';
+            ELSE SET v_estado = NULL;
         END CASE;
     END IF;
 

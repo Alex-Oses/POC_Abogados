@@ -31,7 +31,7 @@ El equipo pidió también una arquitectura equivalente para MariaDB para tener u
 - La carpeta `docs/architecture/mariadb/` es referencia y punto de partida, no un segundo despliegue que mantener en paralelo sin decisión nueva.
 - E-23 sigue abierto en PostgreSQL y se hereda en MariaDB con una diferencia añadida: **no se puede mezclar una cadena de auditoría empezada en un motor con la de otro**.
 - E-51 (`bbox_*` legacy) y E-53 (columnas de la v0.3 ausentes) se heredan sin resolver: hacen falta @Marina y una decisión nueva respectivamente.
-- Sin motores operativos, ni el SQL PostgreSQL ni el MariaDB están ejecutados: falta `flyway clean` + `migrate`, los scripts y una prueba con dos versiones para comprobar `es_actual`.
+- PostgreSQL 16.4 sí se ha ejecutado desde cero el 26/11 (`V1`–`V15`, vistas, triggers, recreación de `auditoria`, particiones manuales y 15/15 tests). MariaDB sigue sin motor y revisado solo por lectura: falta su `flyway clean` + `migrate`, los tres scripts y una prueba con dos versiones para comprobar `es_actual`. E-56 ya está corregido en el port tras la ejecución PostgreSQL.
 
 ## Fuentes
 

@@ -26,8 +26,10 @@ La BD `V1`–`V15` está cerrada: [[0011-ajustes-al-modelo-de-marina]] y [[0015-
 - Cambia la noción de «fila anterior» de la cadena de auditoría: pasa a ser la de mayor `creado_en` y, en caso de empate, mayor `id`. Con `creado_en = now()` y una secuencia global, el resultado coincide con el orden anterior en condiciones normales; con timestamps manipulados o reintroducidos, puede diferir.
 - No se tocan las migraciones versionadas, así que Flyway no cambia de checksum. Sí hay que re-ejecutar `triggers.sql` (y la recreación ya reengancha el trigger de auditoría).
 - **E-23 sigue abierto**: el trigger y el backend calculan el hash con formas distintas de la fila. Este cambio unifica el orden, no el contenido del hash.
-- Sin PostgreSQL 16 en este equipo, todo está revisado solo por lectura. Falta ejecutar `flyway clean` + `migrate`, `views.sql`, `triggers.sql` y `partitioning.sql` desde cero, y correr las pruebas de integración del backend.
+- **Validado en PostgreSQL 16.4 el 26/11** con una base creada desde cero: `auditoria` queda como tabla particionada (`relkind = p`) con PK `(id, creado_en)`, la recreación es idempotente y la cadena produce hashes distintos en dos inserciones seguidas. Los 15 tests del backend pasan con base disponible.
+- La ejecución destapó tres defectos de los scripts que la lectura no vio, ya corregidos y documentados como **E-54** (la PK nueva chocaba con `auditoria_pkey` si se creaba antes del `DROP`), **E-55** (`OLD.estado` en `versiones_documento`) y **E-56** (`CASE` sin `ELSE` al insertar una versión `original`). No cambian la decisión: siguen viviendo en los scripts operativos, no en Flyway.
+- Queda sin validar el mantenimiento automático: `pg_partman` no está en los binarios oficiales y las particiones de la prueba se crearon a mano. Falta ejecutar las secciones 2+ de `partitioning.sql` en el entorno de despliegue.
 
 ## Fuentes
 
-[[Registro de errores]] E-01, E-03, E-16, E-17 y E-23; `docs/architecture/migrations/V8__create_auditoria.sql`, `docs/architecture/partitioning.sql`, `docs/architecture/triggers.sql` y `backend/app/db/queries/audit.sql`.
+[[Registro de errores]] E-01, E-03, E-16, E-17, E-23, E-54, E-55 y E-56; `docs/architecture/migrations/V8__create_auditoria.sql`, `docs/architecture/partitioning.sql`, `docs/architecture/triggers.sql` y `backend/app/db/queries/audit.sql`. Validación: [[Registro de errores]] § «Cuarta pasada (26/11)».

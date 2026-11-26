@@ -8,6 +8,7 @@
 - **Actualizado (26/11/2026):** documentación de esquema alineada con el modelo v0.3; corregidos E-04, E-05, E-07, E-08 y E-13, parcial E-44, y abierto E-53 con las contradicciones del documento v0.3.
 - **Actualizado (26/11/2026, segunda pasada):** cerrados los cuatro defectos P0 del SQL (E-01, E-03, E-16 y E-17); E-17 queda ligado a la decisión propuesta [[0017-particionado-auditoria]].
 - **Actualizado (26/11/2026, tercera pasada):** documentado el port a MariaDB como segunda opción (`docs/architecture/mariadb/`, [[0018-mariadb-segunda-opcion]]). No abre defectos nuevos: E-23, E-51 y E-53 se heredan y se documentan como límites del port, sin ejecutar por falta de motor.
+- **Actualizado (26/11/2026, cuarta pasada):** base construida y ejecutada en PostgreSQL 16.4 portátil sin Docker (`127.0.0.1:55432`). Cerrados E-54, E-55 y E-56 (defectos de ejecución de los scripts) y E-57 y E-58 (defectos del backend vistos por los tests). Los 15 tests pasan con `DATABASE_TEST_URL`.
 - **Alcance:** los ficheros versionados del repo (`README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/api/`, `docs/architecture/`, `docs/architecture/mariadb/`, `docs/reglas/`, `docs/export/`, `docs/presidio.md`, `vault/`, `maqueta/`, `scripts/`) y, leídos enteros, las 14 migraciones (`V1`–`V12`, `V14`, `V15`), `views.sql`, `triggers.sql` y `partitioning.sql`, además de sus 14 equivalentes MariaDB.
 - **Para qué:** una sola lista de defectos, con evidencia, impacto y estado, para no reabrirlos ni volver a reportar lo descartado.
 - **Qué no es:** no sustituye al [[Tablero]] ni a [[Coherencia]]. Aquí van defectos comprobables; allí, decisiones y bloqueantes.
@@ -78,12 +79,17 @@
 | E-51 | P2 | `anotaciones_entidad` conserva `pagina_numero` y `bbox_*`, que no aparecen en el modelo ER vigente | `V6__create_anotaciones_entidad.sql` vs `Modelo de datos.md:147-165,247` | bloqueado: requiere decidir si se conservan como respaldo o se eliminan con plan de datos |
 | E-52 | P1 | El diseño del PDF final tenía lagunas: geometría, semántica del texto, `falso_negativo`, sobrescritura, concurrencia y offsets | `pdf.md`, 0007, `endpoints.md` §5-6 | corregido (25/11) |
 | E-53 | P3 | La v0.3 se contradice: `hash_export`, A-20, 0012, A-04, offsets, columnas de `revisiones` y columnas que el SQL no trae | `Modelo-ER-POC-ICAT-v0.3` (24/11) | abierto (documentado; decide el equipo) |
+| E-54 | P0 | `relation "auditoria_pkey" already exists` al recrear `auditoria` como particionada | `partitioning.sql` (bloque `DO`) | **corregido** (26/11: PK creada tras `DROP`/`RENAME`; ejecutado en PG16) |
+| E-55 | P0 | `record "old" has no field "estado"` al insertar una versión de documento | `triggers.sql` · `trg_audit_log_event()` | **corregido** (26/11: `to_jsonb(OLD/NEW)` en las comparaciones) |
+| E-56 | P0 | `case not found` con `tipo_version = 'original'` (y en estados de cola) | `triggers.sql` · `trg_documento_estado_auto()`; `mariadb/triggers.sql` | **corregido** (26/11: `ELSE v_estado := NULL`) |
+| E-57 | P1 | U-17 revoca la sesión **más nueva** en vez de la más antigua | `backend/app/db/queries/auth.sql:21-32` | **corregido** (26/11: `ORDER BY creado_en DESC`) |
+| E-58 | P2 | `/health` responde `200` en el test sin lifespan si los tests de auth ya abrieron la BD | `backend/tests/test_sin_bd.py:21` | **corregido** (26/11: estado aislado en el test) |
 
 ---
 
 ## P0 · SQL que no se puede aplicar
 
-> Los cuatro son lectura del SQL, no ejecución: en este equipo no hay PostgreSQL y Docker no arranca. La deducción de E-01 está contrastada con la documentación de PostgreSQL; E-03, E-16 y E-17 se ven en el propio fichero.
+> E-01, E-03, E-16 y E-17 se encontraron por lectura del SQL, cuando no había motor. E-54, E-55 y E-56 aparecieron al ejecutar el esquema en PostgreSQL 16.4. Los siete están corregidos y cubiertos por la ejecución real del 26/11.
 
 ### E-01 · `audit_compute_hash` no se puede crear
 
@@ -105,7 +111,7 @@
 - **Qué pasa.** PostgreSQL no convierte una tabla normal en particionada con `ALTER TABLE … PARTITION BY`: hay que recrearla. El fichero tiene el procedimiento correcto comentado en las líneas 10-12, pero lo que se ejecuta es el `ALTER`.
 - **Impacto.** El paso 3 del README de arquitectura falla siempre.
 - **Arreglo (26/11).** `partitioning.sql` ya no ejecuta el `ALTER`: recrea `auditoria` como tabla particionada solo si no lo está, copiando las filas y conservando secuencia, FK, índices, comentarios y trigger. No se edita `V8` (BD cerrada, 0011 y 0015).
-- **Estado.** corregido el 26/11. Sin motor local, la recreación está revisada solo por lectura.
+- **Estado.** corregido el 26/11 y ejecutado en PostgreSQL 16.4 el mismo día: la recreación funciona y es idempotente. E-54 apareció al ejecutarla por primera vez.
 
 ### E-16 · El nombre de la tabla está mal escrito en siete llamadas a `pg_partman`
 
@@ -120,7 +126,31 @@
 - **Qué pasa.** En una tabla particionada, toda `PRIMARY KEY` o `UNIQUE` tiene que incluir la columna de particionado; si no, PostgreSQL rechaza el `CREATE`: *unique constraint on partitioned table must include all partitioning columns*. Pasa con el `ALTER` (E-03) y con el `LIKE … INCLUDING ALL`.
 - **Impacto.** El particionado no es aplicable sin cambiar la PK a `(id, creado_en)`. Y de paso, la cadena de hashes (E-23) ordena por `id`, que deja de ser único por sí solo.
 - **Arreglo (26/11).** La recreación de `partitioning.sql` define `PRIMARY KEY (id, creado_en)`; `triggers.sql` y `backend/app/db/queries/audit.sql` ordenan la cadena por `(creado_en DESC, id DESC)`. `id` sigue siendo `BIGSERIAL` con secuencia global. La propuesta [[0017-particionado-auditoria]] recoge el cambio de orden y queda a la espera de que una persona la acepte.
-- **Estado.** corregido el 26/11 en el código; decisión **Propuesta**. Pendiente de validar en PostgreSQL 16.
+- **Estado.** corregido el 26/11 en el código; decisión **Propuesta**. Validado en PostgreSQL 16.4 el 26/11: `auditoria` es particionada (`relkind = p`) y su PK es `(id, creado_en)`.
+
+### E-54 · El nombre `auditoria_pkey` ya existe al recrear la tabla
+
+- **Evidencia.** Al ejecutar el bloque de recreación de `partitioning.sql` en PostgreSQL 16.4: `ERROR: relation "auditoria_pkey" already exists`, en `ALTER TABLE public.auditoria_partitioned ADD CONSTRAINT auditoria_pkey PRIMARY KEY (id, creado_en)`.
+- **Qué pasa.** La tabla original de `V8` aún existe en ese momento; su índice `auditoria_pkey` sigue vivo y PostgreSQL no permite crear otro índice con el mismo nombre en el esquema. El orden correcto es `DROP TABLE public.auditoria` → `RENAME` → crear la PK.
+- **Impacto.** El paso 3 del README falla siempre que la base arranca desde `V1`–`V15`, aunque el resto de la recreación estuviera bien.
+- **Arreglo (26/11).** La PK se añade después del `DROP`/`RENAME`, sobre `public.auditoria`. El bloque es idempotente: la segunda ejecución avisa «ya está particionada; se omite la recreación».
+- **Estado.** corregido y ejecutado en PG16. No aplica a MariaDB: allí la PK se recrea con `DROP PRIMARY KEY, ADD PRIMARY KEY` dentro del mismo `ALTER TABLE`.
+
+### E-55 · `trg_audit_log_event()` lee `OLD.estado` en una tabla que no lo tiene
+
+- **Evidencia.** Al insertar la primera `versiones_documento` en la base validada: `ERROR: record "old" has no field "estado"`. El trigger de auditoría se comparte entre cinco tablas y evaluaba `OLD.estado <> NEW.estado` en la rama de `documentos`.
+- **Qué pasa.** SQL no garantiza que `AND` cortocircuite de izquierda a derecha, así que la condición de tabla no evita evaluar `OLD.estado` cuando dispara en `versiones_documento`, que no tiene esa columna.
+- **Impacto.** No se puede insertar ninguna versión de documento: el flujo de OCR y revisión está cortado desde el primer INSERT.
+- **Arreglo (26/11).** `v_old := to_jsonb(OLD)` / `v_new := to_jsonb(NEW)` al inicio y comparaciones con `v_old->>'estado' IS DISTINCT FROM v_new->>'estado'` (y lo mismo para `accion_aplicada` y `version`). `IS DISTINCT FROM` además trata `NULL` como cambio, que es lo correcto en auditoría.
+- **Estado.** corregido y ejecutado en PG16. No aplica al port MariaDB: allí hay un trigger distinto por tabla/evento.
+
+### E-56 · `CASE` sin `ELSE` en el trigger de auto-estado
+
+- **Evidencia.** Al insertar una versión `original`: `ERROR: case not found`, y `CASE statement is missing ELSE part.` al crear la versión corregida del trigger. `trg_documento_estado_auto()` recorría un `CASE v_tipo` sin rama para `original`.
+- **Qué pasa.** PL/pgSQL lanza excepción cuando ningún `WHEN` coincide y no hay `ELSE`. Lo mismo pasaba con estados de revisiones distintos de `aprobado`/`rechazado_con_cambios`.
+- **Impacto.** El alta de un documento falla antes de poder subir la versión original; cualquier tipo de versión nuevo también rompería el pipeline.
+- **Arreglo (26/11).** `ELSE v_estado := NULL;` en los dos `CASE` de PostgreSQL y en `sp_documento_estado_auto()` del port MariaDB. El trigger solo actualiza `documentos.estado` cuando la variable no es `NULL`.
+- **Estado.** corregido y ejecutado en PG16. La validación deja el documento en `ocr_completado` tras la versión `ocr_texto`.
 
 ---
 
@@ -495,6 +525,40 @@ El modelo del 24/11 es la fuente del [diagrama](../Proyecto/Modelo%20de%20datos.
 
 ---
 
+## Cuarta pasada (26/11) · Ejecución real en PostgreSQL 16.4
+
+> PostgreSQL portátil sin Docker, escuchando solo en `127.0.0.1:55432`. Base `icat_anon_dev` creada dos veces desde cero con datos ficticios (`validacion@icat.local`, `/tmp/validacion.pdf`). El servidor se apaga al terminar. `pg_partman` no está en los binarios oficiales: las secciones 2+ de `partitioning.sql` no se ejecutaron y las particiones de la prueba se crearon a mano.
+
+### E-57 · U-17 revocaba la sesión equivocada
+
+- **Evidencia.** `backend/app/db/queries/auth.sql:21-32` ordenaba `ORDER BY creado_en ASC` con `OFFSET conservar` (`conservar = sesiones_max - 1 = 2`). En la reproducción con cuatro logins, el token 0 seguía devolviendo `200` y el revocado era el tercero. El test `test_cuarta_sesion_desaloja_la_mas_antigua` fallaba con `assert 200 == 401`.
+- **Qué pasa.** Con tres sesiones activas antes del cuarto login, `ASC` + `OFFSET 2` conserva las dos más antiguas y revoca la más reciente. La regla U-17 y `docs/api/endpoints.md:135` exigen revocar la más antigua por `creado_en`.
+- **Arreglo (26/11).** `ORDER BY creado_en DESC`: se conservan las dos más recientes y se revoca la antigua. Encaja con el índice `idx_sesiones_usuario_usuario (usuario_id, creado_en DESC)` de `V15`.
+- **Estado.** corregido y verificado con los 15 tests en `backend/`.
+
+### E-58 · `/health` dependía del orden de los tests
+
+- **Evidencia.** Con `DATABASE_TEST_URL`, `test_health_sin_bd_es_503` fallaba con `assert 200 == 503`: los tests de autenticación ya habían ejecutado el lifespan (`with TestClient(app)`) y `app.state.bd_disponible` seguía en `True` en el `app` compartido, aunque este test crea su propio `TestClient` sin `with`.
+- **Impacto.** La suite solo era verde sin base de datos. Con la base disponible —justo cuando interesa— daba un falso fallo de `/health`; no es un defecto de la API en producción.
+- **Arreglo (26/11).** El test guarda y fuerza `bd_disponible = False`, y lo restaura en `finally`, para comprobar el modo degradado sin depender del orden de módulos.
+- **Estado.** corregido. `15 passed` con `DATABASE_TEST_URL`; `11 passed, 4 skipped` sin ella.
+
+### Resultado de la validación
+
+| Comprobación | Resultado |
+|---|---|
+| Migraciones `V1`–`V15` (14 ficheros, sin `V13`) | aplicadas con `ON_ERROR_STOP=1` |
+| `views.sql` y `triggers.sql` | aplicados limpios, después de las migraciones |
+| Recreación de `auditoria` | `relkind = p`, PK `PRIMARY KEY (id, creado_en)`, idempotente |
+| Tablas base / vistas / FK / triggers | 17 (14 del modelo + 3 particiones) / 5 / 24 / 25 |
+| Seeds y versión | 24 categorías, `version_esquema_bd = 15` |
+| Cadena de hash | dos inserciones → 2 valores de `hash_anterior` distintos (E-23 sigue abierto para concurrencia) |
+| Versiones | numeradas `1,2`, una sola `es_actual`, documento en `ocr_completado` |
+| Vistas | `v_documento_actual`, `v_dashboard_estados` y `v_metricas_revisor` consultables |
+| Backend | 15/15 tests con BD; 11 passed + 4 skipped sin BD |
+
+---
+
 ## Descartados
 
 Falsos positivos comprobados. Se dejan aquí para no volver a reportarlos.
@@ -508,6 +572,6 @@ Falsos positivos comprobados. Se dejan aquí para no volver a reportarlos.
 
 ## Lo que no cubre
 
-- **Nada está ejecutado en un motor.** Sin PostgreSQL local y con Docker ausente, E-01, E-03, E-16, E-17 y la nueva `V15` son lectura, no prueba. En cuanto haya motor, se aplican las migraciones y este registro se actualiza con el resultado.
+- **PostgreSQL sí se ha ejecutado** (26/11): `V1`–`V15`, vistas, triggers, recreación de `auditoria` y particiones manuales, con los resultados de la cuarta pasada. Queda sin ejecutar `pg_partman` (no viene en los binarios oficiales) y todo el esquema MariaDB: sigue revisado solo por lectura.
 - **No se ha auditado el rendimiento con datos.** Las observaciones de E-22, E-23 y E-30 son de diseño; no hay medidas.
 - **La maqueta no se ha probado en navegador** y de `docs/api/endpoints.md` solo se ha contrastado el modelo de tablas, no ruta por ruta.

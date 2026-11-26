@@ -19,9 +19,17 @@ def test_sin_token_es_401_antes_de_la_bd():
 
 
 def test_health_sin_bd_es_503():
-    respuesta = cliente.get("/health")
-    assert respuesta.status_code == 503
-    assert respuesta.json()["bd"] is False
+    # E-58: con DATABASE_TEST_URL, los tests de auth ya ejecutaron el lifespan y
+    # `app.state.bd_disponible` queda en True. Aislamos el estado para que este
+    # test compruebe el modo degradado sin depender del orden de ejecución.
+    estado_anterior = getattr(cliente.app.state, "bd_disponible", False)
+    cliente.app.state.bd_disponible = False
+    try:
+        respuesta = cliente.get("/health")
+        assert respuesta.status_code == 503
+        assert respuesta.json()["bd"] is False
+    finally:
+        cliente.app.state.bd_disponible = estado_anterior
 
 
 def test_todas_las_consultas_estan_cargadas():

@@ -185,6 +185,9 @@ BEGIN
                 ELSE
                     v_estado := 'aprobado';
                 END IF;
+            -- E-56: `original` y cualquier tipo nuevo no cambian el estado.
+            -- Un CASE sin ELSE falla con "case not found" en PL/pgSQL.
+            ELSE v_estado := NULL;
         END CASE;
 
     ELSIF TG_TABLE_NAME = 'revisiones' THEN
@@ -199,6 +202,8 @@ BEGIN
                 END IF;
             WHEN 'rechazado_con_cambios' THEN
                 v_estado := 'rechazado';
+            -- E-56: estados de cola y devolución no cambian el documento.
+            ELSE v_estado := NULL;
         END CASE;
     END IF;
 
@@ -230,16 +235,26 @@ DECLARE
     ent_id UUID;
     det JSONB;
     usr UUID;
+    v_old JSONB;
+    v_new JSONB;
 BEGIN
+    -- E-55: OLD/NEW se convierten a jsonb antes de comparar. El trigger también
+    -- dispara en `versiones_documento`, que no tiene `estado`, y SQL no garantiza
+    -- que AND cortocircuite: `OLD.estado <> NEW.estado` fallaba con "record old
+    -- has no field estado" al insertar una versión.
+    IF TG_OP <> 'INSERT' THEN v_old := to_jsonb(OLD); END IF;
+    IF TG_OP <> 'DELETE' THEN v_new := to_jsonb(NEW); END IF;
+
     -- Determinar evento según tabla y operación
     IF TG_TABLE_NAME = 'documentos' AND TG_OP = 'INSERT' THEN
         ev := 'DOCUMENTO_SUBIDO'; ent_tipo := 'documento'; ent_id := NEW.id;
         det := jsonb_build_object('nombre', NEW.nombre_original, 'hash', NEW.hash_sha256);
         usr := NEW.creado_por;
 
-    ELSIF TG_TABLE_NAME = 'documentos' AND TG_OP = 'UPDATE' AND OLD.estado <> NEW.estado THEN
+    ELSIF TG_TABLE_NAME = 'documentos' AND TG_OP = 'UPDATE'
+          AND v_old->>'estado' IS DISTINCT FROM v_new->>'estado' THEN
         ev := 'DOCUMENTO_ESTADO_CAMBIO'; ent_tipo := 'documento'; ent_id := NEW.id;
-        det := jsonb_build_object('estado_anterior', OLD.estado, 'estado_nuevo', NEW.estado);
+        det := jsonb_build_object('estado_anterior', v_old->>'estado', 'estado_nuevo', v_new->>'estado');
         usr := NEW.creado_por;
 
     ELSIF TG_TABLE_NAME = 'versiones_documento' AND TG_OP = 'INSERT' THEN
@@ -253,10 +268,11 @@ BEGIN
                                    'accion', NEW.accion_aplicada, 'confianza', NEW.confianza_deteccion);
         usr := NEW.revisado_por;
 
-    ELSIF TG_TABLE_NAME = 'anotaciones_entidad' AND TG_OP = 'UPDATE' AND OLD.accion_aplicada <> NEW.accion_aplicada THEN
+    ELSIF TG_TABLE_NAME = 'anotaciones_entidad' AND TG_OP = 'UPDATE'
+          AND v_old->>'accion_aplicada' IS DISTINCT FROM v_new->>'accion_aplicada' THEN
         ev := 'ENTIDAD_MODIFICADA_MANUAL'; ent_tipo := 'anotacion'; ent_id := NEW.id;
-        det := jsonb_build_object('accion_anterior', OLD.accion_aplicada, 'accion_nueva', NEW.accion_aplicada,
-                                   'revisor', NEW.revisado_por);
+        det := jsonb_build_object('accion_anterior', v_old->>'accion_aplicada',
+                                   'accion_nueva', v_new->>'accion_aplicada', 'revisor', NEW.revisado_por);
         usr := NEW.revisado_por;
 
     ELSIF TG_TABLE_NAME = 'revisiones' AND TG_OP = 'INSERT' THEN
@@ -264,13 +280,14 @@ BEGIN
         det := jsonb_build_object('version_id', NEW.version_id, 'intento', NEW.numero_intento);
         usr := NEW.asignado_a;
 
-    ELSIF TG_TABLE_NAME = 'revisiones' AND TG_OP = 'UPDATE' AND OLD.estado <> NEW.estado THEN
-        ev := CASE NEW.estado
+    ELSIF TG_TABLE_NAME = 'revisiones' AND TG_OP = 'UPDATE'
+          AND v_old->>'estado' IS DISTINCT FROM v_new->>'estado' THEN
+        ev := CASE v_new->>'estado'
             WHEN 'aprobado' THEN 'REVISION_APROBADA'
             WHEN 'rechazado_con_cambios' THEN 'REVISION_RECHAZADA'
             ELSE 'REVISION_ESTADO_CAMBIO' END;
         ent_tipo := 'revision'; ent_id := NEW.id;
-        det := jsonb_build_object('estado_anterior', OLD.estado, 'estado_nuevo', NEW.estado);
+        det := jsonb_build_object('estado_anterior', v_old->>'estado', 'estado_nuevo', v_new->>'estado');
         usr := NEW.asignado_a;
 
     ELSIF TG_TABLE_NAME = 'reglas_anonimizacion' AND TG_OP = 'INSERT' THEN
@@ -280,7 +297,8 @@ BEGIN
 
     ELSIF TG_TABLE_NAME = 'reglas_anonimizacion' AND TG_OP = 'UPDATE' THEN
         ev := 'REGLA_MODIFICADA'; ent_tipo := 'regla'; ent_id := NEW.id;
-        det := jsonb_build_object('codigo', NEW.codigo, 'version_anterior', OLD.version, 'version_nueva', NEW.version);
+        det := jsonb_build_object('codigo', NEW.codigo, 'version_anterior', OLD.version,
+                                   'version_nueva', NEW.version);
         usr := NEW.creado_por;
 
     ELSE

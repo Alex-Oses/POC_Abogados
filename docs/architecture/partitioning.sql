@@ -44,9 +44,6 @@ BEGIN
     ) PARTITION BY RANGE (creado_en);
 
     ALTER TABLE public.auditoria_partitioned
-        ADD CONSTRAINT auditoria_pkey PRIMARY KEY (id, creado_en);
-
-    ALTER TABLE public.auditoria_partitioned
         ADD CONSTRAINT auditoria_usuario_id_fkey
         FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
 
@@ -63,6 +60,12 @@ BEGIN
 
     DROP TABLE public.auditoria;
     ALTER TABLE public.auditoria_partitioned RENAME TO auditoria;
+
+    -- E-54: la PK se añade DESPUÉS del DROP/RENAME. Si se añade antes, el índice
+    -- auditoria_pkey de la tabla original sigue vivo y PostgreSQL rechaza crear
+    -- otro índice con el mismo nombre en el esquema.
+    ALTER TABLE public.auditoria
+        ADD CONSTRAINT auditoria_pkey PRIMARY KEY (id, creado_en);
 
     IF seq_name IS NOT NULL THEN
         EXECUTE format('ALTER SEQUENCE %s OWNED BY public.auditoria.id', seq_name);

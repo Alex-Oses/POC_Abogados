@@ -14,7 +14,6 @@ Resto:
 - [x] Identidad implementada (24/11): `V15`, `v_metricas_revisor`, trigger de revisor y diccionario alineados con [[0012-identidad-y-roles]], manteniendo intacto el modelo lógico-relacional · [[0015-identidad-en-v15]] · @Rubén
 - [x] Modelo de roles aceptado (24/11, @Rubén): tres roles, sin supervisor, varios por usuario y **en tabla `usuarios_roles`**; @Kevin y @Alex pueden dejar constancia por Teams · [[0012-identidad-y-roles]] · @Rubén
 - [ ] Cerrar el registro OIDC del ICAT (SSO **en pausa** desde el 26/11, con intención de retomarlo): `GET /auth/sso/login` y `GET /auth/sso/callback` ya están redactados como propuesta; solo falta que el ICAT entregue el registro · @Rubén @Kevin
-- [ ] Validar `V1`..`V15` y el backend contra PostgreSQL 16 desde cero: aquí no hay Docker ni `psql`, así que las pruebas de integración están escritas pero no ejecutadas · @Rubén
 - [x] Integrar Presidio en el backend (26/11): `app/services/presidio.py` con las 6 categorías iniciales (Nombre, DNI/NIE, Email, Teléfono, Dirección, IBAN), fallback regex sin spaCy, `ocr.py` separado de la lógica de Presidio · `backend/` · @ia-antigravity-ruben
 - [ ] Validar el esquema MariaDB desde cero (`flyway clean` + `migrate`, `views.sql`, `triggers.sql`, `partitioning.sql` y una inserción con dos versiones para comprobar `es_actual`): hoy no hay motor y está revisado solo por lectura · @Kevin · [[0018-mariadb-segunda-opcion]]
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Rubén
@@ -30,9 +29,11 @@ Resto:
 
 ## En curso
 
-- [ ] Cerrar los defectos SQL abiertos E-01, E-03, E-16 y E-17 y documentar la arquitectura MariaDB en el mismo PR · @ia-opencode-maga369 · `docs/architecture/`, `docs/architecture/mariadb/`, `backend/app/db/queries/audit.sql` · [[0017-particionado-auditoria]] y [[0018-mariadb-segunda-opcion]] en **Propuesta** (pendientes de aprobación; PR abierto)
 
 ## Hecho
+
+- [x] Base construida y validada en PostgreSQL 16.4 sin Docker (26/11): `V1`–`V15`, vistas, triggers y recreación de `auditoria` ejecutados desde cero; 15/15 tests con base · @ia-opencode-maga369 · [[Registro de errores]] (cuarta pasada)
+- [x] Cerrados E-54, E-55 y E-56 (scripts SQL) y E-57 y E-58 (backend) y documentada la arquitectura MariaDB en el mismo PR · @ia-opencode-maga369 · `docs/architecture/`, `docs/architecture/mariadb/`, `backend/app/db/queries/auth.sql`, `backend/tests/test_sin_bd.py` · [[0017-particionado-auditoria]] y [[0018-mariadb-segunda-opcion]] en **Propuesta** (pendientes de aprobación; PR #52 abierto)
 
 - [x] Backend Python creado (26/11): fundación FastAPI, identidad local de desarrollo, administración de usuarios y auditoría encadenada; `ruff` limpio y 7 pruebas en verde, 4 de BD saltadas por falta de PostgreSQL · `backend/` · [[Estructura del backend (Python)]] · @ia-opencode-ruben
 - [x] Admin de desarrollo con **los tres roles** (26/11): la cuenta sembrada por entorno (U-21) permite recorrer el flujo completo sin SSO; el SSO queda en pausa · `backend/app/services/users.py` · @ia-opencode-ruben
@@ -89,3 +90,4 @@ Resto:
 - @Marina: el port a MariaDB mantiene tus `bbox_*` legacy tal cual (E-51) y tampoco incorpora las columnas de la v0.3 que faltan (E-53). ¿Conservamos la geometría como respaldo o la quitamos con plan de datos, y decides tú qué columnas entran en una migración nueva? · @ia-opencode-maga369
 - @Rubén: he dejado PostgreSQL como motor principal y el backend con `psycopg` intacto; [[0018-mariadb-segunda-opcion]] solo documenta MariaDB. ¿Confirmas que no quieres que adaptemos las consultas `.sql` mientras tanto? · @ia-opencode-maga369
 - @Kevin: si MariaDB llega a desplegarse en el DGX Spark (Arm64), hay que programar `sp_auditoria_add_partition()` cada mes y `sp_auditoria_drop_partition()` para los 120 meses de retención. ¿Lo asumes tú y confirmas soporte de MariaDB 11.4 en Arm64? · @ia-opencode-maga369
+- @Kevin: en PostgreSQL, `pg_partman` no viene en los binarios oficiales; he validado la recreación y las particiones a mano, pero no el mantenimiento ni la retención automática. ¿Instalamos la extensión en el despliegue y ejecutamos las secciones 2+ de `partitioning.sql`, o sustituimos el job por un `pg_cron` propio? · @ia-opencode-maga369

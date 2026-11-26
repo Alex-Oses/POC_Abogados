@@ -35,7 +35,7 @@ La fuente del modelo es [`vault/Proyecto/Modelo de datos.md`](../../vault/Proyec
 | `auditoria` | Sí (`V8`) |
 | `configuracion_sistema` | Sí (`V9`) |
 
-**No está ejecutado en PostgreSQL**: no hay motor local y Docker no arranca en este equipo; todo el SQL está revisado a mano. Falta recrear la base de desarrollo para validar la edición de `V15` ([[0015-identidad-en-v15]]).
+**Validado en PostgreSQL 16.4 (26/11)**: base `icat_anon_dev` creada desde cero sin Docker con `V1`–`V15`, `views.sql`, `triggers.sql` y la recreación de `auditoria` (17 tablas base, 5 vistas, 24 FK, 25 triggers, 24 categorías seed, `version_esquema_bd = 15`). Los 15 tests del backend pasan con base. Queda sin ejecutar el mantenimiento de `pg_partman`, que no viene en los binarios oficiales; las particiones de la prueba se crearon a mano. Ver [[Registro de errores]], cuarta pasada.
 
 ---
 
