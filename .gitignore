@@ -14,3 +14,4 @@ __pycache__/
 .ruff_cache/
 *.egg-info/
 .playwright-mcp/
+test_pdf_images_web/
