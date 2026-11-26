@@ -9,3 +9,4 @@ vault/.trash/
 
 __pycache__/
 *.pyc
+test_pdf_images_web/

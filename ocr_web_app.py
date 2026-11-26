@@ -22,9 +22,11 @@ import glob
 import uuid
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context, send_file
 
-# Adding repo path for imports
-repo = r'C:\\Users\\alex.oses.ext\\work_icat\\repo'
+# Carpeta de este fichero: sirve en cualquier máquina
+repo = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, repo)
+MOCK = os.environ.get('OCR_MOCK') == '1'
+MIN_CONTRAST = 80
 
 app = Flask(__name__)
 
@@ -41,6 +43,14 @@ os.makedirs(PAGES_DIR, exist_ok=True)
 
 def ocr_single_img(img_path, temperature=0):
     """Una llamada OCR a la API de Ollama para una imagen."""
+    if MOCK:
+        # Texto falso para probar sin modelo; con temperatura cambia palabras
+        time.sleep(0.5)
+        text = ('Don Juan Pérez García, con DNI 12345678A y domicilio en Barcelona, '
+                'solicita justicia gratuita. IBAN ES91 2100 0418 4502 0005 1332.')
+        if temperature > 0:
+            text = text.replace('domicilio', 'domicilo').replace('solicita', 'solicito')
+        return 0.5, text
     try:
         with open(img_path, 'rb') as f:
             img_b64 = base64.b64encode(f.read()).decode()
@@ -129,7 +139,7 @@ def convert_pdf_to_images(pdf_path, upload_id, max_pages=500):
         
         for page_num in range(num_pages):
             page = doc[page_num]
-            pix = page.get_pixmap()
+            pix = page.get_pixmap(dpi=150)
             img_name = f"{upload_id}_page_{page_num+1}.png"
             img_path = os.path.join(PAGES_DIR, img_name)
             pix.save(img_path)
@@ -157,6 +167,54 @@ def convert_pdf_to_images(pdf_path, upload_id, max_pages=500):
         return image_paths, max_pages
 
 
+def contrast(img_path):
+    """Contraste de la página: distancia entre la tinta (percentil 0,05 %) y el papel (99,5 %).
+
+    Con 0,5 % una página de una sola línea da 0: la tinta no llega a ese porcentaje.
+    """
+    from PIL import Image
+    hist = Image.open(img_path).convert('L').histogram()
+    total = sum(hist)
+    acc, lo, hi = 0, None, 255
+    for level, n in enumerate(hist):
+        acc += n
+        if lo is None and acc >= total * 0.0005:
+            lo = level
+        if acc >= total * 0.995:
+            hi = level
+            break
+    return int(hi - (lo or 0))
+
+
+def process_page(img_path, pdf_path, page_no, mode):
+    """Semáforo de calidad, OCR y (en modo doble) diferencias con sus cajas.
+
+    pdf_path None: no hay capa de texto que buscar (página reescaneada).
+    """
+    c = contrast(img_path)
+    quality = 'ok' if c >= MIN_CONTRAST else 'bad'
+    t, text, diff = 0, '', None
+    # Página mala: el modelo inventaría texto, así que no se lee
+    if quality == 'ok':
+        t, text = ocr_single_img(img_path)
+        if mode == 'double':
+            # Segunda lectura con otra temperatura: lo que no coincide es duda
+            t2, text2 = ocr_single_img(img_path, temperature=0.3)
+            t += t2
+            diff = diff_segments(text, text2)
+            candidates = [s['t'].split() + s['other'].split() for s in diff if s['diff']]
+            rects = find_rects(pdf_path, page_no, candidates) if pdf_path else [None] * len(candidates)
+            k = 0
+            for s in diff:
+                if s['diff']:
+                    s['rect'] = rects[k]
+                    k += 1
+                else:
+                    s['rect'] = None
+    return {'type': 'page', 'page': page_no, 'time': round(t, 2), 'chars': len(text),
+            'text': text, 'diff': diff, 'contrast': c, 'quality': quality}
+
+
 @app.route('/')
 def index():
     """Página principal con interfaz de subida de PDF."""
@@ -180,53 +238,28 @@ def ocr():
     if not pdf_file.filename.endswith('.pdf'):
         return jsonify({'error': 'Archivo debe ser PDF'}), 400
     
-    # Guardar PDF temporalmente
-    pdf_path = os.path.join(TEST_PDF_IMAGES, 'uploaded.pdf')
-    pdf_file.save(pdf_path)
+    # Las páginas y PDFs de la subida anterior ya no hacen falta
+    for old in glob.glob(os.path.join(PAGES_DIR, '*.png')) + glob.glob(os.path.join(TEST_PDF_IMAGES, '*.pdf')):
+        try:
+            os.remove(old)
+        except OSError:
+            pass
     upload_id = uuid.uuid4().hex
+    pdf_path = os.path.join(TEST_PDF_IMAGES, f'{upload_id}.pdf')
+    pdf_file.save(pdf_path)
     mode = request.form.get('mode', 'single')
 
     def generate():
         try:
-            # Las páginas de la subida anterior ya no hacen falta
-            for old in glob.glob(os.path.join(PAGES_DIR, '*.png')):
-                try:
-                    os.remove(old)
-                except OSError:
-                    pass
             image_paths, num_pages = convert_pdf_to_images(pdf_path, upload_id)
             yield json.dumps({'type': 'start', 'total_pages': num_pages, 'upload_id': upload_id, 'mode': mode}) + '\n'
             total_time = 0
             total_chars = 0
             for i, img_path in enumerate(image_paths):
-                t, text = ocr_single_img(img_path)
-                diff = None
-                if mode == 'double':
-                    # Segunda lectura con otra temperatura: lo que no coincide es duda
-                    t2, text2 = ocr_single_img(img_path, temperature=0.3)
-                    t += t2
-                    diff = diff_segments(text, text2)
-                    candidates = [[w for w in s['t'].split()] + s['other'].split()
-                                  for s in diff if s['diff']]
-                    rects = find_rects(pdf_path, i + 1, candidates)
-                    k = 0
-                    for s in diff:
-                        if s['diff']:
-                            s['rect'] = rects[k]
-                            k += 1
-                        else:
-                            s['rect'] = None
-                chars = len(text)
-                total_time += t
-                total_chars += chars
-                yield json.dumps({
-                    'type': 'page',
-                    'page': i + 1,
-                    'time': round(t, 2),
-                    'chars': chars,
-                    'text': text,
-                    'diff': diff
-                }) + '\n'
+                p = process_page(img_path, pdf_path, i + 1, mode)
+                total_time += p['time']
+                total_chars += p['chars']
+                yield json.dumps(p) + '\n'
             avg_time = total_time / num_pages if num_pages > 0 else 0
             yield json.dumps({
                 'type': 'done',
@@ -251,6 +284,57 @@ def page_image(upload_id, page):
     if not os.path.exists(path):
         return '', 404
     return send_file(path, mimetype='image/png')
+
+
+@app.route('/page/<upload_id>/<int:page>/ocr', methods=['POST'])
+def page_ocr(upload_id, page):
+    """Relee una página; si llega 'file' (PDF o imagen), sustituye antes su imagen."""
+    if not re.fullmatch(r'[0-9a-f]{32}', upload_id):
+        return '', 404
+    img_path = os.path.join(PAGES_DIR, f'{upload_id}_page_{page}.png')
+    if not os.path.exists(img_path):
+        return '', 404
+    pdf_path = os.path.join(TEST_PDF_IMAGES, f'{upload_id}.pdf')
+    f = request.files.get('file')
+    if f and f.filename:
+        data = f.read()
+        try:
+            if f.filename.lower().endswith('.pdf'):
+                import fitz
+                doc = fitz.open(stream=data, filetype='pdf')
+                doc[0].get_pixmap(dpi=150).save(img_path)
+                doc.close()
+            else:
+                import io
+                from PIL import Image
+                Image.open(io.BytesIO(data)).convert('RGB').save(img_path, 'PNG')
+        except Exception as e:
+            return jsonify({'error': f'Archivo no válido: {e}'}), 400
+        pdf_path = None  # la capa de texto del PDF original ya no corresponde
+    return jsonify(process_page(img_path, pdf_path, page, request.form.get('mode', 'single')))
+
+
+@app.route('/export', methods=['POST'])
+def export():
+    """PDF nuevo solo con el texto transcrito, una página por texto y sin metadatos."""
+    import io
+    import fitz
+    data = request.get_json(silent=True) or {}
+    pages = data.get('pages')
+    if not isinstance(pages, list) or not all(isinstance(p, str) for p in pages):
+        return jsonify({'error': 'pages debe ser una lista de textos'}), 400
+    name = re.sub(r'[^\w.-]', '_', str(data.get('name') or 'documento'))[:80]
+    name = re.sub(r'\.pdf$', '', name, flags=re.I).strip('._') or 'documento'
+    doc = fitz.open()
+    for text in pages or ['']:
+        page = doc.new_page()
+        # shortcut: el texto que no cabe en la página se corta; paginar si hace falta
+        page.insert_textbox(page.rect + (50, 50, -50, -50), text, fontsize=11, fontname='helv')
+    doc.set_metadata({})
+    buf = io.BytesIO(doc.tobytes(garbage=3, deflate=True))
+    doc.close()
+    return send_file(buf, mimetype='application/pdf', as_attachment=True,
+                     download_name=f'{name}_transcrito.pdf')
 
 
 if __name__ == '__main__':
