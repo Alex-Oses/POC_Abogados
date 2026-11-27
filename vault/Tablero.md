@@ -44,6 +44,8 @@ Resto:
 
 ## En curso
 
+- [ ] 27/11: **PR #56** — backend de documentos que **sustituye a #55**: ocho fallos de reglas corregidos, `anonymize.py`/`export.py` separados, `main` integrado y `backend/Dockerfile` · falta ejecutar las pruebas de BD (sin PostgreSQL aquí) · @ia-opencode-ruben
+
 ## Hecho
 
 - [x] Backend Python creado (26/11): fundación FastAPI, identidad local de desarrollo, administración de usuarios y auditoría encadenada; `ruff` limpio y 7 pruebas en verde, 4 de BD saltadas por falta de PostgreSQL · `backend/` · [[Estructura del backend (Python)]] · @ia-opencode-ruben
@@ -98,6 +100,7 @@ Resto:
 
 <!-- - @destinatario: pregunta · @autor -->
 - @Alex: **petición de @Rubén — no rehacer el backend sin consultar las reglas aprobadas.** Revisar y mejorar el código, adelante; cambiar de paso lo que el equipo ya aprobó, no. En #55 el defecto de `/anonymize` y `/reopen` pasó de `censurar` a `borrar` sin decisión (y `docs/architecture/rgpd-considerations.md` dice lo contrario), y el borrado durante el OCR resucitaba documentos; detectarlo y arreglarlo ha costado una sesión de revisión y otra de cambios (`fix/backend-cola-reglas`, commit `a085e83`). Antes de tocar `backend/app`, el SQL o el contrato: lee `docs/reglas/aprobacion.md`, `docs/reglas/reglas-de-negocio.md` y `docs/api/endpoints.md`; si algo no encaja, propón una decisión nueva o pregúntame aquí antes de cambiarlo. · @Rubén (vía @ia-opencode-ruben)
+- @Alex: **#55 queda sustituido por #56** (misma funcionalidad + reglas corregidas + `main` ya integrado; #55 llevaba días en conflicto). Revísalo ahí y cierra #55 cuando las pruebas de BD estén en verde; el detalle, en [[2026-11-27-ia-opencode-ruben]]. · @ia-opencode-ruben
 - @Alex: ¿bajamos la protección de `main`? Hoy exige 1 aprobación en todo, y con dos personas con escritura cada PR mío espera a que lo mires: es el mayor freno del día a día. Propuesta en tres pasos, de menos a más: **(1)** `CODEOWNERS` con revisión obligatoria solo de `backend/`, `docs/api/`, `docs/reglas/` y `docs/architecture/migrations/`, y los PR que solo tocan `vault/`, `maqueta/` o `docs/export/` se auto-mergean con CI verde; **(2)** si GitHub no les encaja así, bajar a 0 aprobaciones y exigir solo `Require status checks` + `Require conversation resolution`; **(3)** mantener el bloqueo de push directo a `main` en cualquier caso. Lo que no propongo es quitar la protección: solo el paso por revisión en lo que no es código. · @ia-opencode-ruben
 - ~~@Marina: [[0012-identidad-y-roles]] cambia tu modelo aceptado, pero **la BD es definitiva y `V13` no se escribe**. `usuarios` se queda con `rol` y `activo`, sin `usuarios_roles`, sin `sso_subject`, sin `password_hash` y sin `sesiones_usuario`. ¿El alta y la sesión se implementan sobre esas dos columnas, o el login queda fuera del piloto?~~ **Resuelto (23/11)**: se implementa completo al final de `V15` editada ([[0015-identidad-en-v15]]).
 - @Alex: la maqueta promete «zones de la imatge esborrades (no només tapades)», pero el PDF final se reconstruye sin ningún píxel del escaneo (0007): no hay imagen que borrar y tampoco se conservan sellos ni firmas manuscritas. ¿Cambiamos el texto por «el PDF no contiene ninguna imagen del original» o preferís mantener la promesa tal cual en la demo? (I2) · @ia-opencode-ruben

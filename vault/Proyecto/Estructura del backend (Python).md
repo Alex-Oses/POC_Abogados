@@ -285,3 +285,21 @@ dev = ["pytest", "ruff"]
 - [[0013-consultas-sql-o-sqlalchemy-core]] **cerrada (23/11)**: SQL directo con `psycopg` + `.sql`; sin `sqlalchemy` y sin declarar el esquema.
 - `middleware/limit_rate.py` es por proceso: con más de un worker de Uvicorn, cada uno lleva su cuenta. Con un worker sobra.
 - Los *jobs* de `jobs/` dependen de que se cierre el OCR por página ([[Tablero]]).
+
+## 6. Implementado: diferencias con este árbol (27/11)
+
+Revisión del código real (PR #56, rama `fix/backend-cola-reglas`) contra este documento. El contrato no cambia; cambia dónde vive cada pieza.
+
+| Diseño | Implementado | Por qué |
+|---|---|---|
+| `services/` y `api/v1/` con un fichero por dominio (`review.py`, `anonymize.py`, `export.py`, `rules.py`, `admin.py`) | `documents.py`, `reviews.py`, `catalog.py`, `anonymize.py`, `export.py` | `rules` y `categories` comparten tabla y permisos: van juntos en `catalog.py`. `anonymize.py` y `export.py` **se separaron el 27/11**; estaban dentro de `documents.py`, que pasaba de 390 líneas. |
+| `schemas/` con `documents.py`, `review.py`, `export.py` | Solo `auth.py` y `users.py`; los modelos de documentos van con su router | Son modelos de 2-5 campos, locales al endpoint. Si crece uno, se mueve a `schemas/`. Desviación aceptada. |
+| `integrations/etl.py`, `storage.py`, `pdf.py` | `services/ocr.py`, `core/storage.py`, `services/export.py`; la carpeta `integrations/` se retiró el 27/11 | El OCR dejó de ser un cliente ETL: es un worker con cola ([[0017-cola-ocr-en-segundo-plano]]). `storage` es infraestructura cifrada de todo el backend (0004). El PDF necesita SQL y auditoría, así que es servicio. |
+| `jobs/ocr.py` | `services/cola.py` | 0017: hilos dentro del proceso, sin Redis ni Celery. |
+| `middleware/limit_rate.py` como middleware | `limitar_login()` aplicado en las rutas de login | El techo es de intentos de login, no de tráfico; limitar por IP detrás de Caddy exige leer `X-Forwarded-For` y nadie lo ha pedido. |
+| Sección 1: «el backend no implementa PaddleOCR-VL» | `services/ocr.py` llama a Ollama y aplica el semáforo | La frontera se movió con 0017: alguien tiene que ejecutar la cola. No implementa el modelo, solo lo invoca. |
+| `pypdf` | `pymupdf`, `pillow`, `cryptography`, `python-multipart`, `rapidocr-onnxruntime` | Hace falta rasterizar páginas y cajas de palabras; Fernet (0004) obliga a `cryptography`. `pypdf` no se usa. |
+| — | `main.py` sirve `/` y `/static`, `/health` y arranque degradado; `jg.py`, `richtext.py`, `sharepoint.py`, `cola.py` | Alcance posterior, todo en el contrato: frontend en el mismo proceso, justicia gratuita, SharePoint ([[0019-entrada-por-sharepoint]]). |
+
+La única excepción a «la transacción la abre `deps.py`» son la cola de OCR, el reintento y el ZIP: no hay petición que abra la transacción, así que cada página o documento abre la suya.
+

@@ -17,6 +17,14 @@ Pruebas: `test_export.py` nuevo (solapes del marcado, sin BD) y casos de reinten
 
 - **Docker**: `backend/Dockerfile` (contexto: raíz del repo, porque el backend sirve `templates/` y `static/`) y `.dockerignore`. Python 3.12-slim, usuario sin privilegios, modelo `es_core_news_md` instalado (sin él Presidio no ve personas), `/app/storage` como volumen y `HEALTHCHECK` contra `/health`. Un solo worker: la cola de OCR es por proceso.
 
+## Revisión de la estructura y PR que sustituye a #55
+
+- **Estructura**: revisado `backend/app` contra [[Estructura del backend (Python)]]. Coincide en lo que importa (síncrono, transacción por petición, `services/` separado, auth que solo identifica, SQL con nombre). Las diferencias están documentadas en la sección 6 de ese documento; ninguna toca el contrato.
+- **Dos cambios aplicados** de esa tabla: `anonymize.py` y `export.py` vuelven a ser routers propios (mismos paths y permisos, `documents.py` de 396 a ~250 líneas) y se retira `app/integrations/`, vacía desde que el OCR pasó a `services/`.
+- **Rama nueva que sustituye a #55**: `main` ya integrado en `fix/backend-cola-reglas` (`a81692f`). El backend de `main` es subconjunto del de #55, así que el merge se resolvió tomando esta rama en todos los conflictos; del tablero se conservó la fecha de entrega del lunes 30/11 que traía `main`. `ruff` limpio y 22 pruebas en verde tras el merge.
+- **PR #56** contra `main`: https://github.com/Alex-Oses/POC_Abogados/pull/56. Comentario en #55 avisando de que queda sustituido, para que lo cierre cuando las pruebas de BD estén en verde.
+- **Docker**: `backend/Dockerfile` y `.dockerignore` (ver nota anterior).
+
 ## Siguiente
 
 - Ejecutar las pruebas de BD cuando haya PostgreSQL (`DATABASE_TEST_URL`) y probar el flujo completo de #55.
