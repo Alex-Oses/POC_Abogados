@@ -21,4 +21,4 @@ Nos piden que los PDF dejados en una carpeta de SharePoint se suban solos a la a
 
 - Hace falta registrar la app en Entra ID con permiso de aplicación `Files.ReadWrite.All` (o `Sites.Selected` sobre el sitio) y sacar el `drive_id` de la biblioteca.
 - Hasta 60 s de retraso entre dejar el PDF y que aparezca en la bandeja.
-- Un solo proceso backend (igual que la cola, [[0017-cola-ocr-en-segundo-plano]]).
+- Un solo proceso backend (igual que la cola, [[0020-cola-ocr-en-segundo-plano]]).

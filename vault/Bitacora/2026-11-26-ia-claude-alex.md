@@ -23,7 +23,7 @@
 - Cola de OCR para dejar PDF transcribiéndose de noche y script de despliegue en Azure.
 
 ## Hecho (noche)
-- Cola de OCR en segundo plano con guardado por página ([[0017-cola-ocr-en-segundo-plano]], Propuesta) y frontend adaptado (bandeja como portada, progreso por documento).
+- Cola de OCR en segundo plano con guardado por página ([[0020-cola-ocr-en-segundo-plano]], Propuesta) y frontend adaptado (bandeja como portada, progreso por documento).
 - `scripts/instalar_servidor.sh`: instala en Ubuntu 24.04 la BD (modelo de Marina V1..V15 + vistas), Ollama, la app como servicio systemd y Caddy con HTTPS por IP. Deja `arrancar.sh`, `parar.sh`, `actualizar.sh` y `logs.sh`.
 - `docker-compose.yml`: Postgres solo en `127.0.0.1` (Docker se salta ufw) y `restart: unless-stopped`.
 

@@ -4,7 +4,7 @@ Rama `feat/backend-documentos`. Sin cambios de esquema de BD: no hay migraciones
 
 ## Añadido
 
-- **Cola de OCR en segundo plano** con guardado por página ([[0017-cola-ocr-en-segundo-plano]], Propuesta): `services/cola.py`, `GET /documents/{id}/progress`, `GET /documents/{id}/stream`, `POST /documents/{id}/cancel`. Reanuda tras reinicio.
+- **Cola de OCR en segundo plano** con guardado por página ([[0020-cola-ocr-en-segundo-plano]], Propuesta): `services/cola.py`, `GET /documents/{id}/progress`, `GET /documents/{id}/stream`, `POST /documents/{id}/cancel`. Reanuda tras reinicio.
 - **Entrada por SharePoint** ([[0019-entrada-por-sharepoint]], Propuesta): `services/sharepoint.py`. PDF en `Entrada/<Persona>/` se suben solos, «subido por» = carpeta, y se mueven a `Procesados` o `Rechazados`. Variables `SHAREPOINT_*`.
 - **«Subido por»** en bandeja, archivo y detalle (`subido_por`): usuario logueado o carpeta de SharePoint.
 - **PDF transcrito antes de anonimizar**: `POST /documents/{id}/export/transcrito` → `<nombre>_trans.pdf`. El anonimizado pasa a `<nombre>_anon.pdf`.

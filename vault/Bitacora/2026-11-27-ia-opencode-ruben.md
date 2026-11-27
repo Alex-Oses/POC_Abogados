@@ -30,6 +30,17 @@ Pruebas: `test_export.py` nuevo (solapes del marcado, sin BD) y casos de reinten
 - Ejecutar las pruebas de BD cuando haya PostgreSQL (`DATABASE_TEST_URL`) y probar el flujo completo de #55.
 - Queda fuera de esta rama: purga de ficheros cifrados al borrar, escritura del original dentro de la transacción y tope de memoria del ZIP a 100 PDFs.
 
+## Merge de #52 (BBDD de @Marina, 27/11)
+
+- `main` integrado (`e5425af`, PR #52: PostgreSQL 16 validado, esquema MariaDB documentado y decisiones 0017/0018).
+- **Backend: no hizo falta adaptar código.** `V1`–`V15` no cambian. Lo único funcional que llega es la cadena de hash ordenada por `(creado_en, id)` en `audit.sql` (coherente con la tabla `auditoria` particionada) y el aislamiento de `test_sin_bd` (E-58); ambos entran solos en el merge. MariaDB es solo documentación: el backend sigue con `psycopg` sobre PostgreSQL, como confirma la respuesta a @Marina en el [[Tablero]].
+- **Colisión de numeración de decisiones**: #52 trajo `0017-particionado-auditoria` y `0018-mariadb-segunda-opcion`; esta rama ya tenía `0017-cola-ocr-en-segundo-plano`. La decisión de la cola pasa a **`0020-cola-ocr-en-segundo-plano`** (solo cambia el número, el contenido no) y se actualizan sus referencias en `docs/api/endpoints.md`, [[2026-11-26-ia-claude-alex]], [[0019-entrada-por-sharepoint]], [[Estructura del backend (Python)]] y la sesión del 26/11.
+- Sigue abierta **E-23** (el trigger `trg_audit_hash_chain` y el backend calculan el mismo hash): fuera de esta rama.
+
+## Bloqueo de licencia: PyMuPDF
+
+- `pymupdf` es **AGPL-3.0 o licencia comercial de Artifex** y se importa en `services/ocr.py` (`renderizar`, `contar`, `una_pagina`, `png_pagina`, `cajas`), en `scripts/generar_pruebas.py` y en tres pruebas. Contradice [[0007-generacion-pdf-final]] y [[0008-stack-backend]], y `docs/export/pdf.md` §7 afirma lo contrario. Anotado como bloqueo urgente en el [[Tablero]]; sustitución prevista: `pypdfium2` (Apache-2.0 OR BSD-3-Clause) o `pypdf` (BSD). El resto de dependencias es permisivo salvo `psycopg` (LGPL-3.0, ya aceptada en 0008) y `certifi` (MPL-2.0, inocua).
+
 ## Bloqueos / preguntas
 
 - Sin Docker ni PostgreSQL en este equipo, las pruebas `*_bd` no se han podido ejecutar.

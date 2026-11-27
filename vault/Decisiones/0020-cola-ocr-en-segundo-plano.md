@@ -24,3 +24,5 @@ El OCR real tarda entre 10 y 20 segundos por página. Hasta ahora `POST /transfo
 - La reanudación supone **un solo proceso backend**. Con varias réplicas habría que añadir un latido por worker antes de devolver documentos a la cola.
 - Si el servidor se apaga a mitad de una página, esa página se vuelve a leer al arrancar.
 - El frontend tiene que aceptar documentos en `pendiente`/`ocr_procesando` como abribles y usar `pages_done` y `queue_position`.
+
+> Renumerada de `0017` a `0020` el 27/11/2026: el PR #52 usó `0017` para [[0017-particionado-auditoria]] y `0018` para [[0018-mariadb-segunda-opcion]].
