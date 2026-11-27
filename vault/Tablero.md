@@ -2,6 +2,10 @@
 
 Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en tu PR.
 
+## Bloqueos
+
+- [ ] **URGENTE — licencia: no usar PyMuPDF (`pymupdf`) en el backend.** Es **AGPL-3.0 o licencia comercial de Artifex**, y entregar el backend al ICAT (imagen Docker o código en su servidor) obligaría a publicar **todo el backend** bajo AGPL. Contradice [[0007-generacion-pdf-final]] («Nada de PyMuPDF (AGPL)») y [[0008-stack-backend]] («licencias permisivas en todo lo que se distribuya o inspeccione»). Hoy se importa en `backend/app/services/ocr.py` (`renderizar`, `contar`, `una_pagina`, `png_pagina`, `cajas`), en `scripts/generar_pruebas.py` y en tres pruebas. Sustituir por `pypdfium2` (Apache-2.0 OR BSD-3-Clause, ya usado en `docs/pdf.py`) o `pypdf` (BSD), o comprar la licencia comercial antes de entregar. `pymupdf4llm` y `pymupdf_layout` tampoco deben instalarse. · @Rubén
+
 ## Pendiente
 
 - [ ] 27/11: instalar y probar en el servidor con `docs/GUIA_SERVIDOR.md` (lista de comprobación al final) · @Alex-Oses
