@@ -56,16 +56,40 @@ SELECT d.estado, d.num_paginas, d.creado_en, d.metadatos_extras -> 'ocr' AS ocr,
 -- name: doc_estado
 UPDATE documentos SET estado = %(estado)s, actualizado_en = now() WHERE id = %(id)s;
 
+-- name: doc_estado_si_procesando
+-- A-02: el fallo solo devuelve a `pendiente` lo que el worker sigue teniendo.
+UPDATE documentos SET estado = %(estado)s, actualizado_en = now()
+ WHERE id = %(id)s AND estado = 'ocr_procesando';
+
+-- name: doc_cancelar
+-- 0017: cancelar no puede pisar un OCR que acaba de terminar (se reintenta o se queda como está).
+UPDATE documentos SET estado = 'pendiente', actualizado_en = now()
+ WHERE id = %(id)s AND estado IN ('pendiente', 'ocr_procesando');
+
 -- name: doc_fin_ocr
+-- La guarda de estado evita resucitar un documento borrado o cancelado durante el OCR (A-01).
 UPDATE documentos
    SET estado = 'ocr_completado', num_paginas = %(num_paginas)s, actualizado_en = now()
- WHERE id = %(id)s;
+ WHERE id = %(id)s AND estado = 'ocr_procesando';
+
+-- name: doc_estado_actual
+-- FOR UPDATE: el worker y el borrado/cancelación no se pisan a mitad de página.
+SELECT estado FROM documentos WHERE id = %(id)s FOR UPDATE;
+
+-- name: doc_ruta_set
+UPDATE documentos SET ruta_almacenamiento = %(ruta)s WHERE id = %(id)s;
 
 -- name: doc_meta_set
 -- Nunca reemplaza el objeto entero: solo la clave indicada.
 UPDATE documentos
    SET metadatos_extras = jsonb_set(metadatos_extras, %(ruta)s::text[], %(valor)s::jsonb, true),
        actualizado_en = now()
+ WHERE id = %(id)s;
+
+-- name: doc_meta_del
+-- 0017: reintento del OCR. Quita la marca de error sin tocar el resto de metadatos.
+UPDATE documentos
+   SET metadatos_extras = metadatos_extras #- %(ruta)s::text[], actualizado_en = now()
  WHERE id = %(id)s;
 
 -- name: doc_eliminar
@@ -189,7 +213,7 @@ SELECT id, pagina_numero, orden_lectura, etiqueta, confianza, forma, bbox_x, bbo
  LIMIT %(limit)s OFFSET %(offset)s;
 
 -- name: bloque_de_pagina
-SELECT id, contenido FROM bloques_layout
+SELECT id, contenido, calidad_semaforo AS semaforo FROM bloques_layout
  WHERE version_id = %(version_id)s AND pagina_numero = %(pagina)s
  ORDER BY orden_lectura LIMIT 1;
 
@@ -210,6 +234,10 @@ UPDATE paginas_documento
 -- name: paginas_numeros
 SELECT numero FROM paginas_documento WHERE documento_id = %(documento_id)s;
 
+-- name: paginas_ilegibles
+SELECT count(*) AS n FROM paginas_documento
+ WHERE documento_id = %(documento_id)s AND estado = 'ilegible';
+
 -- name: paginas_listar
 SELECT p.numero, p.contraste, p.estado, p.avisos, p.leida_ocr,
        (SELECT b.contenido FROM bloques_layout b
@@ -219,15 +247,14 @@ SELECT p.numero, p.contraste, p.estado, p.avisos, p.leida_ocr,
  WHERE p.documento_id = %(documento_id)s
  ORDER BY p.numero;
 
--- name: usuario_por_nombre
+-- name: usuarios_por_nombre
 -- SharePoint: la carpeta lleva el nombre de la persona; si coincide con un usuario activo, el
--- documento es suyo (lo ve en su bandeja).
+-- documento es suyo (lo ve en su bandeja). Sin LIMIT: con dos coincidencias no se adivina.
 SELECT u.id AS usuario_id, u.nombre, u.apellidos
   FROM usuarios u
  WHERE u.estado = 'activo'
    AND lower(%(nombre)s) IN (lower(concat_ws(' ', u.nombre, u.apellidos)), lower(u.nombre))
- ORDER BY u.creado_en
- LIMIT 1;
+ ORDER BY u.creado_en;
 
 -- name: version_ocr_ultima
 SELECT id, metadatos_proceso FROM versiones_documento

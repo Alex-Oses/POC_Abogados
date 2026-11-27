@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from app.api.deps import connection, require_role
 from app.core.errors import AppError
+from app.db.pool import tx
 from app.db.queries import SQL
 from app.services import anonymize, audit, cola, export, jg
 from app.services import documents as service
@@ -44,7 +45,7 @@ class LocalizarIn(BaseModel):
 
 class AnonimizarIn(BaseModel):
     regla_id: UUID | None = None
-    modo: Modo = "borrar"
+    modo: Modo = "censurar"  # por defecto de V15 (rgpd-considerations.md)
 
 
 class AnotacionIn(BaseModel):
@@ -162,6 +163,16 @@ def cancelar(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
              conexion: Connection = Depends(connection)):
     return service.cancelar(conexion, service.obtener(conexion, documento_id, usuario),
                             usuario, request)
+
+
+@router.post("/documents/{documento_id}/retry")
+def reintentar(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
+               conexion: Connection = Depends(connection)):
+    """Vuelve a poner en cola un OCR fallido o cancelado (0017)."""
+    estado = service.reintentar(conexion, service.obtener(conexion, documento_id, usuario),
+                                usuario, request)
+    cola.despertar.set()
+    return estado
 
 
 @router.delete("/documents/{documento_id}", status_code=204)
@@ -346,20 +357,21 @@ def exportar(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
 
 
 @router.post("/documents/export/zip")
-def exportar_zip(datos: ZipIn, request: Request, usuario: dict = Depends(TR),
-                 conexion: Connection = Depends(connection)):
+def exportar_zip(datos: ZipIn, request: Request, usuario: dict = Depends(TR)):
     """Varios PDF en un ZIP: `anon` solo de documentos aprobados o exportados; `trans` de los
-    que tienen la transcripción terminada. Los que no cumplen se saltan y se listan en
-    `X-Omitidos`."""
+    que tienen la transcripción terminada. Los que no cumplen se saltan y se cuentan en
+    `X-Omitidos`. Cada documento se exporta y confirma en su propia transacción (A-16/A-18):
+    el ZIP no deja bloqueado ni a medias el resto."""
     buffer, nombres, omitidos = io.BytesIO(), set(), 0
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         for documento_id in dict.fromkeys(datos.ids):
             try:
-                doc = service.obtener(conexion, documento_id, usuario)
-                if datos.tipo == "anon":
-                    pdf, _, nombre = export.exportar(conexion, documento_id, usuario, request)
-                else:
-                    pdf, nombre = export.transcrito(conexion, doc, usuario, request)
+                with tx() as conexion:
+                    doc = service.obtener(conexion, documento_id, usuario)
+                    if datos.tipo == "anon":
+                        pdf, _, nombre = export.exportar(conexion, documento_id, usuario, request)
+                    else:
+                        pdf, nombre = export.transcrito(conexion, doc, usuario, request)
             except AppError:
                 omitidos += 1
                 continue

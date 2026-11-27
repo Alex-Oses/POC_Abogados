@@ -31,10 +31,14 @@ def marcar(contenido: str, anotaciones: list[dict]) -> tuple[str, bool]:
     censurar/borrar dibujan relleno del mismo ancho: los caracteres originales no se escriben."""
     salida, pos, tachado = [], 0, False
     for a in sorted(anotaciones, key=lambda a: a["inicio_offset"]):
-        if (a["decision_revisor"] == "falso_positivo" or a["accion_aplicada"] == "mantenido"
-                or a["inicio_offset"] < pos):
+        if a["decision_revisor"] == "falso_positivo" or a["accion_aplicada"] == "mantenido":
             continue
-        original = contenido[a["inicio_offset"]:a["fin_offset"]].replace("\n", " ")
+        # Solapes: se recorta a lo que queda sin tratar. Descartar la anotación dejaría
+        # texto original a la vista en el PDF (A-09), así que nunca se salta un tramo.
+        inicio, fin = max(a["inicio_offset"], pos), a["fin_offset"]
+        if inicio >= fin:
+            continue
+        original = contenido[inicio:fin].replace("\n", " ")
         accion = a["accion_aplicada"]
         if accion == "censurar":
             trozo = f'<font color="#3A3A3A" backColor="#3A3A3A">{_relleno(original, chr(0xA0))}</font>'
@@ -46,8 +50,8 @@ def marcar(contenido: str, anotaciones: list[dict]) -> tuple[str, bool]:
         else:  # etiqueta, pseudonimizado, iniciales
             nuevo = (a["texto_sustitucion"] or "").replace("\n", " ") or "█"
             trozo = f'<font color="#FFFFFF" backColor="#4A4A4A">&nbsp;{escape(nuevo)}&nbsp;</font>'
-        salida += [escape(contenido[pos:a["inicio_offset"]]), trozo]
-        pos = a["fin_offset"]
+        salida += [escape(contenido[pos:inicio]), trozo]
+        pos = fin
     salida.append(escape(contenido[pos:]))
     return "".join(salida), tachado
 

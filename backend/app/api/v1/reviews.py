@@ -21,7 +21,7 @@ class CierreIn(BaseModel):
 
 class ReabrirIn(BaseModel):
     comentario: str | None = Field(default=None, max_length=5000)
-    modo: Literal["censurar", "borrar", "tachar", "etiqueta", "seudonimo", "iniciales"] = "borrar"
+    modo: Literal["censurar", "borrar", "tachar", "etiqueta", "seudonimo", "iniciales"] = "censurar"
 
 
 @router.get("/reviews")

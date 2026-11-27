@@ -18,18 +18,21 @@ def _nuevo() -> ConnectionPool:
 
 
 pool = _nuevo()
+_cerrado = False
 
 
 def abrir() -> None:
     """Abre el pool; uno cerrado no se reutiliza, así que se crea otro (varios arranques en pruebas)."""
-    global pool
-    if pool.closed and pool._opened:
-        pool = _nuevo()
+    global pool, _cerrado
+    if _cerrado:
+        pool, _cerrado = _nuevo(), False
     pool.open(wait=True, timeout=5)
 
 
 def cerrar() -> None:
+    global _cerrado
     pool.close()
+    _cerrado = True
 
 
 @contextmanager

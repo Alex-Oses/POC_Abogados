@@ -80,8 +80,14 @@ class Graph:
 
 
 def _usuario_de(nombre: str) -> dict | None:
+    """El nombre de la carpeta no es una identidad fiable: con dos coincidencias se avisa y no
+    se sube nada (nunca se adivina). Sin coincidencia, el documento queda a nombre del admin."""
     with tx() as conexion:
-        fila = conexion.execute(SQL["usuario_por_nombre"], {"nombre": nombre}).fetchone()
+        filas = conexion.execute(SQL["usuarios_por_nombre"], {"nombre": nombre}).fetchall()
+        if len(filas) > 1:
+            log.error("sharepoint_nombre_ambiguo", extra={"detalle": nombre})
+            return None
+        fila = filas[0] if filas else None
         if not fila and settings.admin_email:
             admin = conexion.execute(SQL["usuario_por_email"], {"email": settings.admin_email}).fetchone()
             fila = admin and {"usuario_id": admin["id"], "nombre": admin["nombre"],

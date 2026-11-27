@@ -80,13 +80,15 @@ def registrar_subida(nombre: str, datos: bytes, doble: bool, usuario: dict, requ
                                 "origen": origen}, ensure_ascii=False)}).fetchone()
         ruta = f"{doc['id']}/original.bin"
         storage.guardar(ruta, datos)
-        conexion.execute("UPDATE documentos SET ruta_almacenamiento = %(r)s WHERE id = %(id)s",
-                         {"r": ruta, "id": doc["id"]})
+        conexion.execute(SQL["doc_ruta_set"], {"ruta": ruta, "id": doc["id"]})
         nueva_version(conexion, doc["id"], "original", usuario["usuario_id"])
+        # SharePoint: el actor es el sistema; la persona de la carpeta solo es la propietaria.
         audit.registrar(conexion, "DOCUMENTO_SUBIDO", request=request,
-                        usuario_id=usuario["usuario_id"], entidad_tipo="documento",
-                        entidad_id=doc["id"], detalle={"mime": mime, "bytes": len(datos),
-                                                       "hash": huella, "paginas": num_paginas})
+                        usuario_id=None if origen == "sharepoint" else usuario["usuario_id"],
+                        entidad_tipo="documento", entidad_id=doc["id"],
+                        detalle={"mime": mime, "bytes": len(datos), "hash": huella,
+                                 "paginas": num_paginas, "origen": origen,
+                                 "subido_por": subido_por or nombre_de(usuario)})
     return {"id": doc["id"], "num_paginas": num_paginas, "estado": "pendiente"}
 
 
@@ -132,10 +134,15 @@ def seguir_ocr(documento_id, usuario: dict):
     enviadas: set[int] = set()
     inicio = True
     while True:
-        with tx() as conexion:
-            doc = obtener(conexion, documento_id, usuario)
-            prog = progreso(conexion, documento_id)
-            filas = paginas(conexion, doc) if doc["v_tipo"] == "ocr_texto" else []
+        try:
+            with tx() as conexion:
+                doc = obtener(conexion, documento_id, usuario)
+                prog = progreso(conexion, documento_id)
+                filas = paginas(conexion, doc) if doc["v_tipo"] == "ocr_texto" else []
+        except AppError as error:  # borrado a mitad: se cierra el flujo con un evento, no con un corte
+            yield {"type": "error", "id": documento_id, "code": error.code,
+                   "message": error.message}
+            return
         if inicio:
             modo = (doc["metadatos_extras"].get("ocr") or {}).get("modo", "doble")
             yield {"type": "start", "id": documento_id, "total_pages": doc["num_paginas"],
@@ -171,6 +178,8 @@ def procesar_documento(doc: dict, parar=lambda: False) -> None:
         pdf = datos if doc["mime_type"] == "application/pdf" else None
         with tx() as conexion:
             actual = conexion.execute(SQL["doc_por_id"], {"id": documento_id}).fetchone()
+            if not actual:  # borrado entre tomarlo de la cola y empezar
+                return
             if actual["v_tipo"] != "ocr_texto":
                 nueva_version(
                     conexion, documento_id, "ocr_texto", usuario_id, texto="",
@@ -186,14 +195,19 @@ def procesar_documento(doc: dict, parar=lambda: False) -> None:
         for numero in range(1, doc["num_paginas"] + 1):
             if numero in hechas:
                 continue
-            with tx() as conexion:  # cancelado mientras tanto: se para entre páginas
-                ocr_meta = conexion.execute(SQL["doc_progreso"],
-                                            {"id": documento_id}).fetchone()["ocr"] or {}
-            if ocr_meta.get("error") or parar():  # parado: sigue en ocr_procesando y se reanuda
+            with tx() as conexion:  # borrado o cancelado mientras tanto: se para entre páginas
+                prog = conexion.execute(SQL["doc_progreso"], {"id": documento_id}).fetchone()
+            # `parar` no toca el estado: sigue en ocr_procesando y se reanuda al arrancar.
+            if prog["estado"] != "ocr_procesando" or (prog["ocr"] or {}).get("error") or parar():
                 return
             r = ocr.procesar_pagina(ocr.una_pagina(datos, doc["mime_type"], numero), numero,
                                     doble, pdf)
             with tx() as conexion:
+                # Borrado o cancelado mientras se leía la página: no se escribe nada más.
+                actual = conexion.execute(SQL["doc_estado_actual"],
+                                          {"id": documento_id}).fetchone()
+                if not actual or actual["estado"] != "ocr_procesando":
+                    return
                 conexion.execute(SQL["bloque_insertar"], {
                     "version_id": version_id, "pagina": numero, "ancho": r["ancho"],
                     "alto": r["alto"], "contenido": r["texto"], "semaforo": _semaforo(r)})
@@ -204,9 +218,11 @@ def procesar_documento(doc: dict, parar=lambda: False) -> None:
                     "valor": json.dumps(_meta_pagina(r), ensure_ascii=False)})
                 conexion.execute(SQL["version_texto_recalcular"], {"id": version_id})
         with tx() as conexion:
-            ilegibles = conexion.execute(
-                "SELECT count(*) AS n FROM paginas_documento WHERE documento_id = %(id)s "
-                "AND estado = 'ilegible'", {"id": documento_id}).fetchone()["n"]
+            actual = conexion.execute(SQL["doc_estado_actual"], {"id": documento_id}).fetchone()
+            if not actual or actual["estado"] != "ocr_procesando":
+                return  # borrado o cancelado al final: no se resucita (A-01)
+            ilegibles = conexion.execute(SQL["paginas_ilegibles"],
+                                         {"documento_id": documento_id}).fetchone()["n"]
             conexion.execute(SQL["doc_fin_ocr"], {"id": documento_id,
                                                   "num_paginas": doc["num_paginas"]})
             audit.registrar(conexion, "OCR_COMPLETADO", usuario_id=usuario_id,
@@ -219,7 +235,10 @@ def procesar_documento(doc: dict, parar=lambda: False) -> None:
         if parar():  # apagado a mitad de página: no es un fallo, se reanuda al arrancar
             return
         with tx() as conexion:
-            conexion.execute(SQL["doc_estado"], {"id": documento_id, "estado": "pendiente"})
+            vuelta = conexion.execute(SQL["doc_estado_si_procesando"],
+                                      {"id": documento_id, "estado": "pendiente"})
+            if not vuelta.rowcount:  # borrado o ya cerrado: no se resucita (A-01)
+                return
             conexion.execute(SQL["doc_meta_set"], {"id": documento_id, "ruta": ["ocr", "error"],
                                                    "valor": json.dumps("OCR_FALLIDO")})
             audit.registrar(conexion, "OCR_FALLIDO", usuario_id=usuario_id,
@@ -232,12 +251,27 @@ def cancelar(conexion: Connection, doc: dict, usuario: dict, request) -> dict:
     ocr_meta = doc["metadatos_extras"].get("ocr")
     if doc["estado"] not in ("pendiente", "ocr_procesando") or not ocr_meta or ocr_meta.get("error"):
         raise AppError("DOCUMENTO_NO_EN_COLA", "El documento no está en la cola de OCR", 409)
+    # Guarda en la sentencia: si el OCR terminó entre la lectura y ahora, no se pisa.
+    if not conexion.execute(SQL["doc_cancelar"], {"id": doc["id"]}).rowcount:
+        raise AppError("DOCUMENTO_NO_EN_COLA", "El OCR ya ha terminado", 409)
     conexion.execute(SQL["doc_meta_set"], {"id": doc["id"], "ruta": ["ocr", "error"],
                                            "valor": json.dumps("CANCELADO")})
-    conexion.execute(SQL["doc_estado"], {"id": doc["id"], "estado": "pendiente"})
     audit.registrar(conexion, "OCR_CANCELADO", request=request, usuario_id=usuario["usuario_id"],
                     entidad_tipo="documento", entidad_id=doc["id"],
                     detalle={"estado_anterior": doc["estado"]})
+    return progreso(conexion, doc["id"])
+
+
+def reintentar(conexion: Connection, doc: dict, usuario: dict, request) -> dict:
+    """Devuelve a la cola un OCR fallido o cancelado (0017); las páginas leídas se conservan."""
+    ocr_meta = doc["metadatos_extras"].get("ocr") or {}
+    if doc["estado"] != "pendiente" or not ocr_meta.get("error"):
+        raise AppError("DOCUMENTO_NO_REINTENTABLE",
+                       "Solo se reintenta un OCR fallido o cancelado", 409)
+    conexion.execute(SQL["doc_meta_del"], {"id": doc["id"], "ruta": ["ocr", "error"]})
+    audit.registrar(conexion, "OCR_REINTENTADO", request=request, usuario_id=usuario["usuario_id"],
+                    entidad_tipo="documento", entidad_id=doc["id"],
+                    detalle={"error_anterior": ocr_meta["error"]})
     return progreso(conexion, doc["id"])
 
 
@@ -304,14 +338,19 @@ def editar_pagina(conexion: Connection, doc: dict, numero: int, texto: str | Non
         detalle["formato"] = True
     elif texto is not None:
         _html_set(conexion, doc, numero, None)  # solo texto: el formato guardado ya no encaja
+    # Editar (o dar formato) no mejora el OCR: el semáforo se conserva salvo validación explícita.
+    semaforo = "verde" if validada else bloque["semaforo"]
     if texto is not None and texto != bloque["contenido"]:
         conexion.execute(SQL["bloque_actualizar"],
-                         {"id": bloque["id"], "contenido": texto, "semaforo": "verde"})
+                         {"id": bloque["id"], "contenido": texto, "semaforo": semaforo})
         conexion.execute(SQL["version_texto_recalcular"], {"id": doc["v_id"]})
         # Sin texto en la auditoría: solo tamaños y huellas (nada de datos personales).
         detalle |= {"caracteres_antes": len(bloque["contenido"]), "caracteres_despues": len(texto),
                     "sha_antes": hashlib.sha256(bloque["contenido"].encode()).hexdigest()[:16],
                     "sha_despues": hashlib.sha256(texto.encode()).hexdigest()[:16]}
+    elif validada and bloque["semaforo"] != "verde":
+        conexion.execute(SQL["bloque_actualizar"],
+                         {"id": bloque["id"], "contenido": bloque["contenido"], "semaforo": "verde"})
     if validada is not None:
         actuales = set((doc["v_meta"] or {}).get("paginas_validadas", []))
         actuales = actuales | {numero} if validada else actuales - {numero}

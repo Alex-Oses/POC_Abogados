@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 from app.core.config import settings
 from app.core.security import hash_password
 from app.main import app
-from app.services import cola
+from app.services import cola, documents
 
 pytestmark = pytest.mark.skipif(not os.getenv("DATABASE_TEST_URL"), reason="sin DATABASE_TEST_URL")
 CLAVE = "una-clave-larga-123"
@@ -116,3 +116,53 @@ def test_cancelar(cliente):
     _esperar(cliente, a, lambda p: p["estado"] == "ocr_completado")
     pb = cliente.get(f"/api/v1/documents/{b}/progress").json()
     assert pb["estado"] == "pendiente" and pb["pages_done"] == 0 and pb["queue_position"] is None
+
+
+def test_reintentar_tras_fallo(cliente, monkeypatch):
+    real = documents.ocr.procesar_pagina
+
+    def falla(*args, **kwargs):
+        raise RuntimeError("modelo caído")
+
+    monkeypatch.setattr(documents.ocr, "procesar_pagina", falla)
+    doc_id = _subir(cliente, 1)
+    error = _esperar(cliente, doc_id, lambda p: p["error"] == "OCR_FALLIDO")
+    assert error["queue_position"] is None  # fuera de la cola hasta que se reintente
+    assert cliente.post(f"/api/v1/documents/{doc_id}/cancel").status_code == 409
+    monkeypatch.setattr(documents.ocr, "procesar_pagina", real)
+    r = cliente.post(f"/api/v1/documents/{doc_id}/retry")
+    assert r.status_code == 200 and r.json()["error"] is None and r.json()["queue_position"] >= 1
+    _esperar(cliente, doc_id, lambda p: p["estado"] == "ocr_completado")
+
+
+def test_borrar_durante_ocr_no_resucita(cliente):
+    doc_id = _subir(cliente, 4)
+    _esperar(cliente, doc_id, lambda p: p["pages_done"] >= 1 and p["estado"] == "ocr_procesando")
+    assert cliente.delete(f"/api/v1/documents/{doc_id}").status_code == 204
+    time.sleep(1.2)  # deja terminar la página en curso
+    assert cliente.get(f"/api/v1/documents/{doc_id}/progress").status_code == 404
+    ids = {d["id"] for d in cliente.get("/api/v1/documents").json()["items"]}
+    assert doc_id not in ids
+
+
+def test_editar_formato_no_pone_el_semaforo_en_verde(cliente):
+    doc_id = _subir(cliente, 1)
+    _esperar(cliente, doc_id, lambda p: p["estado"] == "ocr_completado")
+    with psycopg.connect(settings.database_url) as c:
+        c.execute("UPDATE bloques_layout b SET calidad_semaforo = 'amarillo' "
+                  "FROM versiones_documento v WHERE v.id = b.version_id "
+                  "AND v.documento_id = %s AND v.es_actual", (doc_id,))
+
+    def semaforo():
+        with psycopg.connect(settings.database_url) as c:
+            return c.execute("SELECT b.calidad_semaforo FROM bloques_layout b "
+                             "JOIN versiones_documento v ON v.id = b.version_id "
+                             "WHERE v.documento_id = %s AND v.es_actual AND b.pagina_numero = 1",
+                             (doc_id,)).fetchone()[0]
+
+    assert cliente.patch(f"/api/v1/documents/{doc_id}/pages/1",
+                         json={"texto": "Otra lectura"}).status_code == 204
+    assert semaforo() == "amarillo"
+    assert cliente.patch(f"/api/v1/documents/{doc_id}/pages/1",
+                         json={"validada": True}).status_code == 204
+    assert semaforo() == "verde"
