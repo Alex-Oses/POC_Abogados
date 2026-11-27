@@ -203,7 +203,7 @@ Sube el documento, guarda el fichero **cifrado** y ejecuta OCR y layout con Padd
 
 `201` → `{ "id": "uuid", "num_paginas": 3, "estado": "ocr_completado" }`.
 
-Errores: `400`, `413`, `415`. `422` si el OCR no produce texto.
+Errores: `400`, `413`, `415`. Un documento ilegible **no** da `422`: se guarda en `pendiente` con `ocr.error = OCR_SIN_TEXTO` para que aparezca en la bandeja y se pueda reescanear (decisión del 27/11).
 
 ### `POST /transform/plain-text`
 

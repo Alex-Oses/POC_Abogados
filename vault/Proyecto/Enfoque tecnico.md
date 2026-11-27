@@ -124,7 +124,7 @@ Los logs de aplicación no sustituyen a esta tabla: se rotan y se pierden; no si
 | `401` / `403` | Sin sesión válida / con sesión pero sin permiso |
 | `404` | No existe o no es tuyo: mismo código, para no revelar qué hay |
 | `409` | La versión cambió desde que la leíste (`If-Match`) |
-| `422` | El OCR no produjo texto |
+| `422` | Petición no procesable: anotaciones pendientes, falta de motivo o de texto que anonimizar |
 | `500` | Fallo interno, con `code` estable y sin datos personales en el mensaje |
 
 ## 10. Cómo se comprueba
