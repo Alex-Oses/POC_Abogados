@@ -90,7 +90,7 @@ def test_flujo_completo(usuario):
                          files={"file": ("expediente.pdf", _pdf(), "application/pdf")},
                          data={"modo": "doble"})
         eventos = [json.loads(linea) for linea in r.text.splitlines()]
-        assert [e["type"] for e in eventos] == ["start"] + ["page"] * 6 + ["done"], eventos[-1]
+        assert [e["type"] for e in eventos if e["type"] != "queue"] == ["start"] + ["page"] * 6 + ["done"], eventos[-1]
         doc_id = eventos[-1]["id"]
         assert eventos[6]["estado"] == "ilegible" and eventos[6]["texto"] == ""
 

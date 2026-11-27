@@ -96,7 +96,7 @@ def test_ndjson_desde_bd(cliente):
                      data={"modo": "simple"}, files={"file": ("x.pdf", _pdf(2), "application/pdf")})
 
 
-    tipos = [json.loads(linea)["type"] for linea in r.text.splitlines()]
+    tipos = [t for linea in r.text.splitlines() if (t := json.loads(linea)["type"]) != "queue"]
     assert tipos == ["start", "page", "page", "done"]
 
 
