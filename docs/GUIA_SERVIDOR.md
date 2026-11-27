@@ -8,7 +8,7 @@ Si algo falla en cualquier paso, ve directo al apartado [Si algo falla](#si-algo
 
 ## Vía rápida con Docker Compose (recomendada)
 
-Todo (base de datos, OCR, app y HTTPS) en contenedores, **sin ejecutar scripts**. Requisitos: Docker con Compose en el servidor, salida a Internet y **un puerto abierto** para la web (por defecto `8443`).
+Todo (base de datos, app y HTTPS) en contenedores, **sin ejecutar scripts**. El OCR usa el **Ollama ya instalado en la VM**. Requisitos: Docker con Compose, `ollama list` mostrando el modelo PaddleOCR-VL y **un puerto abierto** para la web (por defecto `8443`). Si el modelo se llama distinto de `hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF:latest`, pon `OCR_MODEL=<nombre de ollama list>` en el `.env`.
 
 1. Con VS Code (Remote Explorer) conectado al servidor, copia la carpeta del repo al servidor (arrastrarla al explorador remoto, o `git clone` si lo tenéis).
 2. Si el puerto abierto no es el 8443: crea junto a `docker-compose.servidor.yml` un fichero `.env` con una línea `PUERTO=9443` (el vuestro).
@@ -19,7 +19,8 @@ Todo (base de datos, OCR, app y HTTPS) en contenedores, **sin ejecutar scripts**
 
 Si la app no arranca, Compose acaba con `dependency failed to start: container ... is unhealthy` y justo encima está el error del servicio que falló.
 
-- La primera vez genera solas las contraseñas, la clave de cifrado y el certificado (volumen `icat_secretos`) y baja el modelo de OCR (varios GB): `logs -f ollama-modelo` para ver cómo va.
+- La primera vez genera solas las contraseñas, la clave de cifrado y el certificado (volumen `icat_secretos`).
+- Puertos internos (solo en `localhost`): BD en `5433` y app en `8001`. Si estuvieran ocupados: `DB_PUERTO=` y `APP_PUERTO=` en el `.env`.
 - Actualizar: copia la carpeta nueva encima y repite el paso 3. Los datos se quedan en los volúmenes.
 - Logs de la app: `docker compose -f docker-compose.servidor.yml logs -f app`. Borrarlo **todo, datos incluidos**: `... down -v`.
 
