@@ -70,8 +70,24 @@ def registrar_subida(nombre: str, datos: bytes, doble: bool, usuario: dict, requ
         raise AppError("FORMATO_NO_SOPORTADO", "No se puede abrir el fichero", 415) from error
     huella = hashlib.sha256(datos).hexdigest()
     with tx() as conexion:
-        if conexion.execute(SQL["doc_por_hash"],
-                            {"creado_por": usuario["usuario_id"], "hash": huella}).fetchone():
+        previo = conexion.execute(SQL["doc_por_hash"],
+                                  {"creado_por": usuario["usuario_id"], "hash": huella}).fetchone()
+        if previo:
+            # 0017: si el intento anterior se quedó a medias (falló o se canceló), volver a subir
+            # el mismo fichero es la forma natural de reintentarlo: se reutiliza y vuelve a la cola.
+            if previo["estado"] == "pendiente" and previo["ocr_error"]:
+                conexion.execute(SQL["doc_meta_del"], {"id": previo["id"],
+                                                       "ruta": ["ocr", "error"]})
+                conexion.execute(SQL["doc_meta_set"], {
+                    "id": previo["id"], "ruta": ["ocr", "modo"],
+                    "valor": json.dumps("doble" if doble else "simple")})
+                audit.registrar(conexion, "OCR_REINTENTADO", request=request,
+                                usuario_id=usuario["usuario_id"], entidad_tipo="documento",
+                                entidad_id=previo["id"],
+                                detalle={"error_anterior": previo["ocr_error"],
+                                         "por": "resubida"})
+                return {"id": previo["id"], "num_paginas": num_paginas, "estado": "pendiente",
+                        "reutilizado": True}
             raise AppError("DOCUMENTO_DUPLICADO", "Ya subiste este documento", 409)
         doc = conexion.execute(SQL["doc_insertar"], {
             "nombre": nombre[:500] or "documento", "hash": huella, "mime": mime,

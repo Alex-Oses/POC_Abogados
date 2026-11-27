@@ -39,6 +39,8 @@ docker compose down                             # parar (-v borra también la ba
 - La imagen `backend/Dockerfile` trae Python 3.12, Presidio, spaCy con `es_core_news_md`, RapidOCR y `pypdfium2`: el Python del host no se usa.
 - Dentro del contenedor se fuerzan `DATABASE_URL` (`db:5432`), `OLLAMA_URL` (`host.docker.internal:11434`) y `STORAGE_DIR` (`/app/storage`, donde monta el volumen).
 - Para otro Ollama: `OLLAMA_URL_DOCKER=http://mi-ollama:11434 bash scripts/arrancar_docker.sh`.
+- Con Docker **rootless** (el de la VM) `host.docker.internal` no resuelve y el OCR acaba en «✕ Error d'OCR». Pon la IP privada de la máquina en el `.env` de la raíz: `OLLAMA_URL_DOCKER=http://10.0.0.4:11434` (compruébala antes con `curl http://10.0.0.4:11434/api/tags`).
+- Un documento que falla no se pierde: en la bandeja sale **↻ Reintentar**, que lo devuelve a la cola conservando las páginas ya leídas. Volver a subir el mismo fichero hace lo mismo en vez de contestar «ya está».
 - Si el 8000 está ocupado (por ejemplo, el servicio `icat-app` que deja `instalar_servidor.sh`): `APP_PUERTO=8010 bash scripts/arrancar_docker.sh`. El 5432, con `DB_PUERTO=5433`.
 - No pide sudo: solo que el motor de Docker esté arrancado y que tu usuario pueda usarlo.
 

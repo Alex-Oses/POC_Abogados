@@ -1,6 +1,8 @@
 -- name: doc_por_hash
 -- V15: el hash es único por creador y excluye lo eliminado.
-SELECT id FROM documentos
+-- 0017: estado y error del intento anterior para distinguir un duplicado de verdad de una
+-- subida que hay que reintentar (fallida o cancelada).
+SELECT id, estado, metadatos_extras -> 'ocr' ->> 'error' AS ocr_error FROM documentos
  WHERE creado_por = %(creado_por)s AND hash_sha256 = %(hash)s AND estado <> 'eliminado';
 
 -- name: doc_insertar
