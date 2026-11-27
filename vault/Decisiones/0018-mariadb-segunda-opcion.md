@@ -4,7 +4,7 @@
 - **Fecha**: 2026-11-26
 - **Autor**: @ia-opencode-maga369
 - **Se decide con**: @Marina (base de datos), @Rubén (backend), @Kevin (despliegue)
-- **Votos**: pendientes. Según [[AGENTS]], solo una persona pasa esta nota a **Aceptada**.
+- **Votos**: pendiente de respuesta de @Rubén y @Kevin en [[Tablero]] (27/11). Según [[AGENTS]], solo una persona pasa esta nota a **Aceptada**.
 - **Relación**: matiza [[0002-postgresql]], que sigue **Aceptada**; no la sustituye ni la deroga.
 
 ## Contexto

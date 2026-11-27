@@ -76,7 +76,7 @@
 | E-48 | P2 | El README dice que las reglas están «cerradas y auditadas» y varias siguen en propuesta o en pausa | `README.md:18` vs `reglas-de-negocio.md` | **corregido** (20/11) |
 | E-49 | P2 | U-12 retirada dice que la ruta de recuperación «sigue existiendo»; el contrato la retiró | `reglas-de-negocio.md:193` vs `endpoints.md` §1 | **corregido** (20/11) |
 | E-50 | P2 | [[Modelo de datos]] da por abiertos B5 y B8 y dice que `preservar_formato_pdf = false` contradice 0007 | `Modelo de datos.md:245,248-249` | **corregido** (20/11) |
-| E-51 | P2 | `anotaciones_entidad` conserva `pagina_numero` y `bbox_*`, que no aparecen en el modelo ER vigente | `V6__create_anotaciones_entidad.sql` vs `Modelo de datos.md:147-165,247` | bloqueado: requiere decidir si se conservan como respaldo o se eliminan con plan de datos |
+| E-51 | P2 | `anotaciones_entidad` conserva `pagina_numero` y `bbox_*`, que no aparecen en el modelo ER vigente | `V6__create_anotaciones_entidad.sql` vs `Modelo de datos.md:147-165,247` | **decidido** (27/11, @Marina): se conservan como respaldo legacy; el backend usa `bloque_id` |
 | E-52 | P1 | El diseño del PDF final tenía lagunas: geometría, semántica del texto, `falso_negativo`, sobrescritura, concurrencia y offsets | `pdf.md`, 0007, `endpoints.md` §5-6 | corregido (25/11) |
 | E-53 | P3 | La v0.3 se contradice: `hash_export`, A-20, 0012, A-04, offsets, columnas de `revisiones` y columnas que el SQL no trae | `Modelo-ER-POC-ICAT-v0.3` (24/11) | abierto (documentado; decide el equipo) |
 | E-54 | P0 | `relation "auditoria_pkey" already exists` al recrear `auditoria` como particionada | `partitioning.sql` (bloque `DO`) | **corregido** (26/11: PK creada tras `DROP`/`RENAME`; ejecutado en PG16) |
@@ -514,8 +514,8 @@ El modelo del 24/11 es la fuente del [diagrama](../Proyecto/Modelo%20de%20datos.
 
 - **Evidencia.** `V6` conserva `pagina_numero` y `bbox_x/y/ancho/alto`, pero el modelo vigente relaciona la anotación con `bloques_layout` mediante `bloque_id` y deja esos campos fuera de la entidad.
 - **Impacto.** El esquema tiene dos fuentes potenciales de geometría. El backend debe usar `bloque_id` y no leer los campos legacy; eliminarlos ahora podría destruir datos si ya se cargaron.
-- **Bloqueo.** @Marina debe decidir si se conservan como respaldo o se eliminan con un plan de datos. No se toca el modelo ER.
-- **Estado.** bloqueado.
+- **Decisión (27/11, @Marina).** Se conservan como respaldo legacy; el backend usa `bloque_id` y no los lee. Se eliminarán solo con una migración planificada y un plan de datos. No se toca el modelo ER.
+- **Estado.** decidido (27/11): se conservan; el backend no los usa.
 
 ### E-52 · El diseño del PDF final tenía lagunas que impedían implementarlo
 
