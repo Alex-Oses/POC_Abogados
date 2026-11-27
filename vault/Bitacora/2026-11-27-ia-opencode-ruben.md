@@ -56,3 +56,9 @@ Pruebas: `test_export.py` nuevo (solapes del marcado, sin BD) y casos de reinten
 
 - Sin Docker ni PostgreSQL en este equipo, las pruebas `*_bd` no se han podido ejecutar (tampoco las nuevas rutas contra el esquema real).
 - Sigue abierta **E-23** (trigger y backend calculando el mismo hash) y **E-24**; no se tocan sin decisión.
+
+## Puerto de la BD configurable (27/11)
+
+- En el servidor `genai-openllm-vm`, `docker compose up -d db` falla con `RootlessKit PortManager.AddPort(): listen tcp4 127.0.0.1:5432: address already in use`: algo (un PostgreSQL nativo o un contenedor de otro proyecto) ya ocupa el 5432 y no se puede parar sin permisos.
+- `docker-compose.yml` publica ahora `127.0.0.1:${DB_PUERTO:-5432}:5432`, así que **sin sudo y sin tocar lo que ya escucha** basta `DB_PUERTO=5433 docker compose up -d db` y apuntar `DATABASE_URL` al 5433. Por defecto sigue siendo 5432: nada cambia en los equipos donde funciona.
+- Anotado también en `backend/README.md`.
