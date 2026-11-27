@@ -1,0 +1,17 @@
+# Contexto de build = raíz del repo (backend/Dockerfile copia backend/app, templates y static).
+.git
+.github
+.claude
+.opencode
+.playwright-mcp
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.env
+backend/storage
+docs
+investigacion
+local
+maqueta
+pruebas
+vault

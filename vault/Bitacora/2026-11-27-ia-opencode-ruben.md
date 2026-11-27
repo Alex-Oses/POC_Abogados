@@ -15,6 +15,8 @@ Arreglados, sobre la rama `fix/backend-cola-reglas` (sale de `feat/backend-docum
 
 Pruebas: `test_export.py` nuevo (solapes del marcado, sin BD) y casos de reintento, borrado durante OCR y semáforo en `test_cola_ocr_bd.py`. `ruff` limpio; `pytest` 22 pasan / 12 saltan (las de BD, sin PostgreSQL aquí).
 
+- **Docker**: `backend/Dockerfile` (contexto: raíz del repo, porque el backend sirve `templates/` y `static/`) y `.dockerignore`. Python 3.12-slim, usuario sin privilegios, modelo `es_core_news_md` instalado (sin él Presidio no ve personas), `/app/storage` como volumen y `HEALTHCHECK` contra `/health`. Un solo worker: la cola de OCR es por proceso.
+
 ## Siguiente
 
 - Ejecutar las pruebas de BD cuando haya PostgreSQL (`DATABASE_TEST_URL`) y probar el flujo completo de #55.
