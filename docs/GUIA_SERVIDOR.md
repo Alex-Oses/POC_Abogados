@@ -239,6 +239,7 @@ Problemas habituales:
 - **La web no carga desde fuera pero sí desde el servidor.** Faltan los puertos 80/443 en el NSG de Azure (paso 2).
 - **El certificado no se emite con `DOMINIO`.** El dominio tiene que apuntar a la IP pública y el puerto 80 debe estar abierto, porque Let's Encrypt lo usa para comprobarlo. Mira `./diagnostico.sh`, apartado Caddy.
 - **`NO LISTA` en la base de datos.** Falta algo en la base de datos de Marina (tabla, columna o permiso). El mensaje dice qué.
+- **Un documento queda con «✕ Error d'OCR».** El contenedor no llega a Ollama. Con Docker rootless `host.docker.internal` no resuelve: en el `.env` de la raíz pon `OLLAMA_URL_DOCKER=http://IP_PRIVADA:11434` (la que da `hostname -I`) y compruébalo con `curl http://IP_PRIVADA:11434/api/tags`. Si falta el modelo, `ollama pull hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF:latest`; para probar sin modelo, `OCR_MOCK=1` en `backend/.env`. El documento no se pierde: en la bandeja sale **↻ Reintentar** y volver a subir el mismo fichero también lo devuelve a la cola.
 - **Los documentos se quedan en «En cua».** El OCR no está listo. En el diagnóstico, el apartado «Ollama» debe listar el modelo `PaddleOCR-VL`. Si el servidor no pudo descargarlo, copia la carpeta de modelos desde un PC que lo tenga (en Windows, `%USERPROFILE%\.ollama\models`) a `/usr/share/ollama/.ollama/models` y reinicia con `sudo systemctl restart ollama`.
 
 ## Lista de comprobación para la prueba en el servidor

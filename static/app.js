@@ -209,6 +209,16 @@ async function readNd(r, doc) {
     }
     if (buf.trim()) onEvent(doc, JSON.parse(buf));
 }
+// Reintento del OCR de un documento fallido o cancelado: vuelve a la cola y se sigue su progreso.
+async function retryDoc(d) {
+    try {
+        await sendJ(`/documents/${d.id}/retry`, 'POST');
+        d.error = ''; d._err = ''; d.done = false; d._follow = false;
+        toast(t('q_retry_ok'));
+        if (d.total) { docPages(d).forEach(p => { p.status = 'q'; }); followDoc(d); }
+        up(); loadList();
+    } catch (e) { fail(e); }
+}
 // Reanuda el progreso de un documento en cola o en proceso (tras recargar o al abrirlo desde la safata).
 function followDoc(d) {
     if (d._follow) return;
@@ -259,6 +269,7 @@ function onEvent(doc, ev) {
     } else if (ev.type === 'done') {
         doc.stats = ev; doc.done = true; doc.estado = ev.estado || 'ocr_completado';
     } else if (ev.type === 'error') {
+        if (ev.id) doc.id = ev.id; // para poder reintentar sin volver a subir
         doc.error = ev.code === 'CANCELADO' ? t('q_cancelat') : ev.message; doc.done = true;
         docPages(doc).forEach(p => { if (p.status === 'run') p.status = 'q'; });
     }
@@ -675,7 +686,7 @@ function QueueInfo({ d }) {
     if (!d || !RUNNING.includes(d.estado)) return null;
     const stop = e => e.stopPropagation();
     const cancel = async e => { stop(e); try { await sendJ(`/documents/${d.id}/cancel`, 'POST'); toast(t('q_cancelat')); } catch (x) { fail(x); } loadList(); };
-    if (d._err) return html`<div className="doc-s">${errText(d._err)} <button type="button" className="btn" onClick=${e => { stop(e); document.getElementById('pdfFile').click(); }}>↻ ${t('q_retry')}</button></div>`;
+    if (d._err) return html`<div className="doc-s">${errText(d._err)} <button type="button" className="btn" onClick=${e => { stop(e); retryDoc(d); }}>↻ ${t('q_retry')}</button></div>`;
     return html`<div className="row" style=${{ gap: '6px', marginTop: '4px' }}>
         ${d.estado === 'ocr_procesando' && html`<progress max=${d.num_paginas || 1} value=${d.pages_done || 0} aria-label=${t('transcrivint')}></progress>`}
         ${d.estado === 'pendiente' && html`<button type="button" className="btn" onClick=${cancel}>${t('cancel')}</button>`}
@@ -752,7 +763,8 @@ function Processant() {
     return html`<${Shell} active="safata">
         <h1 aria-live="polite">${d.error && !d.total ? d.name : d.done ? `${t('proc_fi')} · ${d.name}` : `${t('proc_t')} ${done}/${d.total || '…'} · ${d.name}`}</h1>
         <p className="sub">${t(d.mode === 'double' ? 'm_double' : 'm_single')} · ${t('proc_s2')}</p>
-        ${d.error && html`<div className="banner bad">Error: ${d.error}</div>`}
+        ${d.error && html`<div className="banner bad row"><div className="sp">Error: ${d.error}</div>
+            ${d.id && html`<button type="button" className="btn" onClick=${() => retryDoc(d)}>↻ ${t('q_retry')}</button>`}</div>`}
         ${!(d.error && !d.total) && html`<div className="card"><div className="tiles">
             ${d.total === 0 && !d.done && html`<div className="tile run"><div className="pg"></div><span className="spin" aria-hidden="true"></span> …</div>`}
             ${range(d.total).map(n => { const p = d.pages[n]; return html`<div key=${n} className=${'tile' + (p && p.status === 'run' ? ' run' : '')}><div className="pg"></div>${t('pag')} ${n}<br />${tileBody(p)}</div>`; })}

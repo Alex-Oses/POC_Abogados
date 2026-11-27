@@ -46,6 +46,8 @@ services:
       # Estos tres no pueden venir de backend/.env: dentro del contenedor
       # 127.0.0.1 es el propio contenedor, no la máquina. Pisan lo que diga el fichero.
       DATABASE_URL: postgresql://postgres:postgres@db:5432/icat
+      # Docker rootless (la VM): host.docker.internal no resuelve y el OCR falla.
+      # En el .env de la raíz: OLLAMA_URL_DOCKER=http://IP_PRIVADA:11434
       OLLAMA_URL: ${OLLAMA_URL_DOCKER:-http://host.docker.internal:11434}
       STORAGE_DIR: /app/storage
     extra_hosts:
