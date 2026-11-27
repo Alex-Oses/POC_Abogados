@@ -42,6 +42,22 @@ docker compose down                             # parar (-v borra también la ba
 - Si el 8000 está ocupado (por ejemplo, el servicio `icat-app` que deja `instalar_servidor.sh`): `APP_PUERTO=8001 bash scripts/arrancar_docker.sh`. El 5432, con `DB_PUERTO=5433`.
 - No pide sudo: solo que el motor de Docker esté arrancado y que tu usuario pueda usarlo.
 
+### Parar y liberar los puertos
+
+```bash
+docker compose down --remove-orphans   # para y borra app y BD: con ellos se van los puertos publicados
+docker ps -a                           # no debe quedar ningún contenedor de icat
+```
+
+`down` es lo normal y no necesita sudo: al borrar los contenedores, Docker suelta el 8000/8001 y el 5432/5433. Si después de eso un puerto sigue ocupado (pasa con Docker rootless, cuyo gestor de puertos se queda colgado), mira quién lo tiene antes de tocar nada:
+
+```bash
+ss -ltn | grep -E ':(8000|8001|5432|5433)'          # qué está escuchando
+docker ps -a --format '{{.Names}}\t{{.Ports}}'      # qué contenedor lo publica
+docker rm -f <contenedor>                           # si es uno suelto de un `docker run` (down no lo quita)
+systemctl --user restart docker                     # rootless: reinicia el motor y suelta los puertos huérfanos
+```
+
 ## Servidor (acceso desde fuera de la red)
 
 Guía completa paso a paso: [docs/GUIA_SERVIDOR.md](../docs/GUIA_SERVIDOR.md).

@@ -83,6 +83,8 @@ echo 'APP_PUERTO=8001' >> .env    # si el servicio icat-app ocupa el 8000
 
 Dentro de la red de Docker la app siempre habla con `db:5432`; esos dos solo cambian lo que se publica en la máquina.
 
+Para parar y liberar los puertos, `docker compose down` (sin sudo): borra los contenedores y con ellos desaparecen las publicaciones de 5433 y 8001. Si un puerto sigue ocupado después, casi siempre es un contenedor suelto de un `docker run` —`docker ps -a` lo enseña y `docker rm -f NOMBRE` lo quita— o el gestor de puertos de Docker rootless, que se reinicia sin sudo con `systemctl --user restart docker`.
+
 ## 4. Primer acceso
 
 1. Lee la contraseña del admin y borra el fichero cuando la tengas apuntada:
