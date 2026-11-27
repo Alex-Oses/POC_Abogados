@@ -9,6 +9,7 @@
 - **Actualizado (26/11/2026, segunda pasada):** cerrados los cuatro defectos P0 del SQL (E-01, E-03, E-16 y E-17); E-17 queda ligado a la decisión propuesta [[0017-particionado-auditoria]].
 - **Actualizado (26/11/2026, tercera pasada):** documentado el port a MariaDB como segunda opción (`docs/architecture/mariadb/`, [[0018-mariadb-segunda-opcion]]). No abre defectos nuevos: E-23, E-51 y E-53 se heredan y se documentan como límites del port, sin ejecutar por falta de motor.
 - **Actualizado (26/11/2026, cuarta pasada):** base construida y ejecutada en PostgreSQL 16.4 portátil sin Docker (`127.0.0.1:55432`). Cerrados E-54, E-55 y E-56 (defectos de ejecución de los scripts) y E-57 y E-58 (defectos del backend vistos por los tests). Los 15 tests pasan con `DATABASE_TEST_URL`.
+- **Actualizado (27/11/2026, quinta pasada):** E-51 pasa a **decidido** (se conservan los `bbox_*` legacy; el backend usa `bloque_id`), E-22 a **corregido** (@ia-opencode-ruben: `SELECT … FOR UPDATE` en `nueva_version`) y E-14 a **descartado** (`V15` elimina `usuarios.rol`, así que el `CHECK` de `V1` desaparece).
 - **Alcance:** los ficheros versionados del repo (`README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/api/`, `docs/architecture/`, `docs/architecture/mariadb/`, `docs/reglas/`, `docs/export/`, `docs/presidio.md`, `vault/`, `maqueta/`, `scripts/`) y, leídos enteros, las 14 migraciones (`V1`–`V12`, `V14`, `V15`), `views.sql`, `triggers.sql` y `partitioning.sql`, además de sus 14 equivalentes MariaDB.
 - **Para qué:** una sola lista de defectos, con evidencia, impacto y estado, para no reabrirlos ni volver a reportar lo descartado.
 - **Qué no es:** no sustituye al [[Tablero]] ni a [[Coherencia]]. Aquí van defectos comprobables; allí, decisiones y bloqueantes.
@@ -39,7 +40,7 @@
 | E-11 | — | «`version_esquema_bd = 1` con 15 migraciones» | `V12` | **descartado** (V15 lo pone a 15) |
 | E-12 | P2 | No hay seed de `reglas_anonimizacion` y la config apunta a `RGPD_ES`, que no existe | `V12` + falta migración de reglas | abierto |
 | E-13 | P2 | H3 de [[Coherencia]] cita `estado='eliminado'`, que V15 ya metió en el CHECK | `vault/Proyecto/Coherencia.md` | **corregido** (26/11) |
-| E-14 | P3 | Comentarios y `CHECK` siguen hablando de `supervisor`, que 0012 quita | `V1:7`, `V15:29,169` | bloqueado (0012) |
+| E-14 | P3 | Comentarios y `CHECK` siguen hablando de `supervisor`, que 0012 quita | `V1:7`, `V15:184`, `views.sql:147` | **descartado** (27/11): `V15` elimina `usuarios.rol` y el `CHECK` desaparece; solo quedan dos comentarios |
 | E-15 | P2 | `investigacion/` en minúsculas en [[Inicio]]; en la bóveda es `Investigacion/` | `vault/Inicio.md:20` | abierto |
 | E-16 | P0 | `partitioning.sql` llama a `partman` sobre `public.auditia`, que no existe | `partitioning.sql:52,58,61,67,70,73,81` | **corregido** (26/11: ocho apariciones) |
 | E-17 | P0 | `auditoria` no se puede particionar por `creado_en`: su PK es solo `id` | `V8:3-13`, `partitioning.sql:9-12` | **corregido** (26/11: PK `(id, creado_en)` en la recreación; [[0017-particionado-auditoria]] en Propuesta) |
@@ -47,7 +48,7 @@
 | E-19 | P1 | Tres `JOIN` internos esconden documentos en las vistas | `views.sql:42,43-49,197-204` | abierto |
 | E-20 | P1 | `entidades_confirmadas` no conoce las acciones nuevas de V15 | `views.sql:53` | abierto |
 | E-21 | P1 | V15 dice que los offsets van por bloque; el contrato cerrado y las vistas, por texto completo | `V15:103-109`, `views.sql:94` | corregido (25/11): offsets por bloque; contrato, vistas y comentarios alineados |
-| E-22 | P2 | `MAX(numero_version) + 1` sin bloqueo: dos versiones simultáneas chocan con el único | `V4:6,20`, `triggers.sql:92-107` | abierto |
+| E-22 | P2 | `MAX(numero_version) + 1` sin bloqueo: dos versiones simultáneas chocan con el único | `V4:6,20`, `triggers.sql:92-107` | **corregido** (27/11, @ia-opencode-ruben): `nueva_version` bloquea la fila con `SELECT … FOR UPDATE` |
 | E-23 | P1 | La cadena de hashes se bifurca con dos inserciones simultáneas | `triggers.sql:55-87` | abierto |
 | E-24 | P1 | La auditoría atribuye el cambio de estado a quien subió el documento | `triggers.sql:225-228` | abierto |
 | E-25 | P1 | `anotaciones_entidad.bloque_id` puede apuntar a un bloque de otra versión | `V15:105-106` | corregido (25/11): FK compuesta `(bloque_id, version_id)` |
@@ -257,7 +258,7 @@
 - **Qué pasa.** El trigger sí entra (sin `DEFAULT`, la columna llega `NULL` y se rellena antes del `NOT NULL`), pero `MAX + 1` no bloquea nada: dos transacciones que inserten una versión del mismo documento a la vez leen el mismo `MAX` y una choca contra el único con *duplicate key value violates unique constraint*.
 - **Impacto.** No corrompe datos: falla una petición. Con dos OCR en paralelo del mismo documento, el segundo se cae y el cliente recibe un 500 sin explicación. En la POC es improbable; en producción, con reprocesos, no.
 - **Arreglo.** `pg_advisory_xact_lock(hashtextextended(NEW.documento_id::text, 0))` antes del `MAX`, o una secuencia por documento. Es una línea y no cambia el modelo.
-- **Estado.** abierto. (Corregido el 20/11: había escrito que el `DEFAULT 1` anulaba el trigger; la columna no tiene `DEFAULT` y el trigger funciona.)
+- **Estado.** **corregido** (27/11, @ia-opencode-ruben): `nueva_version` bloquea la fila del documento (`SELECT … FOR UPDATE`) antes de calcular `MAX(numero_version) + 1`; dos cierres simultáneos se serializan. Queda fuera de esto la carrera de la cadena de hashes (E-23).
 
 ### E-23 · La cadena de hashes se bifurca
 
@@ -342,9 +343,9 @@
 
 ### E-14 · `supervisor`, que 0012 quita
 
-- `V1:7` admite `'supervisor'` en el `CHECK` de `rol`; `V15:29` describe `visto_bueno_por` como «supervisor que firmó» y `V15:169` manda el aviso al supervisor. 0012 deja **tres roles, sin supervisor**.
-- **No es un error a corregir por mi cuenta**: el `CHECK` se cambia editando `V1`, y espera a 0009 y 0012.
-- **Estado.** bloqueado (0012).
+- `V1:7` admitía `'supervisor'` en el `CHECK` de `rol`; hoy `V15:184` (configuración de A-20) sigue diciendo «al supervisor» y `views.sql:147` habla de «dashboard supervisor». 0012 dejó **tres roles, sin supervisor**.
+- **Qué queda.** El `CHECK` desapareció con la columna (`V15:199`), así que no hay nada que corregir en el esquema: las dos menciones son comentarios y no se edita `V1` porque ya está aplicada.
+- **Estado.** **descartado** (27/11): `V15:199` hace `ALTER TABLE usuarios DROP COLUMN rol`, así que el `CHECK` de `V1` desaparece con la columna; no queda ningún rol `'supervisor'` en el esquema. Solo sobreviven dos comentarios (`V15:184` y `views.sql:147`), sin efecto. No se edita `V1` porque ya está aplicada.
 
 ### E-53 · Contradicciones internas del documento v0.3
 

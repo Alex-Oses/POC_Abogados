@@ -1,6 +1,6 @@
 # Estructura del backend
 
-- **Para**: entrega del 27/11/2026 (ver [[Equipo]])
+- **Para**: entrega del lunes 30/11/2026 (ver [[Equipo]])
 - **Estado**: **estructura aceptada** · 23/11/2026 · se implementará en este fichero
 - **Lenguaje**: **Python 3.12 + FastAPI**, único stack del backend técnico: API, Presidio y PDF.
 - **Autor**: @ia-opencode-ruben

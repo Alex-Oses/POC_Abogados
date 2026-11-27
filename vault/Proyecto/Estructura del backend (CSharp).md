@@ -1,6 +1,6 @@
 # Estructura del backend (CSharp)
 
-- **Para**: entrega del 27/11/2026 (ver [[Equipo]])
+- **Para**: entrega del lunes 30/11/2026 (ver [[Equipo]])
 - **Estado**: **alternativa documentada** · no seleccionada · 23/11/2026
 - **Autor**: @ia-opencode-ruben
 - **Qué es**: alternativa escrita en C#. Es ventajosa si Presidio sale del backend como servicio independiente; no sustituye a la estructura Python aceptada.

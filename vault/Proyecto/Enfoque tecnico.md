@@ -1,6 +1,6 @@
 # Enfoque técnico del backend
 
-- **Para**: entrega del viernes 27/11/2026 (ver [[Equipo]])
+- **Para**: entrega del lunes 30/11/2026 (ver [[Equipo]])
 - **Estado**: **aceptado para el backend** · stack Python · 23/11/2026
 - **Autor**: @ia-opencode-ruben
 - **Qué es**: cómo se construye y por qué el **backend** (la API que sostiene el contrato). No cubre la arquitectura del sistema ni el ETL: eso lo lleva @Yaser y se documenta aparte. El detalle de cada ruta está en [`docs/api/endpoints.md`](../../docs/api/endpoints.md), las reglas en [`docs/reglas/`](../../docs/reglas/) y el modelo de datos lo cierra @Marina en [[Modelo de datos]].
