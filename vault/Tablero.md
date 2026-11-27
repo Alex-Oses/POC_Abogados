@@ -52,6 +52,8 @@ Resto:
 
 ## Hecho
 
+- [x] Arranque en Docker documentado (27/11): [docs/ARRANQUE_DOCKER.md](../docs/ARRANQUE_DOCKER.md) explica el compose de desarrollo (`poc_abogados`) y el del servidor (`icat`), la tabla de puertos de la VM compartida, como probar el del servidor sin pisar los contenedores de otro (`-p icat-ruben`), el acceso por tunel SSH y el diagnostico del OCR · @ia-opencode-ruben
+
 - [x] 27/11: **PR #56 mergeado** — backend de documentos que sustituye a #55: ocho fallos de reglas corregidos, `anonymize.py`/`export.py` separados y `backend/Dockerfile`. Quedan las pruebas de BD, que necesitan un entorno con PostgreSQL · @ia-opencode-ruben
 - [x] **Bloqueo de licencia cerrado (27/11)**: PyMuPDF (AGPL-3.0) retirado del backend. `services/ocr.py` rasteriza y lee la capa de texto con `pypdfium2` (Apache-2.0 OR BSD-3-Clause); `scripts/generar_pruebas.py` compone con ReportLab y rasteriza con pypdfium2; las tres pruebas ya no lo importan. `pyproject.toml` declara `pypdfium2` y [[0007-generacion-pdf-final]]/[[0008-stack-backend]] vuelven a cumplirse · @ia-opencode-ruben
 - [x] Rutas del contrato que faltaban (27/11): `POST/PATCH /rules`, `POST/PATCH /categories`, `GET /config` y `PUT /config/{clave}` (solo admin), `PATCH /reviews/{id}/assign` y `POST /documents/{id}/sign-off`. El SSO sigue en pausa por decisión, no por código · @ia-opencode-ruben

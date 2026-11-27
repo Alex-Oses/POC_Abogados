@@ -8,7 +8,7 @@ Si algo falla en cualquier paso, ve directo al apartado [Si algo falla](#si-algo
 
 ## Vía rápida con Docker Compose (recomendada)
 
-Todo (base de datos, app y HTTPS) en contenedores, **sin ejecutar scripts**. El OCR usa el **Ollama ya instalado en la VM**. Requisitos: Docker con Compose, `ollama list` mostrando el modelo PaddleOCR-VL y **un puerto abierto** para la web (por defecto `8443`). Si el modelo se llama distinto de `hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF:latest`, pon `OCR_MODEL=<nombre de ollama list>` en el `.env`.
+Todo (base de datos, app y HTTPS) en contenedores, **sin ejecutar scripts**. Cómo convive este compose con el de desarrollo (otro nombre de proyecto, otros puertos, cómo no pisar los contenedores de otra persona): [ARRANQUE_DOCKER.md](ARRANQUE_DOCKER.md). El OCR usa el **Ollama ya instalado en la VM**. Requisitos: Docker con Compose, `ollama list` mostrando el modelo PaddleOCR-VL y **un puerto abierto** para la web (por defecto `8443`). Si el modelo se llama distinto de `hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF:latest`, pon `OCR_MODEL=<nombre de ollama list>` en el `.env`.
 
 1. Con VS Code (Remote Explorer) conectado al servidor, copia la carpeta del repo al servidor (arrastrarla al explorador remoto, o `git clone` si lo tenéis).
 2. Si el puerto abierto no es el 8443: crea junto a `docker-compose.servidor.yml` un fichero `.env` con una línea `PUERTO=9443` (el vuestro).
