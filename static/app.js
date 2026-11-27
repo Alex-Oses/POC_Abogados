@@ -980,11 +980,14 @@ async function decide(list, on, mode = S.anMode) {
     if (!anEditable()) return toast(t('an_ro'));
     const ps = mode === 'pseudonim' ? pseudo(S.an.anns) : {};
     try {
-        await Promise.all(list.map(async a => {
-            const body = on ? { decision_revisor: 'confirmado', accion_aplicada: MODES[mode][1] } : { decision_revisor: 'falso_positivo' };
-            if (on && ps[a.id]) body.texto_sustitucion = ps[a.id];
-            Object.assign(a, await sendJ(`/annotations/${a.id}`, 'PATCH', body));
-        }));
+        // De 4 en 4: todas a la vez agotan el pool de BD (10 conexiones) y salen 503.
+        for (let i = 0; i < list.length; i += 4) {
+            await Promise.all(list.slice(i, i + 4).map(async a => {
+                const body = on ? { decision_revisor: 'confirmado', accion_aplicada: MODES[mode][1] } : { decision_revisor: 'falso_positivo' };
+                if (on && ps[a.id]) body.texto_sustitucion = ps[a.id];
+                Object.assign(a, await sendJ(`/annotations/${a.id}`, 'PATCH', body));
+            }));
+        }
     } catch (e) { fail(e); }
     up();
 }
