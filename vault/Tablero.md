@@ -12,11 +12,13 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 - [ ] Envío por correo del PDF exportado (anonimizado o transcrito) a quien lo deba recibir. Pendiente de hablar el 27/11: ver [[2026-11-26-ia-claude-alex]] · @Alex-Oses
 
+- [ ] Decidir qué defectos SQL abiertos del [[Registro de errores]] se corrigen antes del 30/11: E-18 y E-19 (vistas), E-20, E-26, E-28 y E-30. El backend no usa las vistas, así que hoy solo afectan a informes · @Marina
+
 **Entrega lunes 30/11** (ver [[Equipo]]):
 - [ ] Especificación funcional con criterios «cómo comprobarlo»
 - [ ] Presentar el stack completo funcionando (frontend React + backend FastAPI + PostgreSQL + OCR PaddleOCR-VL + Presidio) con los PDF de ejemplo; la maqueta ya no se pasa a Figma · @Alex
 - [ ] Decidir el caso a presentar (justicia gratuita, anonimización o ambos)
-- [ ] BBDD
+- [x] BBDD: `V1`–`V15` y `views.sql` validados desde cero en PostgreSQL 16.4 y aplicados por el compose de la demo; en el servidor los aplica el instalador · @Marina
 - [ ] Backend (API)
 - [ ] Frontend
 - [ ] OCR funcionando en Ollama
@@ -46,10 +48,11 @@ Resto:
 
 ## En curso
 
-- [ ] 27/11: **PR #56** — backend de documentos que **sustituye a #55**: ocho fallos de reglas corregidos, `anonymize.py`/`export.py` separados, `main` integrado (incluido #52 de @Marina) y `backend/Dockerfile` · falta ejecutar las pruebas de BD (sin PostgreSQL aquí) · @ia-opencode-ruben
+- Nada en curso. El [[Tablero]] solo lista aquí lo que alguien está tocando ahora mismo.
 
 ## Hecho
 
+- [x] 27/11: **PR #56 mergeado** — backend de documentos que sustituye a #55: ocho fallos de reglas corregidos, `anonymize.py`/`export.py` separados y `backend/Dockerfile`. Quedan las pruebas de BD, que necesitan un entorno con PostgreSQL · @ia-opencode-ruben
 - [x] **Bloqueo de licencia cerrado (27/11)**: PyMuPDF (AGPL-3.0) retirado del backend. `services/ocr.py` rasteriza y lee la capa de texto con `pypdfium2` (Apache-2.0 OR BSD-3-Clause); `scripts/generar_pruebas.py` compone con ReportLab y rasteriza con pypdfium2; las tres pruebas ya no lo importan. `pyproject.toml` declara `pypdfium2` y [[0007-generacion-pdf-final]]/[[0008-stack-backend]] vuelven a cumplirse · @ia-opencode-ruben
 - [x] Rutas del contrato que faltaban (27/11): `POST/PATCH /rules`, `POST/PATCH /categories`, `GET /config` y `PUT /config/{clave}` (solo admin), `PATCH /reviews/{id}/assign` y `POST /documents/{id}/sign-off`. El SSO sigue en pausa por decisión, no por código · @ia-opencode-ruben
 - [x] E-22 corregido (27/11): `nueva_version` bloquea la fila del documento (`SELECT … FOR UPDATE`) antes de calcular `MAX(numero_version) + 1`; dos cierres simultáneos ya no chocan con el único · @ia-opencode-ruben

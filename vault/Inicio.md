@@ -4,7 +4,7 @@ Bóveda compartida del equipo. Vive dentro del repo: cada `git pull` la actualiz
 
 ## Mapa
 
-- [[Equipo]]: quién lleva qué, herramientas y la entrega del viernes 27/11
+- [[Equipo]]: quién lleva qué, herramientas y la entrega del lunes 30/11
 - [[Tablero]]: tareas, quién las lleva y preguntas abiertas
 - [[Registro de errores]]: defectos encontrados en el repo, con evidencia y estado
 - Proyecto
@@ -15,7 +15,7 @@ Bóveda compartida del equipo. Vive dentro del repo: cada `git pull` la actualiz
   - [[Base de datos]]: modelo PostgreSQL
   - [[Modelo de datos]]: modelo de @Marina y en qué se diferencia de 0010
   - [[Coherencia]]: contradicciones abiertas entre contrato, modelo y maqueta
-  - [[Enfoque tecnico]]: enfoque del backend y su frontera con el ETL (entrega 27/11, propuesta)
+  - [[Enfoque tecnico]]: enfoque del backend y su frontera con el ETL (entrega 30/11, propuesta)
   - [[Estructura del backend (Python)]] · [[Estructura del backend (CSharp)]] · [[Estructura del backend (Java)]]: carpetas e imports previstos, una por lenguaje
 - `docs/api/` y `docs/reglas/`: contrato completo y reglas de negocio (detalle)
 - `docs/export/`: generación del PDF final desde la estructura guardada

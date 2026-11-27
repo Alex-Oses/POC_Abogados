@@ -42,5 +42,5 @@ Rama `feat/backend-documentos`. Sin cambios de esquema de BD: no hay migraciones
 
 - Envío por correo tras exportar: decidir el 27/11 (ver [[2026-11-26-ia-claude-alex]]).
 - Probar SharePoint con un tenant real y el script en el servidor de Azure (abrir 80/443 en el NSG).
-- @Marina: confirmar que en el servidor no se aplican `triggers.sql` ni `partitioning.sql` (#52).
+- ~~@Marina: confirmar que en el servidor no se aplican `triggers.sql` ni `partitioning.sql` (#52).~~ **Confirmado (27/11, @Marina):** el despliegue solo aplica `V1`–`V15` y `views.sql` (`backend/db/init.sh` y el compose); `triggers.sql` y `partitioning.sql` no entran. Es lo previsto: el backend mantiene versiones y auditoría, y aplicar los triggers duplicaría la cadena de hashes (E-23). `partitioning.sql` queda como script operativo manual para cuando se decida particionar; la retención automática sigue pendiente de `pg_partman` y de @Kevin.
 - Probar en el servidor real (27/11) con la lista de la guía.

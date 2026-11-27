@@ -24,8 +24,8 @@ Cinco personas: @Rubén (backend), @Alex (frontend y OCR), @Marina (base de dato
 
 Para este equipo, deuda técnica = **el coste de investigar algo**. Cada nota de `Investigacion/` indica cuánto costó y qué queda por investigar.
 
-## Entrega del viernes 27/11/2026 (al cliente)
+## Entrega del lunes 30/11/2026 (al cliente)
 
 1. **Especificación funcional**: qué debe hacer la aplicación y cómo comprobarlo.
 2. **Enfoque técnico**: cómo resolverlo y por qué esa opción.
-3. **Maqueta simple de la interfaz** (Figma): qué ve y qué hace el usuario durante el recorrido.
+3. **Maqueta navegable de la interfaz**: qué ve y qué hace el usuario durante el recorrido (ya no se pasa a Figma).
