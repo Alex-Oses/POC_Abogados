@@ -56,3 +56,11 @@ Pruebas: `test_export.py` nuevo (solapes del marcado, sin BD) y casos de reinten
 
 - Sin Docker ni PostgreSQL en este equipo, las pruebas `*_bd` no se han podido ejecutar (tampoco las nuevas rutas contra el esquema real).
 - Sigue abierta **E-23** (trigger y backend calculando el mismo hash) y **E-24**; no se tocan sin decisión.
+
+## Decisiones y preguntas cerradas (27/11, tarde)
+
+- **Votadas**: [[0017-particionado-auditoria]] y [[0018-mariadb-segunda-opcion]] con OK de @Rubén; siguen en **Propuesta** hasta el voto de @Kevin.
+- **Aceptadas**: [[0019-entrada-por-sharepoint]] y [[0020-cola-ocr-en-segundo-plano]] (2026-11-27, @Rubén). La 0020 llevaba el título con el número viejo (`0017`) y se ha corregido.
+- **Respondidas en el [[Tablero]]**: no se siembra regla en `V12` (se crean por `POST /rules`); el documento ilegible se guarda con `OCR_SIN_TEXTO` y se reescanea, y el contrato se corrige en `docs/api/endpoints.md`; `desalojar_sesiones` con `DESC` confirmado (E-57); las rutas de #48 ya están reescritas en #56.
+- Presidio se queda en `es_core_news_md`; el PDF de ReportLab y el endpoint de OCR pasan a **Hecho**.
+- Sin tocar `docs/architecture/` ni migraciones. Las preguntas repetidas por merges anteriores se han dejado una sola vez.
