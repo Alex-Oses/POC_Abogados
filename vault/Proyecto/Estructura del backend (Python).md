@@ -298,7 +298,7 @@ Revisión del código real (PR #56, rama `fix/backend-cola-reglas`) contra este 
 | `jobs/ocr.py` | `services/cola.py` | 0017: hilos dentro del proceso, sin Redis ni Celery. |
 | `middleware/limit_rate.py` como middleware | `limitar_login()` aplicado en las rutas de login | El techo es de intentos de login, no de tráfico; limitar por IP detrás de Caddy exige leer `X-Forwarded-For` y nadie lo ha pedido. |
 | Sección 1: «el backend no implementa PaddleOCR-VL» | `services/ocr.py` llama a Ollama y aplica el semáforo | La frontera se movió con 0017: alguien tiene que ejecutar la cola. No implementa el modelo, solo lo invoca. |
-| `pypdf` | `pymupdf`, `pillow`, `cryptography`, `python-multipart`, `rapidocr-onnxruntime` | Hace falta rasterizar páginas y cajas de palabras; Fernet (0004) obliga a `cryptography`. `pypdf` no se usa. |
+| `pypdf` | `pypdfium2`, `pillow`, `cryptography`, `python-multipart`, `rapidocr-onnxruntime` | Hace falta rasterizar páginas y cajas de palabras; Fernet (0004) obliga a `cryptography`. **`pypdfium2` (Apache-2.0/BSD-3) sustituyó a PyMuPDF el 27/11** por la AGPL; `pypdf` no se usa. |
 | — | `main.py` sirve `/` y `/static`, `/health` y arranque degradado; `jg.py`, `richtext.py`, `sharepoint.py`, `cola.py` | Alcance posterior, todo en el contrato: frontend en el mismo proceso, justicia gratuita, SharePoint ([[0019-entrada-por-sharepoint]]). |
 
 La única excepción a «la transacción la abre `deps.py`» son la cola de OCR, el reintento y el ZIP: no hay petición que abra la transacción, así que cada página o documento abre la suya.

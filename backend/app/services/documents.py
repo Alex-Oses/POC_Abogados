@@ -39,6 +39,8 @@ def detalle(doc: dict) -> dict:
 
 def nueva_version(conexion: Connection, documento_id, tipo: str, usuario_id, *, texto=None,
                   meta: dict | None = None, regla_id=None, motor_ocr=None, modelo_ia=None) -> dict:
+    # E-22: bloquea el documento para que dos cierres a la vez no calculen el mismo número.
+    conexion.execute(SQL["doc_bloquear"], {"id": documento_id})
     conexion.execute(SQL["version_desmarcar"], {"documento_id": documento_id})
     return conexion.execute(SQL["version_insertar"], {
         "documento_id": documento_id, "tipo": tipo, "texto": texto, "motor_ocr": motor_ocr,

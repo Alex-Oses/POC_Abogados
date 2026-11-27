@@ -1,8 +1,20 @@
 """Saneado del texto con formato y formas del PDF exportado (sin BD)."""
 
-import pymupdf
-
 from app.services import export, richtext
+
+
+def _texto_pdf(datos: bytes) -> str:
+    import pypdfium2 as pdfium
+
+    doc = pdfium.PdfDocument(datos)
+    try:
+        textpage = doc[0].get_textpage()
+        try:
+            return textpage.get_text_range()
+        finally:
+            textpage.close()
+    finally:
+        doc.close()
 
 
 def test_sanear_quita_xss():
@@ -37,7 +49,7 @@ def test_pdf_censurar_y_borrar_sin_original():
         n |= {"decision_revisor": "confirmado", "texto_sustitucion": None}
     marcado, tachado = export.marcar(contenido, notas)
     pdf = export.componer([marcado], True)
-    texto = "".join(p.get_text() for p in pymupdf.open(stream=pdf, filetype="pdf"))
+    texto = _texto_pdf(pdf)
     assert not tachado and "vive en Reus" in texto
     for original in ("Juan", "Pérez", "García", "12345678Z"):
         assert original not in texto and original.encode() not in pdf
@@ -48,5 +60,5 @@ def test_pdf_tachado_avisa():
             "decision_revisor": "confirmado", "texto_sustitucion": None}
     marcado, tachado = export.marcar("Juan vive", [nota])
     pdf = export.componer([marcado], False, tachado=tachado)
-    texto = pymupdf.open(stream=pdf, filetype="pdf")[0].get_text()
+    texto = _texto_pdf(pdf)
     assert tachado and export.AVISO_TACHADO in texto and "Juan" in texto

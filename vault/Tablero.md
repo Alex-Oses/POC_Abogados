@@ -4,7 +4,7 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 ## Bloqueos
 
-- [ ] **URGENTE — licencia: no usar PyMuPDF (`pymupdf`) en el backend.** Es **AGPL-3.0 o licencia comercial de Artifex**, y entregar el backend al ICAT (imagen Docker o código en su servidor) obligaría a publicar **todo el backend** bajo AGPL. Contradice [[0007-generacion-pdf-final]] («Nada de PyMuPDF (AGPL)») y [[0008-stack-backend]] («licencias permisivas en todo lo que se distribuya o inspeccione»). Hoy se importa en `backend/app/services/ocr.py` (`renderizar`, `contar`, `una_pagina`, `png_pagina`, `cajas`), en `scripts/generar_pruebas.py` y en tres pruebas. Sustituir por `pypdfium2` (Apache-2.0 OR BSD-3-Clause, ya usado en `docs/pdf.py`) o `pypdf` (BSD), o comprar la licencia comercial antes de entregar. `pymupdf4llm` y `pymupdf_layout` tampoco deben instalarse. · @Rubén
+- Ninguno abierto. El de licencia (PyMuPDF) quedó cerrado el 27/11: ver **Hecho**.
 
 ## Pendiente
 
@@ -52,6 +52,9 @@ Resto:
 
 ## Hecho
 
+- [x] **Bloqueo de licencia cerrado (27/11)**: PyMuPDF (AGPL-3.0) retirado del backend. `services/ocr.py` rasteriza y lee la capa de texto con `pypdfium2` (Apache-2.0 OR BSD-3-Clause); `scripts/generar_pruebas.py` compone con ReportLab y rasteriza con pypdfium2; las tres pruebas ya no lo importan. `pyproject.toml` declara `pypdfium2` y [[0007-generacion-pdf-final]]/[[0008-stack-backend]] vuelven a cumplirse · @ia-opencode-ruben
+- [x] Rutas del contrato que faltaban (27/11): `POST/PATCH /rules`, `POST/PATCH /categories`, `GET /config` y `PUT /config/{clave}` (solo admin), `PATCH /reviews/{id}/assign` y `POST /documents/{id}/sign-off`. El SSO sigue en pausa por decisión, no por código · @ia-opencode-ruben
+- [x] E-22 corregido (27/11): `nueva_version` bloquea la fila del documento (`SELECT … FOR UPDATE`) antes de calcular `MAX(numero_version) + 1`; dos cierres simultáneos ya no chocan con el único · @ia-opencode-ruben
 - [x] Base construida y validada en PostgreSQL 16.4 sin Docker (26/11): `V1`–`V15`, vistas, triggers y recreación de `auditoria` ejecutados desde cero; 15/15 tests con base · @ia-opencode-maga369 · [[Registro de errores]] (cuarta pasada)
 - [x] Cerrados E-54, E-55 y E-56 (scripts SQL) y E-57 y E-58 (backend) y documentada la arquitectura MariaDB en el mismo PR · @ia-opencode-maga369 · `docs/architecture/`, `docs/architecture/mariadb/`, `backend/app/db/queries/auth.sql`, `backend/tests/test_sin_bd.py` · [[0017-particionado-auditoria]] y [[0018-mariadb-segunda-opcion]] en **Propuesta** (pendientes de aprobación; PR #52 abierto)
 

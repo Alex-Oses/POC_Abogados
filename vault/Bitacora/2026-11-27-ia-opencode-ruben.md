@@ -41,6 +41,18 @@ Pruebas: `test_export.py` nuevo (solapes del marcado, sin BD) y casos de reinten
 
 - `pymupdf` es **AGPL-3.0 o licencia comercial de Artifex** y se importa en `services/ocr.py` (`renderizar`, `contar`, `una_pagina`, `png_pagina`, `cajas`), en `scripts/generar_pruebas.py` y en tres pruebas. Contradice [[0007-generacion-pdf-final]] y [[0008-stack-backend]], y `docs/export/pdf.md` §7 afirma lo contrario. Anotado como bloqueo urgente en el [[Tablero]]; sustitución prevista: `pypdfium2` (Apache-2.0 OR BSD-3-Clause) o `pypdf` (BSD). El resto de dependencias es permisivo salvo `psycopg` (LGPL-3.0, ya aceptada en 0008) y `certifi` (MPL-2.0, inocua).
 
+## Tarde del 27/11: rutas que faltaban, E-22 y fin del bloqueo AGPL
+
+- **Rutas del contrato**: `POST/PATCH /rules`, `POST/PATCH /categories`, `GET /config`, `PUT /config/{clave}` (admin), `PATCH /reviews/{id}/assign` y `POST /documents/{id}/sign-off`. Quedan **49 paths** en `openapi()`. El SSO sigue fuera por decisión (ICAT sin registrar la app OIDC), no por código.
+  - Categorías: la regex se valida al vuelo (`400 REGEX_INVALIDA`), código repetido `409`, y `PATCH` usa `COALESCE` para no borrar lo que no se envía.
+  - Reglas: si el código existe y sigue activo, `409`; si está inactivo, se crea la **siguiente versión**; `PATCH` reemplaza `regla_categorias` cuando llegan `categorias`.
+  - `assign`: solo revisor activo (`404`), exige `comentario` al reasignar en proceso (`422`) y `asignado_a: null` la devuelve a la cola.
+  - `sign-off`: responde `409` fuera de `pendiente_visto_bueno` y `403` a quien cerró la revisión (autor de `final_aprobado`). Con A-15 en pausa es inalcanzable, pero el contrato no se reescribe.
+- **E-22**: `nueva_version` bloquea la fila del documento (`SELECT … FOR UPDATE`, consulta `doc_bloquear`) antes de `MAX(numero_version) + 1`. Dos cierres simultáneos se serializan.
+- **Bloqueo AGPL cerrado**: `services/ocr.py` usa `pypdfium2` para rasterizar (150 dpi) y para la capa de texto y las cajas (`get_charbox` sobre `get_text_range`); `scripts/generar_pruebas.py` compone con ReportLab y rasteriza con pypdfium2; las tres pruebas leen el PDF con pypdfium2 y lo crean con ReportLab. `pyproject.toml` declara `pypdfium2>=4.30` y ya no `pymupdf`. Comprobado sin BD: renderizar/contar/una_pagina/png_pagina/cajas/contraste y una imagen suelta.
+- Sin cambios de esquema: `regla_categorias`, `categorias_sensibles.prioridad` y `configuracion_sistema` ya existían en `V15`/`V2`/`V9`.
+
 ## Bloqueos / preguntas
 
-- Sin Docker ni PostgreSQL en este equipo, las pruebas `*_bd` no se han podido ejecutar.
+- Sin Docker ni PostgreSQL en este equipo, las pruebas `*_bd` no se han podido ejecutar (tampoco las nuevas rutas contra el esquema real).
+- Sigue abierta **E-23** (trigger y backend calculando el mismo hash) y **E-24**; no se tocan sin decisión.

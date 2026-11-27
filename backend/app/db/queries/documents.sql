@@ -76,6 +76,10 @@ UPDATE documentos
 -- FOR UPDATE: el worker y el borrado/cancelación no se pisan a mitad de página.
 SELECT estado FROM documentos WHERE id = %(id)s FOR UPDATE;
 
+-- name: doc_bloquear
+-- E-22: serializa la numeración de versiones por documento (MAX(numero_version) + 1).
+SELECT id FROM documentos WHERE id = %(id)s FOR UPDATE;
+
 -- name: doc_ruta_set
 UPDATE documentos SET ruta_almacenamiento = %(ruta)s WHERE id = %(id)s;
 

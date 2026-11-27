@@ -32,6 +32,54 @@ def tomar(conexion: Connection, revision_id, usuario: dict, request) -> dict:
     return fila
 
 
+def asignar(conexion: Connection, revision_id, asignado_a, comentario: str | None,
+            usuario: dict, request) -> dict:
+    """Contrato §6: asigna o reasigna; `asignado_a` nulo la devuelve a la cola."""
+    rev = conexion.execute(SQL["revision_por_id"], {"id": revision_id}).fetchone()
+    if not rev:
+        raise AppError("REVISION_NO_ENCONTRADA", "La revisión no existe", 404)
+    if rev["estado"] not in ("en_cola", "en_proceso"):
+        raise AppError("REVISION_CERRADA", "La revisión ya está cerrada", 409)
+    if rev["estado"] == "en_proceso" and not (comentario or "").strip():
+        raise AppError("COMENTARIO_REQUERIDO", "Reasignar una revisión en proceso exige comentario",
+                       422)
+    if asignado_a and not conexion.execute(SQL["revisor_activo"], {"id": asignado_a}).fetchone():
+        raise AppError("REVISOR_NO_ENCONTRADO", "No hay un revisor activo con ese id", 404)
+    fila = conexion.execute(SQL["revision_asignar"],
+                            {"id": revision_id, "asignado_a": asignado_a}).fetchone()
+    if not fila:
+        raise AppError("CONFLICTO_REVISION", "La revisión cambió; recarga", 409)
+    audit.registrar(conexion, "REVISION_ASIGNADA", request=request,
+                    usuario_id=usuario["usuario_id"], entidad_tipo="revision",
+                    entidad_id=revision_id,
+                    detalle={"asignado_a": None if asignado_a is None else str(asignado_a),
+                             "comentario": comentario})
+    return fila
+
+
+def visto_bueno(conexion: Connection, doc: dict, comentario: str | None, usuario: dict,
+                request) -> dict:
+    """Contrato §6: visto bueno de A-15 (en pausa). Quien cerró la revisión no puede firmarlo."""
+    if doc["estado"] != "pendiente_visto_bueno":
+        raise AppError("ESTADO_INVALIDO", "El documento no está pendiente de visto bueno", 409)
+    revision = conexion.execute(SQL["revision_aprobada_doc"],
+                                {"documento_id": doc["id"]}).fetchone()
+    if revision:
+        cerrada = conexion.execute(SQL["version_creador"],
+                                   {"id": revision["version_id"]}).fetchone()
+        if cerrada and cerrada["creado_por"] == usuario["usuario_id"]:
+            raise AppError("FORBIDDEN", "Quien cerró la revisión no puede firmar el visto bueno",
+                           403)
+    fila = conexion.execute(SQL["doc_sign_off"],
+                            {"id": doc["id"], "usuario_id": usuario["usuario_id"]}).fetchone()
+    if not fila:
+        raise AppError("ESTADO_INVALIDO", "El documento ya no está pendiente de visto bueno", 409)
+    audit.registrar(conexion, "DOCUMENTO_VISTO_BUENO", request=request,
+                    usuario_id=usuario["usuario_id"], entidad_tipo="documento",
+                    entidad_id=doc["id"], detalle={"comentario": comentario})
+    return fila
+
+
 def cerrar(conexion: Connection, revision_id, estado: str, comentario: str | None,
            if_match: str | None, usuario: dict, request) -> dict:
     rev = conexion.execute(SQL["revision_por_id"], {"id": revision_id}).fetchone()

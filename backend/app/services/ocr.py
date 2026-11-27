@@ -20,55 +20,90 @@ _MOCK = ("Don Juan Pérez García, con DNI 12345678Z y domicilio en Barcelona, "
          "solicita justicia gratuita. IBAN ES91 2100 0418 4502 0005 1332.")
 
 
+def _pdfium(datos: bytes):
+    """PDF abierto con pypdfium2 (Apache-2.0/BSD-3): PDFium no impone la AGPL de PyMuPDF."""
+    import pypdfium2 as pdfium
+
+    return pdfium.PdfDocument(datos)
+
+
+def _png_de(pagina, escala: float) -> tuple[bytes, int, int]:
+    pil = pagina.render(scale=escala).to_pil()
+    salida = io.BytesIO()
+    pil.save(salida, "PNG")
+    return salida.getvalue(), pil.width, pil.height
+
+
+def _capa(pagina) -> str:
+    textpage = pagina.get_textpage()
+    try:
+        return textpage.get_text_range()
+    finally:
+        textpage.close()
+
+
+def _imagen(datos: bytes) -> dict:
+    """JPG/PNG sueltos: una sola página, sin capa de texto, convertida a PNG."""
+    from PIL import Image
+
+    with Image.open(io.BytesIO(datos)) as im:
+        ancho, alto = im.size
+        salida = io.BytesIO()
+        im.convert("RGB").save(salida, "PNG")
+    return {"png": salida.getvalue(), "ancho": ancho, "alto": alto, "capa": ""}
+
+
 def renderizar(datos: bytes, mime: str) -> list[dict]:
     """Una entrada por página: PNG a 150 dpi, tamaño en píxeles y capa de texto (si hay)."""
-    import pymupdf as fitz
-
-    if mime == "application/pdf":
-        doc = fitz.open(stream=datos, filetype="pdf")
-    else:
-        doc = fitz.open(stream=datos, filetype=mime.split("/")[1])
+    if mime != "application/pdf":
+        return [_imagen(datos)]
+    doc = _pdfium(datos)
     paginas = []
-    for pagina in doc:
-        pix = pagina.get_pixmap(dpi=DPI)
-        capa = pagina.get_text() if mime == "application/pdf" else ""
-        paginas.append({"png": pix.tobytes("png"), "ancho": pix.width, "alto": pix.height,
-                        "capa": capa})
-    doc.close()
+    try:
+        for indice in range(len(doc)):
+            pagina = doc[indice]
+            png, ancho, alto = _png_de(pagina, DPI / 72)
+            paginas.append({"png": png, "ancho": ancho, "alto": alto, "capa": _capa(pagina)})
+    finally:
+        doc.close()
     return paginas
 
 
 def contar(datos: bytes, mime: str) -> int:
-    import pymupdf as fitz
-
-    tipo = "pdf" if mime == "application/pdf" else mime.split("/")[1]
-    with fitz.open(stream=datos, filetype=tipo) as doc:
+    if mime != "application/pdf":
+        return 1
+    doc = _pdfium(datos)
+    try:
         return len(doc)
+    finally:
+        doc.close()
 
 
 def una_pagina(datos: bytes, mime: str, numero: int) -> dict:
     """Como `renderizar`, pero solo la página `numero` (la cola no carga todo el PDF en PNG)."""
-    import pymupdf as fitz
-
-    tipo = "pdf" if mime == "application/pdf" else mime.split("/")[1]
-    with fitz.open(stream=datos, filetype=tipo) as doc:
+    if mime != "application/pdf":
+        if numero != 1:
+            raise IndexError("La imagen tiene una sola página")
+        return _imagen(datos)
+    doc = _pdfium(datos)
+    try:
         pagina = doc[numero - 1]
-        pix = pagina.get_pixmap(dpi=DPI)
-        capa = pagina.get_text() if mime == "application/pdf" else ""
-        return {"png": pix.tobytes("png"), "ancho": pix.width, "alto": pix.height, "capa": capa}
+        png, ancho, alto = _png_de(pagina, DPI / 72)
+        return {"png": png, "ancho": ancho, "alto": alto, "capa": _capa(pagina)}
+    finally:
+        doc.close()
 
 
 def png_pagina(datos: bytes, mime: str, numero: int) -> bytes:
-    import pymupdf as fitz
-
-    tipo = "pdf" if mime == "application/pdf" else mime.split("/")[1]
-    doc = fitz.open(stream=datos, filetype=tipo)
-    if not 1 <= numero <= len(doc):
+    if mime != "application/pdf":
+        return _imagen(datos)["png"] if numero == 1 else b""
+    doc = _pdfium(datos)
+    try:
+        if not 1 <= numero <= len(doc):
+            return b""
+        return _png_de(doc[numero - 1], DPI / 72)[0]
+    finally:
         doc.close()
-        return b""
-    png = doc[numero - 1].get_pixmap(dpi=DPI).tobytes("png")
-    doc.close()
-    return png
 
 
 def contraste(png: bytes) -> int:
@@ -198,23 +233,42 @@ def diferencias(a: str, b: str) -> list[dict]:
     return [s for s in unidos if s["t"]]
 
 
+def _caja_texto(textpage, buscado: str, alto_pt: float, escala: float) -> dict | None:
+    """Caja en píxeles del primer `buscado` en la capa de texto (coordenadas PDF: origen abajo)."""
+    texto = textpage.get_text_range()
+    inicio = texto.lower().find(buscado.lower())
+    if inicio < 0:
+        return None
+    fin = min(inicio + len(buscado) - 1, max(textpage.count_chars() - 1, 0))
+    x0, y0, x1, y1 = textpage.get_charbox(inicio)
+    x2, y2, x3, y3 = textpage.get_charbox(fin)
+    izq, der = min(x0, x2), max(x1, x3)
+    abajo, arriba = min(y0, y2), max(y1, y3)
+    return {"x": round(izq * escala, 1), "y": round((alto_pt - arriba) * escala, 1),
+            "ancho": round((der - izq) * escala, 1), "alto": round((arriba - abajo) * escala, 1)}
+
+
 def cajas(pdf: bytes | None, numero: int, candidatos: list[list[str]], escala: float):
     """Caja en píxeles de la página renderizada de cada duda, si el PDF tiene capa de texto."""
     if not pdf:
         return [None] * len(candidatos)
     try:
-        import pymupdf as fitz
-
-        doc = fitz.open(stream=pdf, filetype="pdf")
-        pagina = doc[numero - 1]
-        salida = []
-        for lista in candidatos:
-            rect = next((h[0] for c in lista if c for h in [pagina.search_for(c)] if h), None)
-            salida.append(None if rect is None else {
-                "x": round(rect.x0 * escala, 1), "y": round(rect.y0 * escala, 1),
-                "ancho": round(rect.width * escala, 1), "alto": round(rect.height * escala, 1)})
-        doc.close()
-        return salida
+        doc = _pdfium(pdf)
+        try:
+            pagina = doc[numero - 1]
+            alto_pt = pagina.get_height()
+            textpage = pagina.get_textpage()
+            try:
+                salida = []
+                for lista in candidatos:
+                    caja = next((c for c in (_caja_texto(textpage, texto, alto_pt, escala)
+                                             for texto in lista if texto) if c), None)
+                    salida.append(caja)
+                return salida
+            finally:
+                textpage.close()
+        finally:
+            doc.close()
     except Exception:  # noqa: BLE001 - sin caja el aviso sigue valiendo
         return [None] * len(candidatos)
 

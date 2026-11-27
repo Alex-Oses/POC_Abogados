@@ -636,14 +636,16 @@ Nota de implementación: no cambia el contrato de arriba. Lo que se añade fuera
 | Versiones y bloques | Hechas. Bloques sintéticos, uno por página (docs/export/pdf.md, modo secuencial). |
 | `POST /documents/{id}/anonymize` | Hecha. `regla_id` opcional (V1..V15 no siembran reglas: sin él se usan todas las categorías activas) y **extra** `modo` = `censurar\|borrar\|tachar\|etiqueta\|seudonimo\|iniciales`, por defecto `censurar` (rgpd-considerations.md). |
 | `GET /documents/{id}/annotations`, `PATCH /annotations/{id}` | Hechas. **extra** `POST /documents/{id}/annotations` para el falso negativo. |
-| Revisión | `GET /reviews`, `POST /documents/{id}/reviews`, `claim`, `PATCH /reviews/{id}` (exige `If-Match`; sin él, `428`) y `reopen` están hechas. `assign` y `sign-off` no. |
+| Revisión | `GET /reviews`, `POST /documents/{id}/reviews`, `claim`, `PATCH /reviews/{id}` (exige `If-Match`; sin él, `428`), `reopen`, **`assign`** y **`sign-off`** están hechas. `assign` solo acepta un revisor activo (`404` si no) y exige `comentario` al reasignar una revisión en proceso; `sign-off` queda inalcanzable mientras A-15 siga en pausa (`requiere_visto_bueno` siempre `false`) pero responde `409` fuera de `pendiente_visto_bueno` y `403` a quien cerró la revisión. |
 | `POST /documents/{id}/export` | Hecha (A-16 a A-18). |
 | **extra** `POST /documents/export/zip` | `{ids, tipo: anon\|trans}`, hasta 100. `anon` exporta con las mismas reglas que la ruta individual (A-16/A-18): cada documento se confirma en su propia transacción y queda en `exportado` con su hash y su evento de auditoría. `trans` es solo descarga. Los que no cumplen se saltan y se cuentan en `X-Omitidos`. |
 | **extra** `POST /documents/{id}/justicia-gratuita` y `/send` | Comprobación orientativa y marca de envío. El resultado se guarda en `documentos.metadatos_extras.justicia_gratuita`. |
-| `GET /rules`, `GET /categories` | Solo lectura, abierta a los tres roles. El alta y la edición no están hechas. |
+| `GET /rules`, `GET /categories` | Hechas, abiertas a los tres roles. **`POST/PATCH /rules` y `POST/PATCH /categories`** hechas para admin: la regex se valida (`400 REGEX_INVALIDA`), un código repetido da `409`, `POST /rules` crea la siguiente `version` si el código existe pero está inactivo, y `PATCH /rules/{id}` reemplaza `regla_categorias` cuando llegan `categorias`. |
 | `GET /audit` | Hecha. |
 | **extra** `GET /reports/summary` | Agregados del mes: páginas, tiempo medio de revisión, páginas reescaneadas, envíos de JG y documentos por estado. |
-| `/config` | No hecha. |
+| `/config` | Hecha: `GET /config` y `PUT /config/{clave}` (admin), con `upsert` y auditoría (`CONFIG_ACTUALIZADA`). |
+
+OCR: la rasterización a 150 dpi y la capa de texto salen de `pypdfium2` (Apache-2.0 OR BSD-3-Clause). **PyMuPDF (AGPL) se retiró el 27/11** para no arrastrar la AGPL al entregable.
 
 Cola de OCR: un hilo dentro del backend (`OCR_WORKERS`, por defecto 1) toma el documento más antiguo en `pendiente` con `FOR UPDATE SKIP LOCKED`, lo pasa a `ocr_procesando` y guarda cada página (fila de `paginas_documento`, bloque de la versión `ocr_texto`, avisos con caja, diferencias y contraste) en su propia transacción. Al arrancar, lo que quedó en `ocr_procesando` vuelve a la cola y sigue desde la última página guardada. Un fallo deja el documento en `pendiente` con `metadatos_extras.ocr.error` y audita `OCR_FALLIDO`; la cola sigue con el siguiente y `POST /documents/{id}/retry` lo devuelve a la cola. El worker bloquea la fila del documento en cada página y solo cierra el OCR si sigue en `ocr_procesando`: borrar o cancelar durante la lectura nunca lo resucita (A-01).
 

@@ -3,13 +3,13 @@
 Uso:  backend/.venv/Scripts/python scripts/generar_pruebas.py      (Linux: backend/.venv/bin/python)
 
 DNI con letra válida pero inventados; IBAN con formato español de ejemplo.
+Sin PyMuPDF (AGPL): se compone con ReportLab y se rasteriza con pypdfium2.
 """
 
 import io
 import random
 from pathlib import Path
 
-import pymupdf
 from PIL import Image, ImageFilter
 
 SALIDA = Path(__file__).resolve().parents[1] / "pruebas"
@@ -36,21 +36,41 @@ def nomina(mes: str) -> str:
             "Total devengado 1.350,00\nLíquido a percibir 1.187,40")
 
 
-def pdf(nombre: str, paginas: list[str], color=(0, 0, 0)) -> None:
-    doc = pymupdf.open()
+def _pdf_bytes(paginas: list[str], color=(0.0, 0.0, 0.0)) -> bytes:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
+    buffer = io.BytesIO()
+    lienzo = canvas.Canvas(buffer, pagesize=A4)
+    alto = A4[1]
     for texto in paginas:
-        doc.new_page().insert_text((72, 90), texto, fontsize=12, color=color)
-    doc.save(SALIDA / nombre)
-    doc.close()
+        lienzo.setFillColorRGB(*color)
+        y = alto - 90
+        for linea in texto.split("\n"):
+            lienzo.drawString(72, y, linea)
+            y -= 16
+        lienzo.showPage()
+    lienzo.save()
+    return buffer.getvalue()
+
+
+def pdf(nombre: str, paginas: list[str], color=(0.0, 0.0, 0.0)) -> None:
+    (SALIDA / nombre).write_bytes(_pdf_bytes(paginas, color))
+
+
+def _rasterizar(datos: bytes, dpi: int = 150) -> Image.Image:
+    import pypdfium2 as pdfium
+
+    doc = pdfium.PdfDocument(datos)
+    try:
+        return doc[0].render(scale=dpi / 72).to_pil().convert("L")
+    finally:
+        doc.close()
 
 
 def imagen(texto: str, *, girar=0.0, ruido=0, desenfoque=0.0, gris=0) -> Image.Image:
     """Renderiza el texto y lo «escanea»: giro, ruido y desenfoque como un escáner barato."""
-    doc = pymupdf.open()
-    doc.new_page().insert_text((72, 90), texto, fontsize=12, color=(gris / 255,) * 3)
-    png = doc[0].get_pixmap(dpi=150).tobytes("png")
-    doc.close()
-    img = Image.open(io.BytesIO(png)).convert("L")
+    img = _rasterizar(_pdf_bytes([texto], (gris / 255,) * 3))
     if ruido:
         rnd = random.Random(7)
         px = img.load()
@@ -64,14 +84,22 @@ def imagen(texto: str, *, girar=0.0, ruido=0, desenfoque=0.0, gris=0) -> Image.I
 
 def pdf_escaneado(nombre: str, imagenes: list[Image.Image]) -> None:
     """PDF solo imagen, sin capa de texto (como un escáner real)."""
-    doc = pymupdf.open()
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas
+
+    buffer = io.BytesIO()
+    lienzo = canvas.Canvas(buffer)
     for img in imagenes:
         b = io.BytesIO()
-        img.save(b, "PNG")
-        pagina = doc.new_page(width=img.width * 72 / 150, height=img.height * 72 / 150)
-        pagina.insert_image(pagina.rect, stream=b.getvalue())
-    doc.save(SALIDA / nombre)
-    doc.close()
+        img.convert("RGB").save(b, "PNG")
+        b.seek(0)
+        ancho = img.width * 72 / 150
+        alto = img.height * 72 / 150
+        lienzo.setPageSize((ancho, alto))
+        lienzo.drawImage(ImageReader(b), 0, 0, width=ancho, height=alto)
+        lienzo.showPage()
+    lienzo.save()
+    (SALIDA / nombre).write_bytes(buffer.getvalue())
 
 
 def main() -> None:

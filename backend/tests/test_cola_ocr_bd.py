@@ -1,12 +1,12 @@
 """Cola de OCR (0017): orden, páginas disponibles durante el proceso, edición y reanudación."""
 
+import io
 import json
 import os
 import time
 from uuid import uuid4
 
 import psycopg
-import pymupdf
 import pytest
 from fastapi.testclient import TestClient
 
@@ -20,12 +20,17 @@ CLAVE = "una-clave-larga-123"
 
 
 def _pdf(paginas: int) -> bytes:
-    doc = pymupdf.open()
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
+    buffer = io.BytesIO()
+    lienzo = canvas.Canvas(buffer, pagesize=A4)
+    lienzo.setTitle(f"prueba-{uuid4().hex}")  # hash distinto en cada ejecución
     for i in range(paginas):
-        doc.new_page().insert_text((72, 72), f"Página {i + 1} de prueba ficticia", fontsize=12)
-    datos = doc.tobytes()
-    doc.close()
-    return datos + f"%{uuid4().hex}".encode()
+        lienzo.drawString(72, A4[1] - 72, f"Página {i + 1} de prueba ficticia")
+        lienzo.showPage()
+    lienzo.save()
+    return buffer.getvalue()
 
 
 @pytest.fixture()

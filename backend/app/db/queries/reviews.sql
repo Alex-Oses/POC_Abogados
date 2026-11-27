@@ -48,3 +48,31 @@ RETURNING id, estado;
 SELECT version_id FROM revisiones
  WHERE documento_id = %(documento_id)s AND estado = 'aprobado'
  ORDER BY numero_intento DESC LIMIT 1;
+
+-- name: revisor_activo
+-- Contrato §6: solo se asigna a alguien activo y con rol de revisor.
+SELECT u.id
+  FROM usuarios u
+ WHERE u.id = %(id)s AND u.estado = 'activo'
+   AND EXISTS (SELECT 1 FROM usuarios_roles r WHERE r.usuario_id = u.id AND r.rol = 'revisor');
+
+-- name: revision_asignar
+-- A-06: `asignado_a` nulo la devuelve a la cola; en proceso, vuelve a `en_proceso` con otro dueño.
+UPDATE revisiones
+   SET asignado_a = %(asignado_a)s,
+       asignado_en = CASE WHEN %(asignado_a)s::uuid IS NULL THEN NULL ELSE now() END,
+       estado = CASE WHEN %(asignado_a)s::uuid IS NULL THEN 'en_cola' ELSE 'en_proceso' END,
+       actualizado_en = now()
+ WHERE id = %(id)s AND estado IN ('en_cola', 'en_proceso')
+RETURNING id, estado, asignado_a, asignado_en, actualizado_en;
+
+-- name: version_creador
+-- A-15: quién cerró la revisión (autor de `final_aprobado`), para no firmar lo suyo.
+SELECT creado_por FROM versiones_documento WHERE id = %(id)s;
+
+-- name: doc_sign_off
+UPDATE documentos
+   SET estado = 'aprobado', visto_bueno_por = %(usuario_id)s, visto_bueno_en = now(),
+       actualizado_en = now()
+ WHERE id = %(id)s AND estado = 'pendiente_visto_bueno'
+RETURNING id, estado, visto_bueno_por, visto_bueno_en;

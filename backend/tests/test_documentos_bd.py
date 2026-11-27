@@ -11,7 +11,6 @@ import zipfile
 from uuid import uuid4
 
 import psycopg
-import pymupdf
 import pytest
 from fastapi.testclient import TestClient
 
@@ -31,16 +30,42 @@ PAGINAS = [
 ]
 
 
+def _texto_pdf(datos: bytes) -> str:
+    import pypdfium2 as pdfium
+
+    doc = pdfium.PdfDocument(datos)
+    partes = []
+    try:
+        for indice in range(len(doc)):
+            textpage = doc[indice].get_textpage()
+            partes.append(textpage.get_text_range())
+            textpage.close()
+    finally:
+        doc.close()
+    return "\n".join(partes)
+
+
 def _pdf() -> bytes:
-    doc = pymupdf.open()
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
+    buffer = io.BytesIO()
+    lienzo = canvas.Canvas(buffer, pagesize=A4)
+    lienzo.setTitle(f"prueba-{uuid4().hex}")  # hash distinto en cada ejecución
+    alto = A4[1]
     for texto in PAGINAS:
-        doc.new_page().insert_text((72, 72), texto, fontsize=12)
+        y = alto - 72
+        for linea in texto.split("\n"):
+            lienzo.drawString(72, y, linea)
+            y -= 16
+        lienzo.showPage()
     # Página casi blanca: el semáforo la marca ilegible y no se transcribe.
-    doc.new_page().insert_text((72, 72), "Certificado de bienes\nRegistro de la propiedad",
-                               fontsize=12, color=(0.93, 0.93, 0.93))
-    datos = doc.tobytes()
-    doc.close()
-    return datos + f"%{uuid4().hex}".encode()  # hash distinto en cada ejecución
+    lienzo.setFillGray(0.93)
+    lienzo.drawString(72, alto - 72, "Certificado de bienes")
+    lienzo.drawString(72, alto - 88, "Registro de la propiedad")
+    lienzo.showPage()
+    lienzo.save()
+    return buffer.getvalue()
 
 
 @pytest.fixture()
@@ -117,7 +142,7 @@ def test_flujo_completo(usuario):
         tr = cliente.post(f"/api/v1/documents/{doc_id}/export/transcrito", headers=h)
         assert tr.status_code == 200 and tr.content.startswith(b"%PDF")
         assert "filename*=UTF-8''expediente_trans.pdf" in tr.headers["content-disposition"]
-        assert "12345678Z" in pymupdf.open(stream=tr.content).load_page(0).get_text()
+        assert "12345678Z" in _texto_pdf(tr.content)
 
         # Anonimización con Presidio
         an = cliente.post(f"/api/v1/documents/{doc_id}/anonymize", headers=h, json={"modo": "seudonimo"})
@@ -127,7 +152,7 @@ def test_flujo_completo(usuario):
         assert any(n["categoria"] == "DNI_NIE" and n["texto_original"] == "12345678Z" for n in notas)
         # Tras anonimizar sigue saliendo la transcripción original, no la anonimizada
         tr = cliente.post(f"/api/v1/documents/{doc_id}/export/transcrito", headers=h)
-        assert "12345678Z" in pymupdf.open(stream=tr.content).load_page(0).get_text()
+        assert "12345678Z" in _texto_pdf(tr.content)
 
         # Revisión
         rev = cliente.post(f"/api/v1/documents/{doc_id}/reviews", headers=h).json()
@@ -150,8 +175,7 @@ def test_flujo_completo(usuario):
         assert hashlib.sha256(e1.content).hexdigest() == e1.headers["x-document-hash"]
         e2 = cliente.post(f"/api/v1/documents/{doc_id}/export", headers=h)
         assert e2.content == e1.content
-        salida = pymupdf.open(stream=e1.content, filetype="pdf")
-        todo = "".join(p.get_text() for p in salida)
+        todo = _texto_pdf(e1.content)
         assert "12345678Z" not in todo and "Juan Pérez" not in todo
 
         # ZIP: el mismo PDF anonimizado; un id ajeno se salta y se cuenta

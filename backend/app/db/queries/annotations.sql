@@ -22,6 +22,70 @@ SELECT r.id, r.codigo, r.version, r.nombre, r.activa,
 -- name: regla_por_id
 SELECT id, codigo, activa FROM reglas_anonimizacion WHERE id = %(id)s;
 
+-- name: regla_por_id_completa
+SELECT id, codigo, version, nombre, activa FROM reglas_anonimizacion WHERE id = %(id)s;
+
+-- name: regla_por_codigo
+SELECT id, codigo, version, activa FROM reglas_anonimizacion
+ WHERE codigo = %(codigo)s ORDER BY version DESC LIMIT 1;
+
+-- name: regla_activa_codigo
+SELECT id FROM reglas_anonimizacion
+ WHERE codigo = %(codigo)s AND activa AND id <> %(id)s;
+
+-- name: regla_insertar
+-- Contrato §7: si el código ya existe sin regla activa, se crea la siguiente versión.
+INSERT INTO reglas_anonimizacion (codigo, nombre, descripcion, configuracion, version, creado_por)
+SELECT %(codigo)s, %(nombre)s, %(descripcion)s, %(configuracion)s::jsonb,
+       COALESCE(MAX(version), 0) + 1, %(creado_por)s
+  FROM reglas_anonimizacion WHERE codigo = %(codigo)s
+RETURNING id, codigo, version, nombre, activa;
+
+-- name: regla_actualizar
+UPDATE reglas_anonimizacion
+   SET nombre = COALESCE(%(nombre)s, nombre),
+       descripcion = COALESCE(%(descripcion)s, descripcion),
+       configuracion = COALESCE(%(configuracion)s::jsonb, configuracion),
+       activa = COALESCE(%(activa)s, activa),
+       actualizado_en = now()
+ WHERE id = %(id)s
+RETURNING id, codigo, version, nombre, activa;
+
+-- name: regla_categorias_borrar
+DELETE FROM regla_categorias WHERE regla_id = %(regla_id)s;
+
+-- name: regla_categoria_insertar
+INSERT INTO regla_categorias (regla_id, categoria_id, configuracion)
+VALUES (%(regla_id)s, %(categoria_id)s, %(configuracion)s::jsonb);
+
+-- name: categoria_por_codigo
+SELECT id FROM categorias_sensibles WHERE codigo = %(codigo)s;
+
+-- name: categoria_por_id
+SELECT id FROM categorias_sensibles WHERE id = %(id)s;
+
+-- name: categoria_insertar
+INSERT INTO categorias_sensibles (codigo, nombre, descripcion, regex_patron, prioridad,
+                                   nivel_riesgo, rgpd_especial)
+VALUES (%(codigo)s, %(nombre)s, %(descripcion)s, %(regex_patron)s, %(prioridad)s,
+        %(nivel_riesgo)s, %(rgpd_especial)s)
+RETURNING id, codigo, nombre, descripcion, regex_patron, prioridad, nivel_riesgo,
+          rgpd_especial, activa;
+
+-- name: categoria_actualizar
+UPDATE categorias_sensibles
+   SET nombre = COALESCE(%(nombre)s, nombre),
+       descripcion = COALESCE(%(descripcion)s, descripcion),
+       regex_patron = COALESCE(%(regex_patron)s, regex_patron),
+       prioridad = COALESCE(%(prioridad)s, prioridad),
+       nivel_riesgo = COALESCE(%(nivel_riesgo)s, nivel_riesgo),
+       rgpd_especial = COALESCE(%(rgpd_especial)s, rgpd_especial),
+       activa = COALESCE(%(activa)s, activa),
+       actualizado_en = now()
+ WHERE id = %(id)s
+RETURNING id, codigo, nombre, descripcion, regex_patron, prioridad, nivel_riesgo,
+          rgpd_especial, activa;
+
 -- name: anotacion_insertar
 INSERT INTO anotaciones_entidad (version_id, bloque_id, categoria_id, inicio_offset, fin_offset,
                                  texto_original, pagina_numero, accion_aplicada,

@@ -170,10 +170,10 @@ Los reemplazos se aplican de mayor a menor `inicio_offset` para que los índices
 ## 7. Dependencias
 
 ```
-fastapi, uvicorn, psycopg, reportlab, pypdf
+fastapi, uvicorn, psycopg, reportlab, pypdfium2
 ```
 
-Todas con licencia permisiva (MIT/BSD). `pypdf` aporta geometría de capa de texto con licencia BSD; no se usa PyMuPDF (AGPL). Las fuentes Noto Serif y Noto Sans (OFL) se incrustan como subconjunto; ReportLab lo hace solo.
+Todas con licencia permisiva (MIT/BSD/Apache-2.0). `pypdfium2` (Apache-2.0 OR BSD-3-Clause) rasteriza las páginas y da la capa de texto con sus cajas; **no se usa PyMuPDF (AGPL)**, retirado el 27/11. Las fuentes Noto Serif y Noto Sans (OFL) se incrustan como subconjunto; ReportLab lo hace solo.
 
 ## 8. Rendimiento
 
