@@ -1,8 +1,5 @@
-import io
 import json
-import zipfile
 from typing import Literal
-from urllib.parse import quote
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
@@ -12,25 +9,18 @@ from pydantic import BaseModel, Field
 
 from app.api.deps import connection, require_role
 from app.core.errors import AppError
-from app.db.pool import tx
 from app.db.queries import SQL
-from app.services import anonymize, audit, cola, export, jg
+from app.services import anonymize, audit, cola, jg
 from app.services import documents as service
 
 router = APIRouter(tags=["documentos"])
 T = require_role("transcriptor")
 TR = require_role("transcriptor", "revisor")
 R = require_role("revisor")
-Modo = Literal["censurar", "borrar", "tachar", "etiqueta", "seudonimo", "iniciales"]
 
 
 class IdIn(BaseModel):
     id: UUID
-
-
-class ZipIn(BaseModel):
-    ids: list[UUID] = Field(min_length=1, max_length=100)
-    tipo: Literal["anon", "trans"] = "anon"
 
 
 class PaginaIn(BaseModel):
@@ -41,38 +31,6 @@ class PaginaIn(BaseModel):
 
 class LocalizarIn(BaseModel):
     q: list[str] = Field(max_length=100)
-
-
-class AnonimizarIn(BaseModel):
-    regla_id: UUID | None = None
-    modo: Modo = "censurar"  # por defecto de V15 (rgpd-considerations.md)
-
-
-class AnotacionIn(BaseModel):
-    accion_aplicada: Literal["censurar", "etiqueta", "iniciales", "pseudonimizado", "eliminado",
-                             "mantenido", "tachado"] | None = None
-    texto_sustitucion: str | None = Field(default=None, max_length=500)
-    decision_revisor: Literal["confirmado", "modificado", "falso_positivo", "falso_negativo"]
-    observaciones_revisor: str | None = Field(default=None, max_length=2000)
-
-
-class AnotacionNuevaIn(BaseModel):
-    bloque_id: UUID
-    categoria_id: UUID
-    inicio_offset: int = Field(ge=0)
-    fin_offset: int = Field(gt=0)
-    accion_aplicada: Literal["censurar", "etiqueta", "iniciales", "pseudonimizado", "eliminado",
-                             "tachado"] | None = None
-    texto_sustitucion: str | None = Field(default=None, max_length=500)
-
-
-def _pdf(datos: bytes, nombre: str, inline: bool = False, cabeceras: dict | None = None):
-    modo = "inline" if inline else "attachment"
-    # ASCII de respaldo + filename* UTF-8: tildes, comillas o saltos de línea no rompen la cabecera.
-    ascii_ = "".join(c if 32 <= ord(c) < 127 and c != '"' else "_" for c in nombre)
-    return Response(datos, media_type="application/pdf", headers={
-        "Content-Disposition": f"{modo}; filename=\"{ascii_}\"; filename*=UTF-8''{quote(nombre)}",
-        **(cabeceras or {})})
 
 
 # --- Subida y transformaciones --------------------------------------------------------------
@@ -109,12 +67,6 @@ def plain_text(datos: IdIn, usuario: dict = Depends(TR), conexion: Connection = 
     if doc["v_tipo"] == "final_aprobado":
         version = doc["v_meta"]["version_revisada_id"]
     return {"result": "\n\n".join(anonymize.texto_plano(conexion, version, version))}
-
-
-@router.post("/transform/build")
-def build(datos: IdIn, usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
-    doc = service.obtener(conexion, datos.id, usuario)
-    return _pdf(export.vista_previa(conexion, doc), "vista_previa.pdf", inline=True)
 
 
 # --- Documentos -----------------------------------------------------------------------------
@@ -297,39 +249,6 @@ def bloques(documento_id: UUID, numero: int, page: int = Query(1, ge=1),
     return {"items": items, "page": page, "limit": limit, "total": total}
 
 
-# --- Anonimización y anotaciones ------------------------------------------------------------
-
-@router.post("/documents/{documento_id}/anonymize", status_code=201)
-def anonimizar(documento_id: UUID, datos: AnonimizarIn, request: Request,
-               usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
-    doc = service.obtener(conexion, documento_id, usuario)
-    return anonymize.anonimizar(conexion, doc, datos.regla_id, datos.modo, usuario, request)
-
-
-@router.get("/documents/{documento_id}/annotations")
-def anotaciones(documento_id: UUID, version: UUID | None = None, categoria: UUID | None = None,
-                pendientes: bool = False, usuario: dict = Depends(R),
-                conexion: Connection = Depends(connection)):
-    service.obtener(conexion, documento_id, usuario)
-    return {"items": conexion.execute(SQL["anotaciones_listar"], {
-        "documento_id": documento_id, "version_id": version, "categoria_id": categoria,
-        "pendientes": pendientes}).fetchall()}
-
-
-@router.post("/documents/{documento_id}/annotations", status_code=201)
-def anotacion_nueva(documento_id: UUID, datos: AnotacionNuevaIn, request: Request,
-                    usuario: dict = Depends(R), conexion: Connection = Depends(connection)):
-    doc = service.obtener(conexion, documento_id, usuario)
-    return anonymize.crear_manual(conexion, doc, datos.model_dump(), usuario, request)
-
-
-@router.patch("/annotations/{anotacion_id}")
-def decidir(anotacion_id: UUID, datos: AnotacionIn, request: Request, usuario: dict = Depends(R),
-            conexion: Connection = Depends(connection)):
-    return anonymize.decidir(conexion, anotacion_id, datos.model_dump(exclude_unset=True),
-                             usuario, request)
-
-
 # --- Justicia gratuita (fuera del contrato) -------------------------------------------------
 
 @router.post("/documents/{documento_id}/justicia-gratuita")
@@ -343,54 +262,3 @@ def enviar_jg(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
               conexion: Connection = Depends(connection)):
     return jg.enviar(conexion, service.obtener(conexion, documento_id, usuario), usuario, request)
 
-
-# --- Export ---------------------------------------------------------------------------------
-
-@router.post("/documents/{documento_id}/export")
-def exportar(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
-             conexion: Connection = Depends(connection)):
-    doc = service.obtener(conexion, documento_id, usuario)
-    if not service.es_revisor(usuario) and doc["creado_por"] != usuario["usuario_id"]:
-        raise AppError("FORBIDDEN", "Solo el dueño o un revisor exporta", 403)
-    pdf, huella, nombre = export.exportar(conexion, documento_id, usuario, request)
-    return _pdf(pdf, nombre, cabeceras={"X-Document-Hash": huella})
-
-
-@router.post("/documents/export/zip")
-def exportar_zip(datos: ZipIn, request: Request, usuario: dict = Depends(TR)):
-    """Varios PDF en un ZIP: `anon` solo de documentos aprobados o exportados; `trans` de los
-    que tienen la transcripción terminada. Los que no cumplen se saltan y se cuentan en
-    `X-Omitidos`. Cada documento se exporta y confirma en su propia transacción (A-16/A-18):
-    el ZIP no deja bloqueado ni a medias el resto."""
-    buffer, nombres, omitidos = io.BytesIO(), set(), 0
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        for documento_id in dict.fromkeys(datos.ids):
-            try:
-                with tx() as conexion:
-                    doc = service.obtener(conexion, documento_id, usuario)
-                    if datos.tipo == "anon":
-                        pdf, _, nombre = export.exportar(conexion, documento_id, usuario, request)
-                    else:
-                        pdf, nombre = export.transcrito(conexion, doc, usuario, request)
-            except AppError:
-                omitidos += 1
-                continue
-            base, i = nombre, 2
-            while nombre in nombres:  # dos documentos con el mismo nombre no se pisan
-                nombre, i = base.replace(".pdf", f" ({i}).pdf"), i + 1
-            nombres.add(nombre)
-            zf.writestr(nombre, pdf)
-    if not nombres:
-        raise AppError("SIN_DOCUMENTOS", "Ninguno de los documentos se puede exportar así", 409)
-    return Response(buffer.getvalue(), media_type="application/zip", headers={
-        "Content-Disposition": f'attachment; filename="documentos_{datos.tipo}.zip"',
-        "X-Omitidos": str(omitidos)})
-
-
-@router.post("/documents/{documento_id}/export/transcrito")
-def exportar_transcrito(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
-                        conexion: Connection = Depends(connection)):
-    """PDF de la transcripción antes de anonimizar: `<nombre>_trans.pdf`."""
-    doc = service.obtener(conexion, documento_id, usuario)
-    pdf, nombre = export.transcrito(conexion, doc, usuario, request)
-    return _pdf(pdf, nombre)

@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.v1 import auth, catalog, documents, reviews, users
+from app.api.v1 import anonymize, auth, catalog, documents, export, reviews, users
 from app.core.config import settings
 from app.core.logging import log, setup_logging
 from app.db import pool as bd
@@ -58,6 +58,8 @@ install_error_handlers(app)
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(documents.router, prefix="/api/v1")
+app.include_router(anonymize.router, prefix="/api/v1")
+app.include_router(export.router, prefix="/api/v1")
 app.include_router(reviews.router, prefix="/api/v1")
 app.include_router(catalog.router, prefix="/api/v1")
 
