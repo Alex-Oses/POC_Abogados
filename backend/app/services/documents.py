@@ -135,6 +135,7 @@ def seguir_ocr(documento_id, usuario: dict):
     """
     enviadas: set[int] = set()
     inicio = True
+    cola = None
     while True:
         try:
             with tx() as conexion:
@@ -151,6 +152,10 @@ def seguir_ocr(documento_id, usuario: dict):
                    "mode": "double" if modo == "doble" else "single",
                    "queue_position": prog["queue_position"]}
             inicio = False
+            cola = prog["queue_position"]
+        elif prog["queue_position"] != cola:  # la cola lo ha cogido (o avanza): el navegador anima la página
+            cola = prog["queue_position"]
+            yield {"type": "queue", "id": documento_id, "queue_position": cola}
         for fila in filas:
             if fila["numero"] not in enviadas:
                 enviadas.add(fila["numero"])

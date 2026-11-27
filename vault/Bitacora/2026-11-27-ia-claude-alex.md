@@ -20,3 +20,4 @@
 - La VM usa Docker rootless y es compartida (8001 y 5433 ocupados): sin `network_mode: host`; solo Caddy publica `PUERTO`, Ollama por `10.0.0.4:11434`.
 - Servidor probado: funciona por el reenvío de puertos de VS Code (`https://localhost:8443`); el 8443 público lo bloquea el NSG. OCR en CPU, lento.
 - Desmarcar muchas entidades daba 503 `pool_agotado`: `decide` en `static/app.js` lanza los PATCH de 4 en 4. Pregunta a @Rubén en el Tablero.
+- La primera página salía «en cua» sin animación hasta acabarla: el `start` del stream llega cuando aún está en cola y no había más aviso. Nuevo evento NDJSON `queue` al cambiar `queue_position`; el frontend anima la página. Tests de stream filtran `queue`.

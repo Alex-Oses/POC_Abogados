@@ -250,6 +250,10 @@ function onEvent(doc, ev) {
         range(doc.total).forEach(n => { doc.pages[n] = doc.pages[n] || newPage(n); });
         const first = docPages(doc).find(p => p.status !== 'done');
         if (first && !ev.queue_position) first.status = 'run';
+    } else if (ev.type === 'queue') {
+        doc.queue = ev.queue_position;
+        const first = docPages(doc).find(p => p.status !== 'done');
+        if (first && !ev.queue_position && first.status === 'q') first.status = 'run';
     } else if (ev.type === 'page') {
         const p = doc.pages[ev.numero] || (doc.pages[ev.numero] = newPage(ev.numero));
         doc.queue = 0;
