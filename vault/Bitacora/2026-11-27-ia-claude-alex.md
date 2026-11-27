@@ -9,8 +9,7 @@
 ## Paso al servidor
 
 - El DGX Spark no llega: se usa la VM de Azure donde ya se probó.
-- `docker-compose.yml` levanta todo con el perfil `servidor` (BD, Ollama + descarga del modelo, app, Caddy HTTPS); `docker compose up -d db` sigue sirviendo para desarrollo.
-- `scripts/servidor_docker.sh`: instala Docker, genera `.env` con claves aleatorias y arranca. Sección nueva al principio de `docs/GUIA_SERVIDOR.md`.
+- En el servidor no se pueden ejecutar scripts ni abrir 80/443: `docker-compose.servidor.yml` lo hace todo (secretos y certificado propio generados en un contenedor, BD, Ollama + modelo, app, Caddy en 8443 o `PUERTO`). `docker-compose.yml` de desarrollo no cambia. Sección nueva al principio de `docs/GUIA_SERVIDOR.md`.
 - Sin probar: el portátil no tiene Docker. Solo `docker compose config` y la clave Fernet generada.
 
 ## Pendiente

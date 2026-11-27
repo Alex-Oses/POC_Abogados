@@ -8,7 +8,7 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 ## Pendiente
 
-- [ ] 27/11: instalar y probar en el servidor de **Azure** (el DGX Spark se descarta) desde `main` con `bash scripts/servidor_docker.sh` (Docker Compose: BD, Ollama, app y Caddy) · `docs/GUIA_SERVIDOR.md` con `docs/GUIA_SERVIDOR.md` (lista de comprobación al final) · @Alex-Oses
+- [ ] 27/11: instalar y probar en el servidor de **Azure** (el DGX Spark se descarta) desde `main` con `docker-compose.servidor.yml` (sin scripts: BD, Ollama, app y Caddy HTTPS en el puerto 8443) · `docs/GUIA_SERVIDOR.md` con `docs/GUIA_SERVIDOR.md` (lista de comprobación al final) · @Alex-Oses
 
 - [ ] Envío por correo del PDF exportado (anonimizado o transcrito) a quien lo deba recibir. Pendiente de hablar el 27/11: ver [[2026-11-26-ia-claude-alex]] · @Alex-Oses
 

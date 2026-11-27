@@ -1,12 +1,12 @@
-# Desarrollo: solo la BD          ->  docker compose up -d db      ·   Reset: docker compose down -v
-# Servidor: todo (BD, OCR, app, HTTPS) ->  bash scripts/servidor_docker.sh   (genera .env y hace up)
+# PostgreSQL de desarrollo con V1..V15 y views.sql aplicadas al crear el volumen.
+# Arranque: docker compose up -d db   ·   Reset: docker compose down -v
 services:
   db:
     image: postgres:16
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: icat
     ports:
       - "127.0.0.1:5432:5432"   # solo local: Docker se salta ufw
@@ -14,77 +14,5 @@ services:
       - ./docs/architecture:/migrations:ro
       - ./backend/db/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
       - icat_pg:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d icat"]
-      interval: 5s
-      retries: 30
-
-  ollama:
-    image: ollama/ollama:latest
-    restart: unless-stopped
-    volumes:
-      - icat_ollama:/root/.ollama
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 10s
-      retries: 30
-    profiles: ["servidor"]
-
-  # Se ejecuta una vez: baja el modelo de OCR al volumen (si ya está, termina enseguida).
-  ollama-modelo:
-    image: ollama/ollama:latest
-    environment:
-      OLLAMA_HOST: ollama:11434
-    entrypoint: ["ollama", "pull", "${OCR_MODEL:-hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF:latest}"]
-    depends_on:
-      ollama:
-        condition: service_healthy
-    restart: "no"
-    profiles: ["servidor"]
-
-  app:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    restart: unless-stopped
-    environment:
-      ENTORNO: produccion
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/icat
-      OLLAMA_URL: http://ollama:11434
-      OCR_MODEL: ${OCR_MODEL:-hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF:latest}
-      STORAGE_DIR: /app/storage
-      STORAGE_KEY: ${STORAGE_KEY:-}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@icat.local}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
-    # Solo Caddy llega a la app (no se publica el puerto); la IP real del usuario va a la auditoría.
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000",
-              "--proxy-headers", "--forwarded-allow-ips", "*"]
-    volumes:
-      - icat_storage:/app/storage
-    depends_on:
-      db:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-    profiles: ["servidor"]
-
-  caddy:
-    image: caddy:2
-    restart: unless-stopped
-    environment:
-      SITIO: ${SITIO:-localhost}
-      TLS: ${TLS:-}
-    ports:
-      - "${PUERTO:-443}:${PUERTO:-443}"   # el que esté abierto en Azure
-    volumes:
-      - ./scripts/Caddyfile:/etc/caddy/Caddyfile:ro
-      - icat_caddy:/data
-    depends_on:
-      - app
-    profiles: ["servidor"]
-
 volumes:
   icat_pg:
-  icat_ollama:
-  icat_storage:
-  icat_caddy:

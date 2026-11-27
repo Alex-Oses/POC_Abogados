@@ -6,24 +6,19 @@ Todo lo que hace la app con los documentos (OCR, detección de datos personales,
 
 Si algo falla en cualquier paso, ve directo al apartado [Si algo falla](#si-algo-falla).
 
-## Vía rápida con Docker (recomendada)
+## Vía rápida con Docker Compose (recomendada)
 
-Todo (base de datos, OCR, app y HTTPS) en contenedores. Solo necesitas SSH al servidor y **un puerto abierto** para la web (el que os dejen, p. ej. `8443`).
+Todo (base de datos, OCR, app y HTTPS) en contenedores, **sin ejecutar scripts**. Requisitos: Docker con Compose en el servidor, salida a Internet y **un puerto abierto** para la web (por defecto `8443`).
 
-Desde el portátil, en la carpeta del repo (PowerShell):
+1. Con VS Code (Remote Explorer) conectado al servidor, copia la carpeta del repo al servidor (arrastrarla al explorador remoto, o `git clone` si lo tenéis).
+2. Si el puerto abierto no es el 8443: crea junto a `docker-compose.servidor.yml` un fichero `.env` con una línea `PUERTO=9443` (el vuestro).
+3. Clic derecho sobre `docker-compose.servidor.yml` → **Compose Up** (extensión Docker), o en la terminal: `docker compose -f docker-compose.servidor.yml up -d --build`.
+4. La contraseña del admin (`admin@icat.local`): `docker compose -f docker-compose.servidor.yml logs secretos`.
+5. Abre `https://IP_DEL_SERVIDOR:8443`. El navegador avisa del certificado (es propio): aceptar.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\subir_servidor.ps1 -Servidor usuario@IP_DEL_SERVIDOR -Puerto 8443
-```
-
-- Sube lo que hay en git (sin `.env`, venv ni documentos), instala Docker si falta, crea `.env` con claves aleatorias y arranca.
-- Si el SSH no va por el 22: añade `-SshPuerto 2222` (el que sea).
-- Al acabar muestra la dirección: `https://IP:8443`. El navegador avisará del certificado la primera vez: aceptar.
-- Solo con dominio **y** puertos 80/443 abiertos sale un certificado válido: `-Dominio midominio -Puerto 443`.
-- Usuario `admin@icat.local`; contraseña: en el servidor, `grep ADMIN_PASSWORD ~/icat/.env`.
-- Actualizar: volver a ejecutar el mismo comando. Los datos se quedan en los volúmenes de Docker.
-- La primera vez baja el modelo de OCR (unos GB). Para ver cómo va: `cd ~/icat && docker compose logs -f ollama-modelo`.
-- Logs de la app: `docker compose logs -f app`. Borrarlo **todo, datos incluidos**: `docker compose down -v`.
+- La primera vez genera solas las contraseñas, la clave de cifrado y el certificado (volumen `icat_secretos`) y baja el modelo de OCR (varios GB): `logs -f ollama-modelo` para ver cómo va.
+- Actualizar: copia la carpeta nueva encima y repite el paso 3. Los datos se quedan en los volúmenes.
+- Logs de la app: `docker compose -f docker-compose.servidor.yml logs -f app`. Borrarlo **todo, datos incluidos**: `... down -v`.
 
 El resto de la guía es la instalación sin Docker (`instalar_servidor.sh`). La lista de comprobación del final vale para las dos.
 
