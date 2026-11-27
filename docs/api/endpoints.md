@@ -621,22 +621,39 @@ Nota de implementación: no cambia el contrato de arriba. Lo que se añade fuera
 
 | Ruta | Estado |
 | --- | --- |
-| `POST /transform/document` | Hecha. Campo opcional `modo=simple\|doble` (por defecto `doble`, A-24). Con `Accept: application/x-ndjson` responde `200` en streaming, con una línea JSON por evento: `start`, `page` (una por página) y `done`, o `error`. Sin esa cabecera espera al final y responde `201` según el contrato. Si el OCR falla, el documento vuelve a `pendiente`. Duplicado del mismo creador: `409 DOCUMENTO_DUPLICADO`. |
+| `POST /transform/document` | Hecha, **asíncrona** (decisión [[0020-cola-ocr-en-segundo-plano]]). Campo opcional `modo=simple\|doble` (por defecto `doble`, A-24). Guarda el original, deja el documento en cola (`pendiente`, con el modo en `metadatos_extras.ocr`) y responde al momento `202 {id, num_paginas, estado: "pendiente"}`. Con `Accept: application/x-ndjson` responde `200` en streaming leyendo la BD cada ~1 s: `start` (añade `queue_position`), un `page` por página según se guarda y `done`, o `error` (`code` = `OCR_FALLIDO` o `CANCELADO`). Cerrar el flujo no para el trabajo. Duplicado del mismo creador: `409 DOCUMENTO_DUPLICADO`; fichero que no abre: `415`. |
 | `POST /transform/plain-text`, `POST /transform/build` | Hechas. |
-| `GET /documents` | Hecha, más los parámetros **extra** `q` (texto completo en español sobre la versión vigente y el nombre; devuelve `fragmento`) y los campos `paginas_revisar`, `paginas_ilegibles` y `exportado_en`. |
+| `GET /documents` | Hecha, más los parámetros **extra** `q` (texto completo en español sobre la versión vigente y el nombre; devuelve `fragmento`) y los campos `paginas_revisar`, `paginas_ilegibles`, `exportado_en`, `pages_done` (páginas ya guardadas) y `queue_position` (1 = el siguiente; `null` si no está en cola). |
 | `GET /documents/{id}`, `/pages`, `/original`, `DELETE` | Hechas. `/pages` añade `texto`, `validada`, `diferencias` y `contraste_bruto` (0-255). |
-| **extra** `PATCH /documents/{id}/pages/{n}` | `{texto?, validada?}` → `204`. Solo en `ocr_completado`. |
-| **extra** `POST /documents/{id}/pages/{n}/ocr` | Multipart con `file` opcional (reescaneo) y `modo` → evento `page`. |
+| **extra** `PATCH /documents/{id}/pages/{n}` | `{texto?, html?, validada?}` → `204`. En `ocr_completado` y también mientras la cola lee otras páginas (`pendiente`/`ocr_procesando`): solo las páginas ya guardadas; una que aún no se ha transcrito da `409 PAGINA_EN_PROCESO`. Tras anonimizar, `409 DOCUMENTO_NO_EDITABLE`. Editar o dar formato no cambia el semáforo de calidad del OCR; solo `validada: true` lo pone en verde. Validar todas las páginas no cambia el estado del documento. |
+| **extra** `POST /documents/{id}/pages/{n}/ocr` | Multipart con `file` opcional (reescaneo) y `modo` → evento `page`. Mismas reglas que el `PATCH` durante el proceso. |
+| **extra** `POST /documents/{id}/pages/{n}/locate` | `{q: [texto…]}` → `{bboxes: [caja o null…]}` en el mismo orden. Una sola lectura de la imagen para varias búsquedas. |
+| **extra** `GET /documents/{id}/progress` | `{estado, total_pages, pages_done, current_page, queue_position, error}`. `current_page` solo en `ocr_procesando`; `error` = `OCR_FALLIDO` o `CANCELADO` (el documento sale de la cola). |
+| **extra** `GET /documents/{id}/stream` | El mismo NDJSON de la subida, para retomar el progreso tras recargar la página. |
+| **extra** `POST /documents/{id}/cancel` | Saca el documento de la cola (`pendiente` o `ocr_procesando`); para entre páginas y conserva las ya leídas. `409 DOCUMENTO_NO_EN_COLA` si no estaba. Devuelve el progreso. |
+| **extra** `POST /documents/{id}/retry` | Vuelve a poner en cola un OCR `pendiente` con `ocr.error` (`OCR_FALLIDO` o `CANCELADO`). `409 DOCUMENTO_NO_REINTENTABLE` en cualquier otro caso. Audita `OCR_REINTENTADO` y devuelve el progreso. |
 | **extra** `GET /documents/{id}/pages/{n}/image` | PNG a 150 dpi renderizado desde el original cifrado; cada acceso se audita. |
 | Versiones y bloques | Hechas. Bloques sintéticos, uno por página (docs/export/pdf.md, modo secuencial). |
-| `POST /documents/{id}/anonymize` | Hecha. `regla_id` opcional (V1..V15 no siembran reglas: sin él se usan todas las categorías activas) y **extra** `modo` = `censurar\|borrar\|tachar\|etiqueta\|seudonimo\|iniciales`. |
+| `POST /documents/{id}/anonymize` | Hecha. `regla_id` opcional (V1..V15 no siembran reglas: sin él se usan todas las categorías activas) y **extra** `modo` = `censurar\|borrar\|tachar\|etiqueta\|seudonimo\|iniciales`, por defecto `censurar` (rgpd-considerations.md). |
 | `GET /documents/{id}/annotations`, `PATCH /annotations/{id}` | Hechas. **extra** `POST /documents/{id}/annotations` para el falso negativo. |
-| Revisión | `GET /reviews`, `POST /documents/{id}/reviews`, `claim`, `PATCH /reviews/{id}` (exige `If-Match`; sin él, `428`) y `reopen` están hechas. `assign` y `sign-off` no. |
+| Revisión | `GET /reviews`, `POST /documents/{id}/reviews`, `claim`, `PATCH /reviews/{id}` (exige `If-Match`; sin él, `428`), `reopen`, **`assign`** y **`sign-off`** están hechas. `assign` solo acepta un revisor activo (`404` si no) y exige `comentario` al reasignar una revisión en proceso; `sign-off` queda inalcanzable mientras A-15 siga en pausa (`requiere_visto_bueno` siempre `false`) pero responde `409` fuera de `pendiente_visto_bueno` y `403` a quien cerró la revisión. |
 | `POST /documents/{id}/export` | Hecha (A-16 a A-18). |
+| **extra** `POST /documents/export/zip` | `{ids, tipo: anon\|trans}`, hasta 100. `anon` exporta con las mismas reglas que la ruta individual (A-16/A-18): cada documento se confirma en su propia transacción y queda en `exportado` con su hash y su evento de auditoría. `trans` es solo descarga. Los que no cumplen se saltan y se cuentan en `X-Omitidos`. |
 | **extra** `POST /documents/{id}/justicia-gratuita` y `/send` | Comprobación orientativa y marca de envío. El resultado se guarda en `documentos.metadatos_extras.justicia_gratuita`. |
-| `GET /rules`, `GET /categories` | Solo lectura, abierta a los tres roles. El alta y la edición no están hechas. |
+| `GET /rules`, `GET /categories` | Hechas, abiertas a los tres roles. **`POST/PATCH /rules` y `POST/PATCH /categories`** hechas para admin: la regex se valida (`400 REGEX_INVALIDA`), un código repetido da `409`, `POST /rules` crea la siguiente `version` si el código existe pero está inactivo, y `PATCH /rules/{id}` reemplaza `regla_categorias` cuando llegan `categorias`. |
 | `GET /audit` | Hecha. |
 | **extra** `GET /reports/summary` | Agregados del mes: páginas, tiempo medio de revisión, páginas reescaneadas, envíos de JG y documentos por estado. |
-| `/config` | No hecha. |
+| `/config` | Hecha: `GET /config` y `PUT /config/{clave}` (admin), con `upsert` y auditoría (`CONFIG_ACTUALIZADA`). |
+
+OCR: la rasterización a 150 dpi y la capa de texto salen de `pypdfium2` (Apache-2.0 OR BSD-3-Clause). **PyMuPDF (AGPL) se retiró el 27/11** para no arrastrar la AGPL al entregable.
+
+Cola de OCR: un hilo dentro del backend (`OCR_WORKERS`, por defecto 1) toma el documento más antiguo en `pendiente` con `FOR UPDATE SKIP LOCKED`, lo pasa a `ocr_procesando` y guarda cada página (fila de `paginas_documento`, bloque de la versión `ocr_texto`, avisos con caja, diferencias y contraste) en su propia transacción. Al arrancar, lo que quedó en `ocr_procesando` vuelve a la cola y sigue desde la última página guardada. Un fallo deja el documento en `pendiente` con `metadatos_extras.ocr.error` y audita `OCR_FALLIDO`; la cola sigue con el siguiente y `POST /documents/{id}/retry` lo devuelve a la cola. El worker bloquea la fila del documento en cada página y solo cierra el OCR si sigue en `ocr_procesando`: borrar o cancelar durante la lectura nunca lo resucita (A-01).
 
 Auth: además del Bearer, el login deja la cookie `icat_token` (HttpOnly, SameSite=Strict), que usan `<img>` y el visor del original.
+
+### Añadido 26/11 (noche): «subido por», PDF transcrito y entrada por SharePoint
+
+- `GET /documents` y `GET /documents/{id}`: campo `subido_por` (nombre de quien subió el documento o de la carpeta de SharePoint). Se guarda en `metadatos_extras.subido_por`; sin cambios de esquema.
+- **Nuevo `POST /documents/{id}/export/transcrito`**: PDF de la última transcripción, sin anonimizar y con formato, como `<nombre>_trans.pdf`. `409 ESTADO_INVALIDO` mientras se transcribe; `422 SIN_TEXTO` si no hay transcripción. No se guarda; queda en auditoría (`PDF_TRANSCRITO_EXPORTADO`). El anonimizado sigue en `POST /documents/{id}/export` como `<nombre>_anon.pdf`.
+- `Content-Disposition` lleva `filename*=UTF-8''…` para nombres con tildes.
+- SharePoint (`SHAREPOINT_*` en `.env`): ver [[0019-entrada-por-sharepoint]]. La carpeta se resuelve por nombre: si coincide con dos usuarios activos, no se sube nada y se registra `sharepoint_nombre_ambiguo`; si no coincide con ninguno, queda a nombre del admin. En `auditoria`, el evento `DOCUMENTO_SUBIDO` de SharePoint va sin `usuario_id` (actor sistema) y la carpeta/propietario en `detalle`: la persona de la carpeta no firma la subida.

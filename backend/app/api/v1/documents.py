@@ -10,14 +10,13 @@ from pydantic import BaseModel, Field
 from app.api.deps import connection, require_role
 from app.core.errors import AppError
 from app.db.queries import SQL
-from app.services import anonymize, audit, export, jg
+from app.services import anonymize, audit, cola, jg
 from app.services import documents as service
 
 router = APIRouter(tags=["documentos"])
 T = require_role("transcriptor")
 TR = require_role("transcriptor", "revisor")
 R = require_role("revisor")
-Modo = Literal["censurar", "borrar", "tachar", "etiqueta", "seudonimo", "iniciales"]
 
 
 class IdIn(BaseModel):
@@ -27,60 +26,36 @@ class IdIn(BaseModel):
 class PaginaIn(BaseModel):
     texto: str | None = Field(default=None, max_length=200_000)
     validada: bool | None = None
+    html: str | None = Field(default=None, max_length=200_000)
 
 
-class AnonimizarIn(BaseModel):
-    regla_id: UUID | None = None
-    modo: Modo = "censurar"
-
-
-class AnotacionIn(BaseModel):
-    accion_aplicada: Literal["censurar", "etiqueta", "iniciales", "pseudonimizado", "eliminado",
-                             "mantenido", "tachado"] | None = None
-    texto_sustitucion: str | None = Field(default=None, max_length=500)
-    decision_revisor: Literal["confirmado", "modificado", "falso_positivo", "falso_negativo"]
-    observaciones_revisor: str | None = Field(default=None, max_length=2000)
-
-
-class AnotacionNuevaIn(BaseModel):
-    bloque_id: UUID
-    categoria_id: UUID
-    inicio_offset: int = Field(ge=0)
-    fin_offset: int = Field(gt=0)
-    accion_aplicada: Literal["censurar", "etiqueta", "iniciales", "pseudonimizado", "eliminado",
-                             "tachado"] | None = None
-    texto_sustitucion: str | None = Field(default=None, max_length=500)
-
-
-def _pdf(datos: bytes, nombre: str, inline: bool = False, cabeceras: dict | None = None):
-    modo = "inline" if inline else "attachment"
-    return Response(datos, media_type="application/pdf", headers={
-        "Content-Disposition": f'{modo}; filename="{nombre}"', **(cabeceras or {})})
+class LocalizarIn(BaseModel):
+    q: list[str] = Field(max_length=100)
 
 
 # --- Subida y transformaciones --------------------------------------------------------------
 
-@router.post("/transform/document", status_code=201)
+@router.post("/transform/document", status_code=202)
 async def subir(
     request: Request,
     file: UploadFile = File(...),
     modo: Literal["simple", "doble"] = Form("doble"),
     usuario: dict = Depends(T),
 ):
-    """Sube y transcribe. Con `Accept: application/x-ndjson` devuelve el progreso en streaming."""
+    """Sube y deja en la cola de OCR (0017). Con `Accept: application/x-ndjson` sigue el
+    progreso leyendo la BD; cerrar el flujo no detiene el trabajo."""
     datos = await file.read()
-    subido = service.registrar_subida(file.filename or "documento", datos, usuario, request)
-    flujo = service.flujo_ocr(subido["id"], subido["mime"], datos, modo == "doble",
-                              usuario["usuario_id"], request)
+    subido = service.registrar_subida(file.filename or "documento", datos, modo == "doble",
+                                      usuario, request)
+    cola.despertar.set()
     if "application/x-ndjson" in request.headers.get("accept", ""):
-        lineas = (json.dumps(e, ensure_ascii=False, default=str) + "\n" for e in flujo)
-        return StreamingResponse(lineas, media_type="application/x-ndjson")
-    ultimo = None
-    for evento in flujo:
-        ultimo = evento
-    if ultimo["type"] == "error":
-        raise AppError(ultimo["code"], ultimo["message"], 500)
-    return {"id": ultimo["id"], "num_paginas": ultimo["num_paginas"], "estado": ultimo["estado"]}
+        return _ndjson(service.seguir_ocr(subido["id"], usuario))
+    return subido
+
+
+def _ndjson(eventos):
+    lineas = (json.dumps(e, ensure_ascii=False, default=str) + "\n" for e in eventos)
+    return StreamingResponse(lineas, media_type="application/x-ndjson")
 
 
 @router.post("/transform/plain-text")
@@ -92,12 +67,6 @@ def plain_text(datos: IdIn, usuario: dict = Depends(TR), conexion: Connection = 
     if doc["v_tipo"] == "final_aprobado":
         version = doc["v_meta"]["version_revisada_id"]
     return {"result": "\n\n".join(anonymize.texto_plano(conexion, version, version))}
-
-
-@router.post("/transform/build")
-def build(datos: IdIn, usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
-    doc = service.obtener(conexion, datos.id, usuario)
-    return _pdf(export.vista_previa(conexion, doc), "vista_previa.pdf", inline=True)
 
 
 # --- Documentos -----------------------------------------------------------------------------
@@ -124,6 +93,38 @@ def listar(
 @router.get("/documents/{documento_id}")
 def detalle(documento_id: UUID, usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
     return service.detalle(service.obtener(conexion, documento_id, usuario))
+
+
+@router.get("/documents/{documento_id}/progress")
+def progreso(documento_id: UUID, usuario: dict = Depends(TR),
+             conexion: Connection = Depends(connection)):
+    service.obtener(conexion, documento_id, usuario)
+    return service.progreso(conexion, documento_id)
+
+
+@router.get("/documents/{documento_id}/stream")
+def seguir(documento_id: UUID, usuario: dict = Depends(TR),
+           conexion: Connection = Depends(connection)):
+    """NDJSON de progreso de un documento ya subido (p. ej. tras recargar la página)."""
+    service.obtener(conexion, documento_id, usuario)
+    return _ndjson(service.seguir_ocr(documento_id, usuario))
+
+
+@router.post("/documents/{documento_id}/cancel")
+def cancelar(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
+             conexion: Connection = Depends(connection)):
+    return service.cancelar(conexion, service.obtener(conexion, documento_id, usuario),
+                            usuario, request)
+
+
+@router.post("/documents/{documento_id}/retry")
+def reintentar(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
+               conexion: Connection = Depends(connection)):
+    """Vuelve a poner en cola un OCR fallido o cancelado (0017)."""
+    estado = service.reintentar(conexion, service.obtener(conexion, documento_id, usuario),
+                                usuario, request)
+    cola.despertar.set()
+    return estado
 
 
 @router.delete("/documents/{documento_id}", status_code=204)
@@ -163,7 +164,8 @@ def paginas(documento_id: UUID, usuario: dict = Depends(TR), conexion: Connectio
 def editar_pagina(documento_id: UUID, numero: int, datos: PaginaIn, request: Request,
                   usuario: dict = Depends(TR), conexion: Connection = Depends(connection)) -> None:
     doc = service.obtener(conexion, documento_id, usuario)
-    service.editar_pagina(conexion, doc, numero, datos.texto, datos.validada, usuario, request)
+    service.editar_pagina(conexion, doc, numero, datos.texto, datos.validada, usuario, request,
+                          datos.html)
 
 
 @router.post("/documents/{documento_id}/pages/{numero}/ocr")
@@ -193,7 +195,15 @@ def localizar(documento_id: UUID, numero: int, q: str = Query(..., max_length=20
               usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
     """Caja (píxeles de la imagen a 150 dpi) de un texto en la página, o null."""
     doc = service.obtener(conexion, documento_id, usuario)
-    return {"bbox": service.localizar(doc, numero, q)}
+    return {"bbox": service.localizar(doc, numero, [q])[0]}
+
+
+@router.post("/documents/{documento_id}/pages/{numero}/locate")
+def localizar_varios(documento_id: UUID, numero: int, datos: LocalizarIn,
+                     usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
+    """Lote de `locate`: una caja (o null) por texto, en el mismo orden."""
+    doc = service.obtener(conexion, documento_id, usuario)
+    return {"bboxes": service.localizar(doc, numero, [q[:200] for q in datos.q])}
 
 
 # --- Versiones y bloques --------------------------------------------------------------------
@@ -239,39 +249,6 @@ def bloques(documento_id: UUID, numero: int, page: int = Query(1, ge=1),
     return {"items": items, "page": page, "limit": limit, "total": total}
 
 
-# --- Anonimización y anotaciones ------------------------------------------------------------
-
-@router.post("/documents/{documento_id}/anonymize", status_code=201)
-def anonimizar(documento_id: UUID, datos: AnonimizarIn, request: Request,
-               usuario: dict = Depends(TR), conexion: Connection = Depends(connection)):
-    doc = service.obtener(conexion, documento_id, usuario)
-    return anonymize.anonimizar(conexion, doc, datos.regla_id, datos.modo, usuario, request)
-
-
-@router.get("/documents/{documento_id}/annotations")
-def anotaciones(documento_id: UUID, version: UUID | None = None, categoria: UUID | None = None,
-                pendientes: bool = False, usuario: dict = Depends(R),
-                conexion: Connection = Depends(connection)):
-    service.obtener(conexion, documento_id, usuario)
-    return {"items": conexion.execute(SQL["anotaciones_listar"], {
-        "documento_id": documento_id, "version_id": version, "categoria_id": categoria,
-        "pendientes": pendientes}).fetchall()}
-
-
-@router.post("/documents/{documento_id}/annotations", status_code=201)
-def anotacion_nueva(documento_id: UUID, datos: AnotacionNuevaIn, request: Request,
-                    usuario: dict = Depends(R), conexion: Connection = Depends(connection)):
-    doc = service.obtener(conexion, documento_id, usuario)
-    return anonymize.crear_manual(conexion, doc, datos.model_dump(), usuario, request)
-
-
-@router.patch("/annotations/{anotacion_id}")
-def decidir(anotacion_id: UUID, datos: AnotacionIn, request: Request, usuario: dict = Depends(R),
-            conexion: Connection = Depends(connection)):
-    return anonymize.decidir(conexion, anotacion_id, datos.model_dump(exclude_unset=True),
-                             usuario, request)
-
-
 # --- Justicia gratuita (fuera del contrato) -------------------------------------------------
 
 @router.post("/documents/{documento_id}/justicia-gratuita")
@@ -285,14 +262,3 @@ def enviar_jg(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
               conexion: Connection = Depends(connection)):
     return jg.enviar(conexion, service.obtener(conexion, documento_id, usuario), usuario, request)
 
-
-# --- Export ---------------------------------------------------------------------------------
-
-@router.post("/documents/{documento_id}/export")
-def exportar(documento_id: UUID, request: Request, usuario: dict = Depends(TR),
-             conexion: Connection = Depends(connection)):
-    doc = service.obtener(conexion, documento_id, usuario)
-    if not service.es_revisor(usuario) and doc["creado_por"] != usuario["usuario_id"]:
-        raise AppError("FORBIDDEN", "Solo el dueño o un revisor exporta", 403)
-    pdf, huella, nombre = export.exportar(conexion, documento_id, usuario, request)
-    return _pdf(pdf, nombre, cabeceras={"X-Document-Hash": huella})

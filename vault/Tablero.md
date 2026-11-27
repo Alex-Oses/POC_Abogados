@@ -2,10 +2,17 @@
 
 Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en tu PR.
 
+## Bloqueos
+
+- Ninguno abierto. El de licencia (PyMuPDF) quedó cerrado el 27/11: ver **Hecho**.
+
 ## Pendiente
 
-**Entrega lunes 30/11** (ver [[Equipo]]):
+- [ ] 27/11: instalar y probar en el servidor con `docs/GUIA_SERVIDOR.md` (lista de comprobación al final) · @Alex-Oses
 
+- [ ] Envío por correo del PDF exportado (anonimizado o transcrito) a quien lo deba recibir. Pendiente de hablar el 27/11: ver [[2026-11-26-ia-claude-alex]] · @Alex-Oses
+
+**Entrega lunes 30/11** (ver [[Equipo]]):
 - [ ] Especificación funcional con criterios «cómo comprobarlo»
 - [ ] Presentar el stack completo funcionando (frontend React + backend FastAPI + PostgreSQL + OCR PaddleOCR-VL + Presidio) con los PDF de ejemplo; la maqueta ya no se pasa a Figma · @Alex
 - [ ] Decidir el caso a presentar (justicia gratuita, anonimización o ambos)
@@ -28,7 +35,7 @@ Resto:
 - [ ] Validar el esquema MariaDB desde cero (`flyway clean` + `migrate`, `views.sql`, `triggers.sql`, `partitioning.sql` y una inserción con dos versiones para comprobar `es_actual`): hoy no hay motor y está revisado solo por lectura · @Kevin · [[0018-mariadb-segunda-opcion]]
 - [ ] Ajustar Presidio: modelo `lg`, palabras a ignorar, patrones de dirección y matrícula · [[Anonimizacion con Presidio]] · @Rubén
 
-- [ ] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]]
+- [x] Decidir si el OCR es síncrono o por página asíncrona y ajustar la [[API]] → [[0020-cola-ocr-en-segundo-plano]] (Propuesta)
 - [ ] Endpoint que reciba un PDF y devuelva texto por página con su color de semáforo · [[Rendimiento OCR]]
 - [ ] Semáforo de calidad: contraste antes del OCR (< 80 → volver a escanear) y heurísticas de texto después
 - [ ] Validación de DNI/NIE (letra de control) e IBAN
@@ -39,9 +46,13 @@ Resto:
 
 ## En curso
 
+- [ ] 27/11: **PR #56** — backend de documentos que **sustituye a #55**: ocho fallos de reglas corregidos, `anonymize.py`/`export.py` separados, `main` integrado (incluido #52 de @Marina) y `backend/Dockerfile` · falta ejecutar las pruebas de BD (sin PostgreSQL aquí) · @ia-opencode-ruben
 
 ## Hecho
 
+- [x] **Bloqueo de licencia cerrado (27/11)**: PyMuPDF (AGPL-3.0) retirado del backend. `services/ocr.py` rasteriza y lee la capa de texto con `pypdfium2` (Apache-2.0 OR BSD-3-Clause); `scripts/generar_pruebas.py` compone con ReportLab y rasteriza con pypdfium2; las tres pruebas ya no lo importan. `pyproject.toml` declara `pypdfium2` y [[0007-generacion-pdf-final]]/[[0008-stack-backend]] vuelven a cumplirse · @ia-opencode-ruben
+- [x] Rutas del contrato que faltaban (27/11): `POST/PATCH /rules`, `POST/PATCH /categories`, `GET /config` y `PUT /config/{clave}` (solo admin), `PATCH /reviews/{id}/assign` y `POST /documents/{id}/sign-off`. El SSO sigue en pausa por decisión, no por código · @ia-opencode-ruben
+- [x] E-22 corregido (27/11): `nueva_version` bloquea la fila del documento (`SELECT … FOR UPDATE`) antes de calcular `MAX(numero_version) + 1`; dos cierres simultáneos ya no chocan con el único · @ia-opencode-ruben
 - [x] Base construida y validada en PostgreSQL 16.4 sin Docker (26/11): `V1`–`V15`, vistas, triggers y recreación de `auditoria` ejecutados desde cero; 15/15 tests con base · @ia-opencode-maga369 · [[Registro de errores]] (cuarta pasada)
 - [x] Cerrados E-54, E-55 y E-56 (scripts SQL) y E-57 y E-58 (backend) y documentada la arquitectura MariaDB en el mismo PR · @ia-opencode-maga369 · `docs/architecture/`, `docs/architecture/mariadb/`, `backend/app/db/queries/auth.sql`, `backend/tests/test_sin_bd.py` · [[0017-particionado-auditoria]] y [[0018-mariadb-segunda-opcion]] en **Propuesta** (pendientes de aprobación; PR #52 abierto)
 
@@ -96,6 +107,13 @@ Resto:
 ## Preguntas abiertas
 
 <!-- - @destinatario: pregunta · @autor -->
+- @Alex: **petición de @Rubén — no rehacer el backend sin consultar las reglas aprobadas.** Revisar y mejorar el código, adelante; cambiar de paso lo que el equipo ya aprobó, no. En #55 el defecto de `/anonymize` y `/reopen` pasó de `censurar` a `borrar` sin decisión (y `docs/architecture/rgpd-considerations.md` dice lo contrario), y el borrado durante el OCR resucitaba documentos; detectarlo y arreglarlo ha costado una sesión de revisión y otra de cambios (`fix/backend-cola-reglas`, commit `a085e83`). Antes de tocar `backend/app`, el SQL o el contrato: lee `docs/reglas/aprobacion.md`, `docs/reglas/reglas-de-negocio.md` y `docs/api/endpoints.md`; si algo no encaja, propón una decisión nueva o pregúntame aquí antes de cambiarlo. · @Rubén (vía @ia-opencode-ruben)
+- @Alex: **#55 queda sustituido por #56** (misma funcionalidad + reglas corregidas + `main` ya integrado; #55 llevaba días en conflicto). Revísalo ahí y cierra #55 cuando las pruebas de BD estén en verde; el detalle, en [[2026-11-27-ia-opencode-ruben]]. · @ia-opencode-ruben
+- @Alex: ¿bajamos la protección de `main`? Hoy exige 1 aprobación en todo, y con dos personas con escritura cada PR mío espera a que lo mires: es el mayor freno del día a día. Propuesta en tres pasos, de menos a más: **(1)** `CODEOWNERS` con revisión obligatoria solo de `backend/`, `docs/api/`, `docs/reglas/` y `docs/architecture/migrations/`, y los PR que solo tocan `vault/`, `maqueta/` o `docs/export/` se auto-mergean con CI verde; **(2)** si GitHub no les encaja así, bajar a 0 aprobaciones y exigir solo `Require status checks` + `Require conversation resolution`; **(3)** mantener el bloqueo de push directo a `main` en cualquier caso. Lo que no propongo es quitar la protección: solo el paso por revisión en lo que no es código. · @ia-opencode-ruben
+- ~~@Marina: [[0012-identidad-y-roles]] cambia tu modelo aceptado, pero **la BD es definitiva y `V13` no se escribe**. `usuarios` se queda con `rol` y `activo`, sin `usuarios_roles`, sin `sso_subject`, sin `password_hash` y sin `sesiones_usuario`. ¿El alta y la sesión se implementan sobre esas dos columnas, o el login queda fuera del piloto?~~ **Resuelto (23/11)**: se implementa completo al final de `V15` editada ([[0015-identidad-en-v15]]).
+- @Alex: la maqueta promete «zones de la imatge esborrades (no només tapades)», pero el PDF final se reconstruye sin ningún píxel del escaneo (0007): no hay imagen que borrar y tampoco se conservan sellos ni firmas manuscritas. ¿Cambiamos el texto por «el PDF no contiene ninguna imagen del original» o preferís mantener la promesa tal cual en la demo? (I2) · @ia-opencode-ruben
+- @Marina: el port a MariaDB mantiene tus `bbox_*` legacy tal cual (E-51) y tampoco incorpora las columnas de la v0.3 que faltan (E-53). ¿Conservamos la geometría como respaldo o la quitamos con plan de datos, y decides tú qué columnas entran en una migración nueva? · @ia-opencode-maga369
+- @Rubén: he dejado PostgreSQL como motor principal y el backend con `psycopg` intacto; [[0018-mariadb-segunda-opcion]] solo documenta MariaDB. ¿Confirmas que no quieres que adaptemos las consultas `.sql` mientras tanto? · @ia-opencode-maga369 · **Respondido (27/11)**: correcto, PostgreSQL sigue siendo el motor y no se tocan las consultas `.sql`. De #52 el backend solo necesitaba la cadena de hash ordenada por `(creado_en, id)` —ya está en `audit.sql`— y el aislamiento de `test_sin_bd` (E-58); `V1`–`V15` no cambian, así que no hay más adaptación. Sigue abierta E-23 (trigger y backend calculando el mismo hash). · @ia-opencode-ruben
 
 - @Rubén @Kevin: propuesta [[0017-particionado-auditoria]]: dejar `auditoria` como tabla particionada por `creado_en`, con PK `(id, creado_en)` y cadena `(creado_en DESC, id DESC)`, recreada desde `partitioning.sql` sin editar `V8` ni abrir `V16`. Ya está validada en PostgreSQL 16.4. ¿La aceptáis o la rechazáis? · @Marina
 - @Rubén @Kevin: propuesta [[0018-mariadb-segunda-opcion]]: mantener PostgreSQL 14+ como motor principal y MariaDB 11.4 como segunda opción documentada, sin cambiar el backend `psycopg` ni el despliegue. ¿La aceptáis o la rechazáis? · @Marina

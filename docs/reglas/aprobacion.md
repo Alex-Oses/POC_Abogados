@@ -43,7 +43,7 @@ aprobado ──export──→ exportado
 
 **Regla A-01 — el estado lo escribe el servidor.** El cliente nunca envía `estado`; solo dispara acciones. Un `PATCH` con `estado` en el cuerpo se rechaza.
 
-**Regla A-02 — los estados transitorios vuelven atrás.** Si el OCR o la anonimización fallan, el documento regresa al estado anterior y el error queda en `auditoria`. Nunca se queda colgado en `ocr_procesando`.
+**Regla A-02 — los estados transitorios vuelven atrás.** Si el OCR o la anonimización fallan, el documento regresa al estado anterior y el error queda en `auditoria`. Nunca se queda colgado en `ocr_procesando`. Un OCR fallido o cancelado se puede devolver a la cola con `POST /documents/{id}/retry` (0017); no hace falta borrar y volver a subir.
 
 **Regla A-03 — solo se anonimiza texto existente.** Sin versión `ocr_texto` no hay nada que anonimizar (`422`).
 

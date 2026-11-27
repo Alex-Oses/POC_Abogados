@@ -4,25 +4,96 @@ SELECT id FROM documentos
  WHERE creado_por = %(creado_por)s AND hash_sha256 = %(hash)s AND estado <> 'eliminado';
 
 -- name: doc_insertar
+-- 0017: entra en cola (`pendiente`); `metadatos_extras.ocr` guarda el modo pedido.
 INSERT INTO documentos (nombre_original, hash_sha256, mime_type, tamano_bytes,
-                        ruta_almacenamiento, estado, creado_por, clave_cifrado)
-VALUES (%(nombre)s, %(hash)s, %(mime)s, %(tamano)s, %(ruta)s, 'ocr_procesando',
-        %(creado_por)s, %(clave)s)
+                        ruta_almacenamiento, estado, creado_por, clave_cifrado, num_paginas,
+                        metadatos_extras)
+VALUES (%(nombre)s, %(hash)s, %(mime)s, %(tamano)s, %(ruta)s, 'pendiente',
+        %(creado_por)s, %(clave)s, %(num_paginas)s, %(meta)s::jsonb)
 RETURNING id;
+
+-- name: cola_tomar
+-- 0017: el más antiguo en cola. SKIP LOCKED: dos workers nunca toman el mismo.
+-- En cola = `pendiente` con `ocr` en metadatos y sin `ocr.error` (fallido o cancelado).
+UPDATE documentos SET estado = 'ocr_procesando', actualizado_en = now()
+ WHERE id = (SELECT id FROM documentos
+              WHERE estado = 'pendiente' AND metadatos_extras ? 'ocr'
+                AND NOT metadatos_extras -> 'ocr' ? 'error'
+              ORDER BY creado_en, id
+              LIMIT 1 FOR UPDATE SKIP LOCKED)
+RETURNING id, mime_type, ruta_almacenamiento, num_paginas, creado_por, metadatos_extras;
+
+-- name: cola_reanudar
+-- Al arrancar: lo que quedó a medias (caída o reinicio) vuelve a la cola y se reanuda.
+-- shortcut: supone un solo proceso backend; con varios, añadir un latido por worker.
+UPDATE documentos SET estado = 'pendiente'
+ WHERE estado = 'ocr_procesando' AND metadatos_extras ? 'ocr'
+RETURNING id;
+
+-- name: cola_huerfanos
+-- Subidos antes de la cola (sin `ocr` en metadatos): no se pueden reanudar. Quedan como fallidos
+-- para que la bandeja ofrezca volver a subirlos en vez de «transcribiendo» para siempre.
+UPDATE documentos
+   SET estado = 'pendiente', actualizado_en = now(),
+       metadatos_extras = metadatos_extras || jsonb_build_object('ocr', jsonb_build_object(
+           'error', 'Transcripción interrumpida: vuelve a subir el documento'))
+ WHERE estado = 'ocr_procesando' AND NOT metadatos_extras ? 'ocr'
+RETURNING id;
+
+-- name: doc_progreso
+SELECT d.estado, d.num_paginas, d.creado_en, d.metadatos_extras -> 'ocr' AS ocr,
+       (SELECT count(*) FROM paginas_documento p WHERE p.documento_id = d.id) AS pages_done,
+       CASE WHEN d.estado = 'pendiente' AND d.metadatos_extras ? 'ocr'
+                 AND NOT d.metadatos_extras -> 'ocr' ? 'error'
+            THEN (SELECT count(*) FROM documentos c
+                   WHERE c.estado = 'pendiente' AND c.metadatos_extras ? 'ocr'
+                     AND NOT c.metadatos_extras -> 'ocr' ? 'error'
+                     AND (c.creado_en, c.id) <= (d.creado_en, d.id))
+       END AS queue_position
+  FROM documentos d
+ WHERE d.id = %(id)s;
 
 -- name: doc_estado
 UPDATE documentos SET estado = %(estado)s, actualizado_en = now() WHERE id = %(id)s;
 
+-- name: doc_estado_si_procesando
+-- A-02: el fallo solo devuelve a `pendiente` lo que el worker sigue teniendo.
+UPDATE documentos SET estado = %(estado)s, actualizado_en = now()
+ WHERE id = %(id)s AND estado = 'ocr_procesando';
+
+-- name: doc_cancelar
+-- 0017: cancelar no puede pisar un OCR que acaba de terminar (se reintenta o se queda como está).
+UPDATE documentos SET estado = 'pendiente', actualizado_en = now()
+ WHERE id = %(id)s AND estado IN ('pendiente', 'ocr_procesando');
+
 -- name: doc_fin_ocr
+-- La guarda de estado evita resucitar un documento borrado o cancelado durante el OCR (A-01).
 UPDATE documentos
    SET estado = 'ocr_completado', num_paginas = %(num_paginas)s, actualizado_en = now()
- WHERE id = %(id)s;
+ WHERE id = %(id)s AND estado = 'ocr_procesando';
+
+-- name: doc_estado_actual
+-- FOR UPDATE: el worker y el borrado/cancelación no se pisan a mitad de página.
+SELECT estado FROM documentos WHERE id = %(id)s FOR UPDATE;
+
+-- name: doc_bloquear
+-- E-22: serializa la numeración de versiones por documento (MAX(numero_version) + 1).
+SELECT id FROM documentos WHERE id = %(id)s FOR UPDATE;
+
+-- name: doc_ruta_set
+UPDATE documentos SET ruta_almacenamiento = %(ruta)s WHERE id = %(id)s;
 
 -- name: doc_meta_set
 -- Nunca reemplaza el objeto entero: solo la clave indicada.
 UPDATE documentos
    SET metadatos_extras = jsonb_set(metadatos_extras, %(ruta)s::text[], %(valor)s::jsonb, true),
        actualizado_en = now()
+ WHERE id = %(id)s;
+
+-- name: doc_meta_del
+-- 0017: reintento del OCR. Quita la marca de error sin tocar el resto de metadatos.
+UPDATE documentos
+   SET metadatos_extras = metadatos_extras #- %(ruta)s::text[], actualizado_en = now()
  WHERE id = %(id)s;
 
 -- name: doc_eliminar
@@ -34,9 +105,11 @@ SELECT d.id, d.nombre_original, d.mime_type, d.num_paginas, d.estado, d.creado_e
        d.actualizado_en, d.creado_por, d.ruta_almacenamiento, d.tamano_bytes,
        d.metadatos_extras, d.exportado_en, d.requiere_visto_bueno,
        v.id AS v_id, v.numero_version AS v_numero, v.tipo_version AS v_tipo,
-       v.confianza_layout_promedio AS v_confianza, v.metadatos_proceso AS v_meta
+       v.confianza_layout_promedio AS v_confianza, v.metadatos_proceso AS v_meta,
+       COALESCE(d.metadatos_extras ->> 'subido_por', concat_ws(' ', u.nombre, u.apellidos)) AS subido_por
   FROM documentos d
   LEFT JOIN versiones_documento v ON v.documento_id = d.id AND v.es_actual
+  LEFT JOIN usuarios u ON u.id = d.creado_por
  WHERE d.id = %(id)s AND d.estado <> 'eliminado';
 
 -- name: docs_listar
@@ -44,10 +117,20 @@ SELECT d.id, d.nombre_original, d.mime_type, d.num_paginas, d.estado, d.creado_e
 -- y en el nombre. `solo_de` limita al creador (el transcriptor ve solo lo suyo).
 SELECT d.id, d.nombre_original, d.estado, d.num_paginas, d.creado_en, d.actualizado_en,
        d.exportado_en,
+       COALESCE(d.metadatos_extras ->> 'subido_por', concat_ws(' ', u.nombre, u.apellidos)) AS subido_por,
+       d.metadatos_extras -> 'ocr' ->> 'modo' AS modo_ocr,
        (SELECT count(*) FROM paginas_documento p
          WHERE p.documento_id = d.id AND p.estado = 'revisar') AS paginas_revisar,
        (SELECT count(*) FROM paginas_documento p
          WHERE p.documento_id = d.id AND p.estado = 'ilegible') AS paginas_ilegibles,
+       (SELECT count(*) FROM paginas_documento p WHERE p.documento_id = d.id) AS pages_done,
+       CASE WHEN d.estado = 'pendiente' AND d.metadatos_extras ? 'ocr'
+                 AND NOT d.metadatos_extras -> 'ocr' ? 'error'
+            THEN (SELECT count(*) FROM documentos c
+                   WHERE c.estado = 'pendiente' AND c.metadatos_extras ? 'ocr'
+                     AND NOT c.metadatos_extras -> 'ocr' ? 'error'
+                     AND (c.creado_en, c.id) <= (d.creado_en, d.id))
+       END AS queue_position,
        -- shortcut: sin fragmento en exportados porque contenido_texto no está anonimizado;
        -- cuando se guarde el texto sustituido, sacar el fragmento de ahí.
        CASE WHEN %(q)s::text IS NULL OR d.estado = 'exportado' THEN NULL
@@ -58,6 +141,7 @@ SELECT d.id, d.nombre_original, d.estado, d.num_paginas, d.creado_en, d.actualiz
        COUNT(*) OVER () AS total
   FROM documentos d
   LEFT JOIN versiones_documento v ON v.documento_id = d.id AND v.es_actual
+  LEFT JOIN usuarios u ON u.id = d.creado_por
  WHERE d.estado <> 'eliminado'
    AND (%(estado)s::text IS NULL OR d.estado = %(estado)s)
    AND (%(solo_de)s::uuid IS NULL OR d.creado_por = %(solo_de)s)
@@ -133,7 +217,7 @@ SELECT id, pagina_numero, orden_lectura, etiqueta, confianza, forma, bbox_x, bbo
  LIMIT %(limit)s OFFSET %(offset)s;
 
 -- name: bloque_de_pagina
-SELECT id, contenido FROM bloques_layout
+SELECT id, contenido, calidad_semaforo AS semaforo FROM bloques_layout
  WHERE version_id = %(version_id)s AND pagina_numero = %(pagina)s
  ORDER BY orden_lectura LIMIT 1;
 
@@ -151,6 +235,13 @@ UPDATE paginas_documento
        leida_ocr = %(leida)s
  WHERE documento_id = %(documento_id)s AND numero = %(numero)s;
 
+-- name: paginas_numeros
+SELECT numero FROM paginas_documento WHERE documento_id = %(documento_id)s;
+
+-- name: paginas_ilegibles
+SELECT count(*) AS n FROM paginas_documento
+ WHERE documento_id = %(documento_id)s AND estado = 'ilegible';
+
 -- name: paginas_listar
 SELECT p.numero, p.contraste, p.estado, p.avisos, p.leida_ocr,
        (SELECT b.contenido FROM bloques_layout b
@@ -159,3 +250,17 @@ SELECT p.numero, p.contraste, p.estado, p.avisos, p.leida_ocr,
   FROM paginas_documento p
  WHERE p.documento_id = %(documento_id)s
  ORDER BY p.numero;
+
+-- name: usuarios_por_nombre
+-- SharePoint: la carpeta lleva el nombre de la persona; si coincide con un usuario activo, el
+-- documento es suyo (lo ve en su bandeja). Sin LIMIT: con dos coincidencias no se adivina.
+SELECT u.id AS usuario_id, u.nombre, u.apellidos
+  FROM usuarios u
+ WHERE u.estado = 'activo'
+   AND lower(%(nombre)s) IN (lower(concat_ws(' ', u.nombre, u.apellidos)), lower(u.nombre))
+ ORDER BY u.creado_en;
+
+-- name: version_ocr_ultima
+SELECT id, metadatos_proceso FROM versiones_documento
+ WHERE documento_id = %(documento_id)s AND tipo_version = 'ocr_texto'
+ ORDER BY numero_version DESC LIMIT 1;

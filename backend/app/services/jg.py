@@ -60,7 +60,7 @@ def extraer(textos: dict[int, str], tipos: dict[int, str | None]) -> dict:
     todo = "\n".join(textos.values())
     datos: dict = {"solicitante": None, "dni": None, "dni_valido": None, "ingresos_anuales": None,
                    "miembros_unidad_familiar": None, "procedimiento": None, "domicilio": None}
-    nombre = re.search(r"(?:\b(?:D\.|Dña\.|Don|Doña)\s+|(?:solicitante|nombre y apellidos|nombre)\s*:\s*)"
+    nombre = re.search(r"(?:\b(?:D\.|Dña\.|Don|Doña)\s+|(?i:solicitante|sol·licitant|nombre y apellidos|nom i cognoms|nombre|nom)\s*:\s*)"
                        r"([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+(?:de\s+|del\s+|la\s+)?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){1,4})",
                        todo)
     if nombre:
@@ -72,6 +72,9 @@ def extraer(textos: dict[int, str], tipos: dict[int, str | None]) -> dict:
     irpf = "\n".join(t for n, t in textos.items() if tipos.get(n) == "irpf")
     base = re.search(r"base\s+imponible\s+general[^\d]{0,40}([\d.]+,\d{2})", irpf, re.IGNORECASE) or \
         re.search(r"base\s+imponible[^\d]{0,40}([\d.]+,\d{2})", irpf, re.IGNORECASE)
+    # Sin IRPF: una línea «Ingresos/Ingressos: 9.000 EUR» en cualquier página (ES o CA).
+    base = base or re.search(r"\bingres(?:os|sos)(?:\s+anual(?:es|s))?\s*:?\s*([\d.]+(?:,\d{2})?)", todo,
+                             re.IGNORECASE)
     if base:
         datos["ingresos_anuales"] = _importe(base.group(1))
     padron = "\n".join(t for n, t in textos.items() if tipos.get(n) == "empadronamiento")

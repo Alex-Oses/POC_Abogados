@@ -82,27 +82,39 @@ def find_rects(pdf_path, page_number, candidates_list):
     hay capa de texto y devuelve None para todas.
     """
     try:
-        import fitz
-        doc = fitz.open(pdf_path)
-        page = doc[page_number - 1]
-        width, height = page.rect.width, page.rect.height
-        out = []
-        for candidates in candidates_list:
-            rect = None
-            for candidate in candidates:
-                if not candidate:
-                    continue
-                hits = page.search_for(candidate)
-                if hits:
-                    rect = hits[0]
-                    break
-            if rect is None or not width or not height:
-                out.append(None)
-            else:
-                out.append([round(rect.x0 / width, 4), round(rect.y0 / height, 4),
-                            round(rect.x1 / width, 4), round(rect.y1 / height, 4)])
-        doc.close()
-        return out
+        import pypdfium2 as pdfium
+
+        doc = pdfium.PdfDocument(pdf_path)
+        try:
+            page = doc[page_number - 1]
+            width, height = page.get_size()
+            textpage = page.get_textpage()
+            try:
+                texto = textpage.get_text_range()
+                out = []
+                for candidates in candidates_list:
+                    inicio = None
+                    for candidate in candidates:
+                        if not candidate:
+                            continue
+                        inicio = texto.lower().find(candidate.lower())
+                        if inicio >= 0:
+                            break
+                    if inicio is None or inicio < 0 or not width or not height:
+                        out.append(None)
+                        continue
+                    fin = min(inicio + len(candidates[0]) - 1, max(textpage.count_chars() - 1, 0))
+                    x0, y0, x1, y1 = textpage.get_charbox(inicio)
+                    x2, y2, x3, y3 = textpage.get_charbox(fin)
+                    izq, der = min(x0, x2), max(x1, x3)
+                    abajo, arriba = min(y0, y2), max(y1, y3)
+                    out.append([round(izq / width, 4), round((height - arriba) / height, 4),
+                                round(der / width, 4), round((height - abajo) / height, 4)])
+                return out
+            finally:
+                textpage.close()
+        finally:
+            doc.close()
     except Exception:
         return [None] * len(candidates_list)
 
@@ -130,22 +142,21 @@ def diff_segments(a, b):
 
 
 def convert_pdf_to_images(pdf_path, upload_id, max_pages=500):
-    """Convierte páginas PDF a imágenes usando PyMuPDF."""
+    """Convierte páginas PDF a imágenes usando pypdfium2 (Apache-2.0/BSD-3)."""
     try:
-        import fitz
-        doc = fitz.open(pdf_path)
+        import pypdfium2 as pdfium
+
+        doc = pdfium.PdfDocument(pdf_path)
         num_pages = min(len(doc), max_pages)
         image_paths = []
-        
-        for page_num in range(num_pages):
-            page = doc[page_num]
-            pix = page.get_pixmap(dpi=150)
-            img_name = f"{upload_id}_page_{page_num+1}.png"
-            img_path = os.path.join(PAGES_DIR, img_name)
-            pix.save(img_path)
-            image_paths.append(img_path)
-        
-        doc.close()
+        try:
+            for page_num in range(num_pages):
+                img_name = f"{upload_id}_page_{page_num+1}.png"
+                img_path = os.path.join(PAGES_DIR, img_name)
+                doc[page_num].render(scale=150 / 72).to_pil().save(img_path, "PNG")
+                image_paths.append(img_path)
+        finally:
+            doc.close()
         return image_paths, num_pages
     except ImportError:
         # Fallback: crear imagen sintética
@@ -300,10 +311,13 @@ def page_ocr(upload_id, page):
         data = f.read()
         try:
             if f.filename.lower().endswith('.pdf'):
-                import fitz
-                doc = fitz.open(stream=data, filetype='pdf')
-                doc[0].get_pixmap(dpi=150).save(img_path)
-                doc.close()
+                import pypdfium2 as pdfium
+
+                doc = pdfium.PdfDocument(data)
+                try:
+                    doc[0].render(scale=150 / 72).to_pil().save(img_path, 'PNG')
+                finally:
+                    doc.close()
             else:
                 import io
                 from PIL import Image
@@ -318,21 +332,29 @@ def page_ocr(upload_id, page):
 def export():
     """PDF nuevo solo con el texto transcrito, una página por texto y sin metadatos."""
     import io
-    import fitz
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
     data = request.get_json(silent=True) or {}
     pages = data.get('pages')
     if not isinstance(pages, list) or not all(isinstance(p, str) for p in pages):
         return jsonify({'error': 'pages debe ser una lista de textos'}), 400
     name = re.sub(r'[^\w.-]', '_', str(data.get('name') or 'documento'))[:80]
     name = re.sub(r'\.pdf$', '', name, flags=re.I).strip('._') or 'documento'
-    doc = fitz.open()
+    buf = io.BytesIO()
+    lienzo = canvas.Canvas(buf, pagesize=A4)
+    lienzo.setTitle('')
+    lienzo.setAuthor('')
+    alto = A4[1]
     for text in pages or ['']:
-        page = doc.new_page()
-        # shortcut: el texto que no cabe en la página se corta; paginar si hace falta
-        page.insert_textbox(page.rect + (50, 50, -50, -50), text, fontsize=11, fontname='helv')
-    doc.set_metadata({})
-    buf = io.BytesIO(doc.tobytes(garbage=3, deflate=True))
-    doc.close()
+        bloque = lienzo.beginText(50, alto - 50)
+        bloque.setFont('Helvetica', 11)
+        for linea in text.split('\n'):
+            bloque.textLine(linea)  # shortcut: sin ajuste de línea; paginar si hace falta
+        lienzo.drawText(bloque)
+        lienzo.showPage()
+    lienzo.save()
+    buf.seek(0)
     return send_file(buf, mimetype='application/pdf', as_attachment=True,
                      download_name=f'{name}_transcrito.pdf')
 

@@ -24,6 +24,15 @@ class ReabrirIn(BaseModel):
     modo: Literal["censurar", "borrar", "tachar", "etiqueta", "seudonimo", "iniciales"] = "censurar"
 
 
+class AsignarIn(BaseModel):
+    asignado_a: UUID | None = None
+    comentario: str | None = Field(default=None, max_length=5000)
+
+
+class VistoBuenoIn(BaseModel):
+    comentario: str | None = Field(default=None, max_length=5000)
+
+
 @router.get("/reviews")
 def listar(estado: str | None = None, asignado_a: str | None = None,
            page: int = Query(1, ge=1), limit: int = Query(20, ge=1, le=100),
@@ -49,6 +58,20 @@ def abrir(documento_id: UUID, request: Request, usuario: dict = Depends(R),
 def tomar(revision_id: UUID, request: Request, usuario: dict = Depends(R),
           conexion: Connection = Depends(connection)):
     return service.tomar(conexion, revision_id, usuario, request)
+
+
+@router.patch("/reviews/{revision_id}/assign")
+def asignar(revision_id: UUID, datos: AsignarIn, request: Request, usuario: dict = Depends(R),
+            conexion: Connection = Depends(connection)):
+    return service.asignar(conexion, revision_id, datos.asignado_a, datos.comentario,
+                           usuario, request)
+
+
+@router.post("/documents/{documento_id}/sign-off")
+def visto_bueno(documento_id: UUID, datos: VistoBuenoIn, request: Request,
+                usuario: dict = Depends(R), conexion: Connection = Depends(connection)):
+    doc = documents.obtener(conexion, documento_id, usuario)
+    return service.visto_bueno(conexion, doc, datos.comentario, usuario, request)
 
 
 @router.patch("/reviews/{revision_id}")
