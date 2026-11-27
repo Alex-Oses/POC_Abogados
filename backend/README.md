@@ -6,6 +6,9 @@ Python 3.12+ y FastAPI. Estructura de la decisión [[0014-stack-backend-c-sharp-
 
 ```powershell
 docker compose up -d db        # desde la raíz: PostgreSQL 16 con V1..V15 + views.sql (y la base icat_test)
+#   Si el 5432 ya está ocupado (pasa en el servidor):
+#   DB_PUERTO=5433 docker compose up -d db
+#   y DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/icat
 cd backend
 python -m venv .venv
 .venv\Scripts\python -m pip install -e ".[dev]"

@@ -1,6 +1,6 @@
-# 0017 · Cola de OCR en segundo plano, página a página
+# 0020 · Cola de OCR en segundo plano, página a página
 
-- **Estado**: Propuesta
+- **Estado**: Aceptada (2026-11-27, @Rubén)
 - **Fecha**: 2026-11-26
 - **Autor**: @ia-claude-alex
 

@@ -1,6 +1,6 @@
 # 0019 · Entrada de PDF por SharePoint
 
-- **Estado**: Propuesta
+- **Estado**: Aceptada (2026-11-27, @Rubén)
 - **Fecha**: 2026-11-26
 - **Autor**: @ia-claude-alex
 
