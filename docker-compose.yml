@@ -17,6 +17,14 @@ services:
       - ./docs/architecture:/migrations:ro
       - ./backend/db/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
       - icat_pg:/var/lib/postgresql/data
+    healthcheck:
+      # -h 127.0.0.1 fuerza TCP: mientras carga V1..V15 el servidor temporal solo
+      # escucha en el socket, así que esto no dice «listo» antes de tiempo.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d icat"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 10s
 
   # Backend + frontend en el mismo proceso: `/` sirve templates/index.html y `/static` (app/main.py).
   # Trae su propio Python 3.12, Presidio, spaCy y pypdfium2: no usa el del host.
@@ -27,7 +35,8 @@ services:
     image: icat-backend
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy   # primero PostgreSQL con V1..V15, luego la app
     # El resto de la configuración (secretos, OCR, SharePoint) sale de backend/.env.
     # required: false: si el fichero no existe, `docker compose up -d db` sigue funcionando.
     env_file:
