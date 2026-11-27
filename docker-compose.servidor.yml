@@ -1,8 +1,10 @@
 # Servidor completo (BD, OCR, app y HTTPS) sin scripts: solo Docker Compose.
-#   Arrancar / actualizar:  docker compose -f docker-compose.servidor.yml up -d --build
-#   (en VS Code: clic derecho sobre este fichero -> Compose Up)
-#   Web: https://IP_DEL_SERVIDOR:8443  (otro puerto: PUERTO=9443 en un fichero .env junto a este)
-#   Contraseña del admin:   docker compose -f docker-compose.servidor.yml logs secretos
+#   Arrancar viendo todo:  docker compose -f docker-compose.servidor.yml up --build
+#     -> los logs de todos los servicios salen en la terminal; si algo falla, ahí se ve.
+#     -> cuando la app está lista, el servicio "aviso" imprime la URL y el usuario.
+#     -> Ctrl+C lo para. Para dejarlo en segundo plano: el mismo comando con -d.
+#   Ver logs luego:  docker compose -f docker-compose.servidor.yml logs -f app
+#   Otro puerto: PUERTO=9443 en un fichero .env junto a este (por defecto 8443).
 #   Borrar TODO, datos incluidos:  docker compose -f docker-compose.servidor.yml down -v
 # Claves y certificado se generan solos la primera vez y se guardan en el volumen icat_secretos.
 name: icat
@@ -31,7 +33,7 @@ services:
           chmod 644 /s/*
           touch /s/listo
         fi
-        echo "Admin: admin@icat.local / $$(cat /s/admin_password)"
+        echo "Secretos listos en el volumen icat_secretos"
 
   db:
     image: postgres:16
@@ -135,6 +137,31 @@ services:
         exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
     depends_on:
       - app
+
+  # Cuando la app responde, imprime dónde entrar y con qué usuario.
+  aviso:
+    image: curlimages/curl:8.10.1
+    restart: "no"
+    environment:
+      PUERTO: ${PUERTO:-8443}
+    volumes:
+      - icat_secretos:/s:ro
+    entrypoint:
+      - sh
+      - -c
+      - |
+        IP=$$(curl -fs --max-time 5 https://api.ipify.org || echo IP_DEL_SERVIDOR)
+        echo "=================================================================="
+        echo " LISTO. Abre en el navegador:  https://$$IP:$$PUERTO"
+        echo " (aviso de certificado propio: Avanzado -> Continuar)"
+        echo " Usuario: admin@icat.local   Contraseña: $$(cat /s/admin_password)"
+        echo " Si la IP no es la buena, usa la IP pública de la VM en Azure."
+        echo "=================================================================="
+    depends_on:
+      app:
+        condition: service_healthy
+      caddy:
+        condition: service_started
 
 volumes:
   icat_pg:

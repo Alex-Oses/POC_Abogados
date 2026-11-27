@@ -12,9 +12,12 @@ Todo (base de datos, OCR, app y HTTPS) en contenedores, **sin ejecutar scripts**
 
 1. Con VS Code (Remote Explorer) conectado al servidor, copia la carpeta del repo al servidor (arrastrarla al explorador remoto, o `git clone` si lo tenéis).
 2. Si el puerto abierto no es el 8443: crea junto a `docker-compose.servidor.yml` un fichero `.env` con una línea `PUERTO=9443` (el vuestro).
-3. Clic derecho sobre `docker-compose.servidor.yml` → **Compose Up** (extensión Docker), o en la terminal: `docker compose -f docker-compose.servidor.yml up -d --build`.
-4. La contraseña del admin (`admin@icat.local`): `docker compose -f docker-compose.servidor.yml logs secretos`.
-5. Abre `https://IP_DEL_SERVIDOR:8443`. El navegador avisa del certificado (es propio): aceptar.
+3. En la terminal de VS Code, en la carpeta del repo: `docker compose -f docker-compose.servidor.yml up --build`. Así **los logs de todo salen en la terminal**: si algo falla, el error se ve ahí (cada línea lleva delante el servicio: `app`, `db`, `ollama`, `caddy`...).
+4. Cuando la app está lista sale un recuadro **LISTO** con la URL (`https://IP:8443`), el usuario `admin@icat.local` y su contraseña.
+5. Abre la URL. El navegador avisa del certificado (es propio): Avanzado → Continuar.
+6. Ctrl+C lo para. Cuando funcione, para dejarlo siempre encendido: el mismo comando con `-d`; los logs, luego, con `docker compose -f docker-compose.servidor.yml logs -f app`.
+
+Si la app no arranca, Compose acaba con `dependency failed to start: container ... is unhealthy` y justo encima está el error del servicio que falló.
 
 - La primera vez genera solas las contraseñas, la clave de cifrado y el certificado (volumen `icat_secretos`) y baja el modelo de OCR (varios GB): `logs -f ollama-modelo` para ver cómo va.
 - Actualizar: copia la carpeta nueva encima y repite el paso 3. Los datos se quedan en los volúmenes.
