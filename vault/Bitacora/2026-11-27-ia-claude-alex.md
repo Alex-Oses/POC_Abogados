@@ -8,9 +8,12 @@
 
 ## Paso al servidor
 
-Desde `main`, siguiendo `docs/GUIA_SERVIDOR.md` (lista de comprobación al final). En el servidor, pasar también las pruebas de BD con `DATABASE_TEST_URL`.
+- El DGX Spark no llega: se usa la VM de Azure donde ya se probó.
+- `docker-compose.yml` levanta todo con el perfil `servidor` (BD, Ollama + descarga del modelo, app, Caddy HTTPS); `docker compose up -d db` sigue sirviendo para desarrollo.
+- `scripts/servidor_docker.sh`: instala Docker, genera `.env` con claves aleatorias y arranca. Sección nueva al principio de `docs/GUIA_SERVIDOR.md`.
+- Sin probar: el portátil no tiene Docker. Solo `docker compose config` y la clave Fernet generada.
 
 ## Pendiente
 
 - Votar 0017 y 0018 es de @Rubén y @Kevin.
-- Sin contestar aún (@Alex): protección de `main`, texto de la maqueta sobre imágenes borradas (I2), envío del PDF por correo.
+- Respondidas a @Rubén: protección (opción 2), I2 (ya resuelto en #41) y reglas aprobadas. Falta: envío del PDF por correo.

@@ -1,0 +1,16 @@
+# Lo usa el servicio caddy de docker-compose.yml. SITIO y TLS los pone scripts/servidor_docker.sh en .env.
+{$SITIO} {
+	{$TLS}
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy no-referrer
+		-Server
+	}
+	request_body {
+		max_size 25MB
+	}
+	reverse_proxy app:8000
+}

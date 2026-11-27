@@ -6,6 +6,25 @@ Todo lo que hace la app con los documentos (OCR, detección de datos personales,
 
 Si algo falla en cualquier paso, ve directo al apartado [Si algo falla](#si-algo-falla).
 
+## Vía rápida con Docker (recomendada)
+
+Todo (base de datos, OCR, app y HTTPS) en contenedores, con un comando. Haz antes el paso 2 (DNS y puertos 80/443 en Azure) y luego, por SSH:
+
+```bash
+git clone https://github.com/Alex-Oses/POC_Abogados && cd POC_Abogados
+DOMINIO=icat-poc.westeurope.cloudapp.azure.com bash scripts/servidor_docker.sh
+```
+
+- Instala Docker si falta, crea `.env` con claves aleatorias (no se sube a git) y arranca con `docker compose up -d --build`.
+- La primera vez baja el modelo de OCR (unos GB): `docker compose logs -f ollama-modelo` para ver cómo va.
+- Usuario `admin@icat.local`; la contraseña está en `.env` (`grep ADMIN_PASSWORD .env`).
+- Sin `DOMINIO` usa la IP pública con certificado propio: funciona, pero el navegador avisa.
+- Actualizar: vuelve a ejecutar el mismo script (hace `git pull` y reconstruye; los datos se quedan en los volúmenes).
+- Estado y logs: `docker compose ps`, `docker compose logs -f app`. Borrarlo **todo, datos incluidos**: `docker compose down -v`.
+- Si el servidor no puede bajar el modelo, copia `%USERPROFILE%\.ollama\models` de tu PC al volumen: `docker compose cp <carpeta> ollama:/root/.ollama/` y `docker compose restart ollama`.
+
+El resto de la guía es la instalación sin Docker (`instalar_servidor.sh`). La lista de comprobación del final vale para las dos.
+
 ## 1. Qué necesitas antes de empezar
 
 - Una máquina virtual con **Ubuntu 24.04**. Para el OCR real recomendamos 4 vCPU, 16 GB de RAM y 64 GB de disco. En el PC de Alex, con gráfica, el OCR tarda unos 5 segundos por página. En un servidor sin gráfica irá más lento: mídelo con los documentos de prueba (paso 7) antes de cargar trabajo de verdad.
