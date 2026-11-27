@@ -66,6 +66,23 @@ bash scripts/arrancar_docker.sh
 
 Crea `backend/.env` si falta (con `STORAGE_KEY` y `ADMIN_PASSWORD` aleatorios), construye la imagen y levanta PostgreSQL y la app. No necesita sudo. Ojo: el servicio `icat-app` que deja `instalar_servidor.sh` usa el puerto 8000; para convivir con él, `APP_PUERTO=8001 bash scripts/arrancar_docker.sh`.
 
+Sin scripts, las mismas dos órdenes:
+
+```bash
+cd ~/POC_Abogados
+docker compose up -d --build      # levanta BD y app; lee backend/.env solo
+docker compose down               # parar (-v borra también la base de datos)
+```
+
+Los puertos publicados se cambian en el `.env` de la raíz (está en `.gitignore`), para no repetir banderas:
+
+```bash
+echo 'DB_PUERTO=5433' >> .env     # si el 5432 está ocupado por otro PostgreSQL
+echo 'APP_PUERTO=8001' >> .env    # si el servicio icat-app ocupa el 8000
+```
+
+Dentro de la red de Docker la app siempre habla con `db:5432`; esos dos solo cambian lo que se publica en la máquina.
+
 ## 4. Primer acceso
 
 1. Lee la contraseña del admin y borra el fichero cuando la tengas apuntada:

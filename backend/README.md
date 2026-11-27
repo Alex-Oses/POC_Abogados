@@ -30,8 +30,11 @@ Si no quieres depender del Python de la máquina (versión, venv, modelo de spaC
 ```bash
 bash scripts/arrancar_docker.sh                 # desde la raíz: crea backend/.env si falta, construye y arranca BD + app
 bash scripts/arrancar_docker.sh --sin-build     # siguiente vez, sin reconstruir
-docker compose --env-file backend/.env down     # parar (-v borra también la base de datos)
+docker compose up -d --build                    # lo mismo a mano: sin banderas
+docker compose down                             # parar (-v borra también la base de datos)
 ```
+
+`backend/.env` se lee solo: el servicio `app` lo declara con `env_file` y `required: false`, así que `docker compose up -d` no necesita banderas y `docker compose up -d db` sigue funcionando aunque ese fichero no exista. Lo que no puede venir de ahí son `DATABASE_URL`, `OLLAMA_URL` y `STORAGE_DIR`, que el compose fija al valor de dentro del contenedor (y pisan lo que diga el fichero).
 
 - La imagen `backend/Dockerfile` trae Python 3.12, Presidio, spaCy con `es_core_news_md`, RapidOCR y `pypdfium2`: el Python del host no se usa.
 - Dentro del contenedor se fuerzan `DATABASE_URL` (`db:5432`), `OLLAMA_URL` (`host.docker.internal:11434`) y `STORAGE_DIR` (`/app/storage`, donde monta el volumen).

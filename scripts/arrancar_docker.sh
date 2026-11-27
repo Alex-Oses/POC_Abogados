@@ -24,6 +24,7 @@ fi
 if [ ! -f backend/.env ]; then
   echo "Creando backend/.env con claves nuevas..."
   cp backend/.env.example backend/.env
+  sed -i '/^\[TEMPLATE\]/d' backend/.env   # marcador del ejemplo: no es una variable
   CLAVE="$(head -c 32 /dev/urandom | base64 | tr '+/' '-_' | tr -d '\n')"
   PASS="$(head -c 64 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | cut -c1-20)"
   sed -i.bak "s|^STORAGE_KEY=.*|STORAGE_KEY=${CLAVE}|; s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${PASS}|" backend/.env
@@ -31,9 +32,9 @@ if [ ! -f backend/.env ]; then
 fi
 
 if [ "${1:-}" = "--sin-build" ]; then
-  docker compose --env-file backend/.env up -d
+  docker compose up -d
 else
-  docker compose --env-file backend/.env up -d --build
+  docker compose up -d --build
 fi
 
 PUERTO="${APP_PUERTO:-8000}"
@@ -50,8 +51,8 @@ echo
 if [ "$listo" = 1 ]; then
   echo "App:   http://127.0.0.1:${PUERTO}/"
 else
-  echo "La app aún no responde; mira los logs con:  docker compose --env-file backend/.env logs -f app"
+  echo "La app aún no responde; mira los logs con:  docker compose logs -f app"
 fi
 grep -E '^(ADMIN_EMAIL|ADMIN_PASSWORD)=' backend/.env || true
 echo
-echo "Parar:  docker compose --env-file backend/.env down        (-v borra también la base de datos)"
+echo "Parar:  docker compose down        (-v borra también la base de datos)"

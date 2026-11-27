@@ -1,6 +1,6 @@
 # App completa en Docker, sin sudo:  bash scripts/arrancar_docker.sh
 # Solo la BD:      docker compose up -d db
-# Todo a mano:     docker compose --env-file backend/.env up -d --build
+# Todo de una:     docker compose up -d --build   (lee backend/.env solo, si existe)
 # Si el 5432 ya está ocupado en la máquina: DB_PUERTO=5433 docker compose up -d db
 # (y el DATABASE_URL del backend pasa a apuntar a ese puerto).
 services:
@@ -28,32 +28,17 @@ services:
     restart: unless-stopped
     depends_on:
       - db
+    # El resto de la configuración (secretos, OCR, SharePoint) sale de backend/.env.
+    # required: false: si el fichero no existe, `docker compose up -d db` sigue funcionando.
+    env_file:
+      - path: backend/.env
+        required: false
     environment:
       # Estos tres no pueden venir de backend/.env: dentro del contenedor
-      # 127.0.0.1 es el propio contenedor, no la máquina.
+      # 127.0.0.1 es el propio contenedor, no la máquina. Pisan lo que diga el fichero.
       DATABASE_URL: postgresql://postgres:postgres@db:5432/icat
       OLLAMA_URL: ${OLLAMA_URL_DOCKER:-http://host.docker.internal:11434}
       STORAGE_DIR: /app/storage
-      # El resto sale de backend/.env (docker compose --env-file backend/.env).
-      ENTORNO: ${ENTORNO:-desarrollo}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@icat.local}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
-      SESSION_HORAS: ${SESSION_HORAS:-1}
-      SESSION_HORAS_MAX: ${SESSION_HORAS_MAX:-12}
-      SESIONES_MAX: ${SESIONES_MAX:-3}
-      STORAGE_KEY: ${STORAGE_KEY:-}
-      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-20}
-      OCR_MOCK: ${OCR_MOCK:-0}
-      OCR_MODEL: ${OCR_MODEL:-hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF:latest}
-      CONTRASTE_MINIMO: ${CONTRASTE_MINIMO:-80}
-      SPACY_MODEL: ${SPACY_MODEL:-es_core_news_md}
-      SHAREPOINT_TENANT_ID: ${SHAREPOINT_TENANT_ID:-}
-      SHAREPOINT_CLIENT_ID: ${SHAREPOINT_CLIENT_ID:-}
-      SHAREPOINT_CLIENT_SECRET: ${SHAREPOINT_CLIENT_SECRET:-}
-      SHAREPOINT_DRIVE_ID: ${SHAREPOINT_DRIVE_ID:-}
-      SHAREPOINT_CARPETA: ${SHAREPOINT_CARPETA:-Entrada}
-      SHAREPOINT_SONDEO_SEG: ${SHAREPOINT_SONDEO_SEG:-60}
     extra_hosts:
       - "host.docker.internal:host-gateway"   # para llegar al Ollama de la máquina
     ports:
