@@ -1,5 +1,6 @@
-# PostgreSQL de desarrollo con V1..V15 y views.sql aplicadas al crear el volumen.
-# Arranque: docker compose up -d db   ·   Reset: docker compose down -v
+# App completa en Docker, sin sudo:  bash scripts/arrancar_docker.sh
+# Solo la BD:      docker compose up -d db
+# Todo de una:     docker compose up -d --build   (lee backend/.env solo, si existe)
 # Si el 5432 ya está ocupado en la máquina: DB_PUERTO=5433 docker compose up -d db
 # (y el DATABASE_URL del backend pasa a apuntar a ese puerto).
 services:
@@ -16,5 +17,44 @@ services:
       - ./docs/architecture:/migrations:ro
       - ./backend/db/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
       - icat_pg:/var/lib/postgresql/data
+    healthcheck:
+      # -h 127.0.0.1 fuerza TCP: mientras carga V1..V15 el servidor temporal solo
+      # escucha en el socket, así que esto no dice «listo» antes de tiempo.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d icat"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 10s
+
+  # Backend + frontend en el mismo proceso: `/` sirve templates/index.html y `/static` (app/main.py).
+  # Trae su propio Python 3.12, Presidio, spaCy y pypdfium2: no usa el del host.
+  app:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: icat-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy   # primero PostgreSQL con V1..V15, luego la app
+    # El resto de la configuración (secretos, OCR, SharePoint) sale de backend/.env.
+    # required: false: si el fichero no existe, `docker compose up -d db` sigue funcionando.
+    env_file:
+      - path: backend/.env
+        required: false
+    environment:
+      # Estos tres no pueden venir de backend/.env: dentro del contenedor
+      # 127.0.0.1 es el propio contenedor, no la máquina. Pisan lo que diga el fichero.
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/icat
+      OLLAMA_URL: ${OLLAMA_URL_DOCKER:-http://host.docker.internal:11434}
+      STORAGE_DIR: /app/storage
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # para llegar al Ollama de la máquina
+    ports:
+      - "127.0.0.1:${APP_PUERTO:-8000}:8000"
+    volumes:
+      - icat_storage:/app/storage
+
 volumes:
   icat_pg:
+  icat_storage:

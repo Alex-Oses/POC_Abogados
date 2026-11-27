@@ -23,6 +23,54 @@ La base de datos la manda Flyway (`docs/architecture/migrations/`). Este backend
 
 `GET /health` responde `503` mientras no haya base de datos; el resto de rutas también, salvo las que rechazan antes por falta de token (`401`).
 
+## Todo en Docker (sin sudo)
+
+Si no quieres depender del Python de la máquina (versión, venv, modelo de spaCy):
+
+```bash
+bash scripts/arrancar_docker.sh                 # desde la raíz: crea backend/.env si falta, construye y arranca BD + app
+bash scripts/arrancar_docker.sh --sin-build     # siguiente vez, sin reconstruir
+docker compose up -d --build                    # lo mismo a mano: sin banderas
+docker compose down                             # parar (-v borra también la base de datos)
+```
+
+`backend/.env` se lee solo: el servicio `app` lo declara con `env_file` y `required: false`, así que `docker compose up -d` no necesita banderas y `docker compose up -d db` sigue funcionando aunque ese fichero no exista. Lo que no puede venir de ahí son `DATABASE_URL`, `OLLAMA_URL` y `STORAGE_DIR`, que el compose fija al valor de dentro del contenedor (y pisan lo que diga el fichero).
+
+- La imagen `backend/Dockerfile` trae Python 3.12, Presidio, spaCy con `es_core_news_md`, RapidOCR y `pypdfium2`: el Python del host no se usa.
+- Dentro del contenedor se fuerzan `DATABASE_URL` (`db:5432`), `OLLAMA_URL` (`host.docker.internal:11434`) y `STORAGE_DIR` (`/app/storage`, donde monta el volumen).
+- Para otro Ollama: `OLLAMA_URL_DOCKER=http://mi-ollama:11434 bash scripts/arrancar_docker.sh`.
+- Si el 8000 está ocupado (por ejemplo, el servicio `icat-app` que deja `instalar_servidor.sh`): `APP_PUERTO=8010 bash scripts/arrancar_docker.sh`. El 5432, con `DB_PUERTO=5433`.
+- No pide sudo: solo que el motor de Docker esté arrancado y que tu usuario pueda usarlo.
+
+### Parar y liberar los puertos
+
+```bash
+docker compose down --remove-orphans   # para y borra app y BD: con ellos se van los puertos publicados
+docker ps -a                           # no debe quedar ningún contenedor de icat
+```
+
+`down` es lo normal y no necesita sudo: al borrar los contenedores, Docker suelta el 8000/8010 y el 5432/5433. Si después de eso un puerto sigue ocupado (pasa con Docker rootless, cuyo gestor de puertos se queda colgado), mira quién lo tiene antes de tocar nada:
+
+```bash
+ss -ltn | grep -E ':(8000|8001|5432|5433)'          # qué está escuchando
+docker ps -a --format '{{.Names}}\t{{.Ports}}'      # qué contenedor lo publica
+docker rm -f <contenedor>                           # si es uno suelto de un `docker run` (down no lo quita)
+systemctl --user restart docker                     # rootless: reinicia el motor y suelta los puertos huérfanos
+```
+
+### Puertos en el servidor compartido
+
+En `genai-openllm-vm` el 5432 lo tiene otro PostgreSQL, el 8000 el servicio `icat-app` de systemd y el 8001 otro servicio. Sin tocar nada de los demás, la BD se publica en 5433 y la app en 8010:
+
+```bash
+cd ~/POC_Abogados
+printf 'DB_PUERTO=5433\nAPP_PUERTO=8010\n' > .env   # .env de la raíz: lo lee docker compose
+docker compose up -d
+curl -s http://127.0.0.1:8010/health
+```
+
+Dentro de la red no cambia nada (`db:5432`, y el contenedor escuchando en su 8000): esos números son solo el puerto publicado en `127.0.0.1`. Quién ocupa qué y cómo comprobarlo, en [docs/GUIA_SERVIDOR.md](../docs/GUIA_SERVIDOR.md) §3 bis.
+
 ## Servidor (acceso desde fuera de la red)
 
 Guía completa paso a paso: [docs/GUIA_SERVIDOR.md](../docs/GUIA_SERVIDOR.md).

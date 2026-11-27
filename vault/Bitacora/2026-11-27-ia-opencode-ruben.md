@@ -62,3 +62,15 @@ Pruebas: `test_export.py` nuevo (solapes del marcado, sin BD) y casos de reinten
 - En el servidor `genai-openllm-vm`, `docker compose up -d db` falla con `RootlessKit PortManager.AddPort(): listen tcp4 127.0.0.1:5432: address already in use`: algo (un PostgreSQL nativo o un contenedor de otro proyecto) ya ocupa el 5432 y no se puede parar sin permisos.
 - `docker-compose.yml` publica ahora `127.0.0.1:${DB_PUERTO:-5432}:5432`, así que **sin sudo y sin tocar lo que ya escucha** basta `DB_PUERTO=5433 docker compose up -d db` y apuntar `DATABASE_URL` al 5433. Por defecto sigue siendo 5432: nada cambia en los equipos donde funciona.
 - Anotado también en `backend/README.md`.
+
+## Backend en Docker y arranque sin sudo (27/11)
+
+- `docker-compose.yml` gana el servicio **`app`**: construye `backend/Dockerfile` (Python 3.12, Presidio, spaCy, RapidOCR y `pypdfium2`) y sirve API y frontend en `127.0.0.1:${APP_PUERTO:-8000}`. La BD sigue en el servicio `db`.
+- `scripts/arrancar_docker.sh` levanta todo con un comando y **sin sudo**: comprueba el motor, crea `backend/.env` con `STORAGE_KEY` (Fernet) y `ADMIN_PASSWORD` aleatorios si falta, construye y espera a `/health`.
+- Dentro del contenedor se fuerzan `DATABASE_URL` (`db:5432`), `OLLAMA_URL` (`host.docker.internal:11434`) y `STORAGE_DIR` (`/app/storage`): los tres que fallan en silencio si se copian del `.env` del host.
+- Revisión de los scripts de arranque: `arrancar_demo.bat` ya era sin sudo (venv local); `instalar_servidor.sh` pide sudo porque instala paquetes, Ollama, Caddy y systemd; `diagnostico.sh` y `copia_seguridad.sh` usan `sudo -n`, que no pregunta contraseña y sigue si no puede. El script nuevo no pide permisos.
+- Si el servicio `icat-app` de systemd sigue activo ocupa el 8000: `APP_PUERTO=8001` lo evita sin parar nada.
+- El compose lee `backend/.env` solo (`env_file` con `required: false`): `docker compose up -d --build` levanta BD y app sin banderas, y `docker compose up -d db` sigue funcionando si ese fichero no existe. Los puertos publicados se fijan en el `.env` de la raíz (`DB_PUERTO=5433` si el 5432 está ocupado, `APP_PUERTO=8001` si el servicio `icat-app` usa el 8000).
+- La BD declara `healthcheck` (`pg_isready -h 127.0.0.1`) y la app `depends_on` con `condition: service_healthy`: `docker compose up -d` crea la app solo cuando PostgreSQL ha terminado de aplicar V1..V15, así que el primer arranque no da reinicios ni un `/health` en 503 largo.
+- Documentado cómo parar y liberar los puertos: `docker compose down --remove-orphans` borra los contenedores y suelta el 8000/8001 y el 5432/5433; si un puerto sigue ocupado, `docker ps -a` enseña el contenedor suelto (`docker rm -f NOMBRE`) o es el gestor de puertos de Docker rootless (`systemctl --user restart docker`, sin sudo).
+- Documentados los puertos reales del servidor compartido: el 5432 lo tiene otro PostgreSQL, el 8000 el servicio `icat-app` de systemd y el 8001 otro servicio, así que la BD va al **5433** y la app al **8010**, fijados en el `.env` de la raíz. Añadido también cómo ver quién ocupa cada puerto (`ss -ltn`, `docker ps`) y que `docker compose down` los libera.
