@@ -10,6 +10,7 @@ import json
 import re
 import threading
 import time
+import urllib.error
 import urllib.request
 
 from app.core.config import settings
@@ -123,6 +124,44 @@ def contraste(png: bytes) -> int:
     return int(hi - (lo or 0))
 
 
+# Bases de Ollama que se prueban si la configurada no tiene red. El contenedor no siempre puede
+# nombrar al host: en Docker rootless `host.docker.internal` no resuelve y 10.0.2.2 (RootlessKit /
+# slirp4netns) es la máquina. Solo se usan cuando la de OLLAMA_URL falla al conectar.
+_BASES_DEL_HOST = ("http://host.docker.internal:11434", "http://10.0.2.2:11434",
+                   "http://172.17.0.1:11434", "http://127.0.0.1:11434")
+_ACTIVA: str | None = None  # la que respondió: se prueba primero a partir de ahí
+_CANDADO_BASE = threading.Lock()
+
+
+def _bases() -> list[str]:
+    vista = settings.ollama_url.rstrip("/")
+    return [vista] + [b for b in _BASES_DEL_HOST if b != vista]
+
+
+def _generar(cuerpo: dict, timeout: int = 300) -> dict:
+    """POST /api/generate; si la base configurada no tiene red, prueba las del host."""
+    global _ACTIVA
+    bases = ([_ACTIVA] if _ACTIVA else []) + [b for b in _bases() if b != _ACTIVA]
+    ultimo: Exception | None = None
+    for base in bases:
+        peticion = urllib.request.Request(base + "/api/generate", json.dumps(cuerpo).encode(),
+                                          {"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(peticion, timeout=timeout) as r:
+                respuesta = json.loads(r.read())
+        except urllib.error.HTTPError:
+            raise  # Ollama contesta (404 de modelo, 500…): cambiar de IP no arregla nada
+        except urllib.error.URLError as error:  # DNS o conexión rechazada
+            ultimo = error
+            continue
+        if base != _ACTIVA:
+            with _CANDADO_BASE:
+                _ACTIVA = base
+            log.info("ocr_ollama_conectado", extra={"detalle": base})
+        return respuesta
+    raise ultimo or RuntimeError("Ollama no responde en ninguna base")
+
+
 def leer(png: bytes, temperatura: float = 0, capa: str = "") -> tuple[float, str]:
     if settings.ocr_mock:
         time.sleep(settings.ocr_mock_delay)  # simula la lentitud del modelo en pruebas
@@ -140,11 +179,7 @@ def leer(png: bytes, temperatura: float = 0, capa: str = "") -> tuple[float, str
                     "num_predict": 1500},
     }
     inicio = time.time()
-    peticion = urllib.request.Request(settings.ollama_url + "/api/generate",
-                                      json.dumps(cuerpo).encode(),
-                                      {"Content-Type": "application/json"})
-    with urllib.request.urlopen(peticion, timeout=300) as r:
-        respuesta = json.loads(r.read())
+    respuesta = _generar(cuerpo)
     return time.time() - inicio, respuesta.get("response", "").strip()
 
 

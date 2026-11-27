@@ -266,7 +266,8 @@ def procesar_documento(doc: dict, parar=lambda: False) -> None:
                                                    "valor": json.dumps("OCR_FALLIDO")})
             audit.registrar(conexion, "OCR_FALLIDO", usuario_id=usuario_id,
                             entidad_tipo="documento", entidad_id=documento_id,
-                            detalle={"error": type(error).__name__, "paginas_hechas": len(hechas)})
+                            detalle={"error": type(error).__name__, "motivo": str(error)[:200],
+                                     "paginas_hechas": len(hechas)})
 
 
 def cancelar(conexion: Connection, doc: dict, usuario: dict, request) -> dict:
