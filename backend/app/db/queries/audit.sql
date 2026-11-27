@@ -4,7 +4,7 @@
 WITH previa AS (
     SELECT encode(sha256(convert_to(row_to_json(a)::text, 'UTF8')), 'hex') AS hash
       FROM auditoria a
-     ORDER BY a.id DESC
+     ORDER BY a.creado_en DESC, a.id DESC  -- coherente con triggers.sql (E-17, decisión 0017)
      LIMIT 1
 )
 INSERT INTO auditoria (

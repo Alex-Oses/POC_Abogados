@@ -1,6 +1,8 @@
 # Arquitectura de Base de Datos — Anonimización iCAT
 
 > Modelo objetivo: **`Modelo-ER-POC-ICAT-v0.3`** (24/11/2026), 14 tablas y 19 relaciones. La edición actual de `V15` ya crea las 14 tablas; quedan algunas columnas del modelo que el SQL no trae (ver E-53 en el [diccionario](data-dictionary.md)).
+>
+> **Motor principal: PostgreSQL 14+** ([[0002-postgresql]], Aceptada). Existe además un [esquema equivalente para MariaDB](mariadb/README.md) como **segunda opción documentada**, no como despliegue alternativo: [[0018-mariadb-segunda-opcion]] (Propuesta). El backend Python no cambia.
 
 ---
 
@@ -33,7 +35,7 @@ La fuente del modelo es [`vault/Proyecto/Modelo de datos.md`](../../vault/Proyec
 | `auditoria` | Sí (`V8`) |
 | `configuracion_sistema` | Sí (`V9`) |
 
-**No está ejecutado en PostgreSQL**: no hay motor local y Docker no arranca en este equipo; todo el SQL está revisado a mano. Falta recrear la base de desarrollo para validar la edición de `V15` ([[0015-identidad-en-v15]]).
+**Validado en PostgreSQL 16.4 (26/11)**: base `icat_anon_dev` creada desde cero sin Docker con `V1`–`V15`, `views.sql`, `triggers.sql` y la recreación de `auditoria` (17 tablas base, 5 vistas, 24 FK, 25 triggers, 24 categorías seed, `version_esquema_bd = 15`). Los 15 tests del backend pasan con base. Queda sin ejecutar el mantenimiento de `pg_partman`, que no viene en los binarios oficiales; las particiones de la prueba se crearon a mano. Ver [[Registro de errores]], cuarta pasada.
 
 ---
 
@@ -61,7 +63,13 @@ docs/architecture/
 │   └── V15__flujo_revision_y_export.sql   # cola, visto bueno, identidad y reglas (B1, B4, A-04, A-15, A-20)
 ├── views.sql                       # Vistas API-ready (5 vistas)
 ├── triggers.sql                    # Triggers automáticos (16 triggers)
-└── partitioning.sql                # Particionado pg_partman (auditoría)
+├── partitioning.sql                # Particionado pg_partman (auditoría)
+└── mariadb/                        # Segunda opción documentada · [[0018-mariadb-segunda-opcion]]
+    ├── README.md                   # Matriz de tipos/funciones y límites
+    ├── migrations/                 # V1–V15 adaptadas (sin V13 ni V16)
+    ├── views.sql
+    ├── triggers.sql
+    └── partitioning.sql
 ```
 
 ---
@@ -91,6 +99,14 @@ flyway -url=jdbc:postgresql://host:5432/icat_anon \
 psql -d icat_anon -f docs/architecture/views.sql
 psql -d icat_anon -f docs/architecture/triggers.sql
 
-# 3. Particionado auditoría (una sola vez en prod, requiere pg_partman)
+# 3. Particionado auditoría (una sola vez en prod, requiere pg_partman).
+#    Recrea auditoria si aún no está particionada; la PK pasa a (id, creado_en)
+#    según la decisión 0017 (Propuesta). No edita las migraciones Flyway.
 psql -d icat_anon -f docs/architecture/partitioning.sql
 ```
+
+---
+
+## Segunda opción: MariaDB
+
+[`docs/architecture/mariadb/`](mariadb/README.md) contiene el mismo modelo (14 tablas, 19 relaciones) adaptado a MariaDB 11.4 LTS: migraciones `V1`–`V15`, vistas, triggers, particionado y una matriz de tipos/funciones. **PostgreSQL sigue siendo el motor principal** ([[0002-postgresql]]): MariaDB está en [[0018-mariadb-segunda-opcion]] como propuesta, no como despliegue, y el backend `psycopg` no cambia. El README de MariaDB documenta los límites que condicionan la portabilidad (índices parciales, `es_actual`, FK con particiones y cadena de hash).

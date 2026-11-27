@@ -27,7 +27,9 @@ UPDATE sesiones_usuario
         WHERE usuario_id = %(usuario_id)s
           AND revocado_en IS NULL
           AND expira_en > now()
-        ORDER BY creado_en DESC  -- se conservan las más recientes
+        -- E-57: DESC conserva las `conservar` sesiones más recientes; con ASC
+        -- se revocaba la más nueva en lugar de la más antigua (U-17).
+        ORDER BY creado_en DESC
        OFFSET %(conservar)s
  );
 
