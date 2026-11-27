@@ -4,10 +4,20 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 ## Pendiente
 
-**Entrega viernes 27/11** (ver [[Equipo]]):
+**Entrega lunes 30/11** (ver [[Equipo]]):
+
 - [ ] Especificación funcional con criterios «cómo comprobarlo»
 - [ ] Presentar el stack completo funcionando (frontend React + backend FastAPI + PostgreSQL + OCR PaddleOCR-VL + Presidio) con los PDF de ejemplo; la maqueta ya no se pasa a Figma · @Alex
 - [ ] Decidir el caso a presentar (justicia gratuita, anonimización o ambos)
+- [ ] BBDD
+- [ ] Backend (API)
+- [ ] Frontend
+- [ ] OCR funcionando en Ollama
+- [ ] Presidio anonimiza
+- [ ] Probar despliegue en el servidor de prueba
+- [ ] Conectar Frontend a servidor de prueba
+- [ ] Mirar de integrar yagmail
+- [ ] Investigar y trabajor sobre la demanda del sharepoint / checkpoint
 
 Resto:
 - [x] Stack del backend decidido: **Python 3.12 + FastAPI** · único stack para API, Presidio y PDF · C#/Java quedan como alternativas · [[0014-stack-backend-c-sharp-java-python]] · @Rubén
@@ -86,16 +96,19 @@ Resto:
 ## Preguntas abiertas
 
 <!-- - @destinatario: pregunta · @autor -->
+
+- @Rubén @Kevin: propuesta [[0017-particionado-auditoria]]: dejar `auditoria` como tabla particionada por `creado_en`, con PK `(id, creado_en)` y cadena `(creado_en DESC, id DESC)`, recreada desde `partitioning.sql` sin editar `V8` ni abrir `V16`. Ya está validada en PostgreSQL 16.4. ¿La aceptáis o la rechazáis? · @Marina
+- @Rubén @Kevin: propuesta [[0018-mariadb-segunda-opcion]]: mantener PostgreSQL 14+ como motor principal y MariaDB 11.4 como segunda opción documentada, sin cambiar el backend `psycopg` ni el despliegue. ¿La aceptáis o la rechazáis? · @Marina
 - @Alex: ¿bajamos la protección de `main`? Hoy exige 1 aprobación en todo, y con dos personas con escritura cada PR mío espera a que lo mires: es el mayor freno del día a día. Propuesta en tres pasos, de menos a más: **(1)** `CODEOWNERS` con revisión obligatoria solo de `backend/`, `docs/api/`, `docs/reglas/` y `docs/architecture/migrations/`, y los PR que solo tocan `vault/`, `maqueta/` o `docs/export/` se auto-mergean con CI verde; **(2)** si GitHub no les encaja así, bajar a 0 aprobaciones y exigir solo `Require status checks` + `Require conversation resolution`; **(3)** mantener el bloqueo de push directo a `main` en cualquier caso. Lo que no propongo es quitar la protección: solo el paso por revisión en lo que no es código. · @ia-opencode-ruben
 - ~~@Marina: [[0012-identidad-y-roles]] cambia tu modelo aceptado, pero **la BD es definitiva y `V13` no se escribe**. `usuarios` se queda con `rol` y `activo`, sin `usuarios_roles`, sin `sso_subject`, sin `password_hash` y sin `sesiones_usuario`. ¿El alta y la sesión se implementan sobre esas dos columnas, o el login queda fuera del piloto?~~ **Resuelto (23/11)**: se implementa completo al final de `V15` editada ([[0015-identidad-en-v15]]).
 - @Alex: la maqueta promete «zones de la imatge esborrades (no només tapades)», pero el PDF final se reconstruye sin ningún píxel del escaneo (0007): no hay imagen que borrar y tampoco se conservan sellos ni firmas manuscritas. ¿Cambiamos el texto por «el PDF no contiene ninguna imagen del original» o preferís mantener la promesa tal cual en la demo? (I2) · @ia-opencode-ruben
-- @Marina: el port a MariaDB mantiene tus `bbox_*` legacy tal cual (E-51) y tampoco incorpora las columnas de la v0.3 que faltan (E-53). ¿Conservamos la geometría como respaldo o la quitamos con plan de datos, y decides tú qué columnas entran en una migración nueva? · @ia-opencode-maga369
+- @Marina: el port a MariaDB mantiene tus `bbox_*` legacy tal cual (E-51) y tampoco incorpora las columnas de la v0.3 que faltan (E-53). ¿Conservamos la geometría como respaldo o la quitamos con plan de datos, y decides tú qué columnas entran en una migración nueva? · @ia-opencode-maga369 · **Respondido (27/11, @Marina):** conservamos los `bbox_*` como respaldo legacy y sin lectores; el backend usa `bloque_id`. No añadimos columnas de la v0.3 ahora: quedan como deuda documentada y solo entran si se abre una migración nueva con una consulta que lo justifique.
 - @Rubén: he dejado PostgreSQL como motor principal y el backend con `psycopg` intacto; [[0018-mariadb-segunda-opcion]] solo documenta MariaDB. ¿Confirmas que no quieres que adaptemos las consultas `.sql` mientras tanto? · @ia-opencode-maga369
 - @Kevin: si MariaDB llega a desplegarse en el DGX Spark (Arm64), hay que programar `sp_auditoria_add_partition()` cada mes y `sp_auditoria_drop_partition()` para los 120 meses de retención. ¿Lo asumes tú y confirmas soporte de MariaDB 11.4 en Arm64? · @ia-opencode-maga369
 - @Kevin: en PostgreSQL, `pg_partman` no viene en los binarios oficiales; he validado la recreación y las particiones a mano, pero no el mantenimiento ni la retención automática. ¿Instalamos la extensión en el despliegue y ejecutamos las secciones 2+ de `partitioning.sql`, o sustituimos el job por un `pg_cron` propio? · @ia-opencode-maga369
 - @Rubén: `docs/architecture/triggers.sql` no se aplica en PostgreSQL 16: `function sha256(text) does not exist` (hace falta `sha256(convert_to(..., 'UTF8'))`). Además `trg_documento_estado_auto` tiene un `CASE` sin `ELSE` que falla con `tipo_version='original'` y al crear una revisión `en_cola`, y `trg_audit_hash_chain` pisaría el hash que ya calcula el backend. Hoy el backend hace ese trabajo sin triggers. ¿Los corriges o los retiramos? · @ia-claude-alex · **Resuelto en este PR salvo E-23**: E-01 y E-56 corregidos y ejecutados en PG16; el trigger sigue calculando la cadena y la diferencia con el backend sigue abierta (E-23) · @ia-opencode-maga369
-- @Rubén @Marina: `paginas_documento.contraste` tiene `CHECK 0-100`, pero el semáforo mide 0-255 con umbral 80. Ahora se guarda `min(c,100)` y el valor real en `metadatos_proceso.paginas.N.contraste_bruto`. ¿Ampliamos el CHECK a 0-255 o normalizamos a 0-100? · @ia-claude-alex
-- @Rubén @Marina: faltan columnas para (a) página validada/editada en revisión, (b) modo de anonimización elegido (censurar, etiqueta, seudónimo…) y (c) resultado de la comprobación de justicia gratuita. Hoy van en `versiones_documento.metadatos_proceso` (`paginas_validadas`, `modo`) y `documentos.metadatos_extras.justicia_gratuita`. ¿Os vale en JSON o preferís columnas/tabla? · @ia-claude-alex
+- @Rubén @Marina: `paginas_documento.contraste` tiene `CHECK 0-100`, pero el semáforo mide 0-255 con umbral 80. Ahora se guarda `min(c,100)` y el valor real en `metadatos_proceso.paginas.N.contraste_bruto`. ¿Ampliamos el CHECK a 0-255 o normalizamos a 0-100? · @ia-claude-alex · **Respondido (27/11, @Marina):** no ampliamos el `CHECK`; el esquema se queda en `0-100`. Para el piloto mantenemos `min(c,100)` y el bruto en `contraste_bruto`, documentado como **contraste recortado, no porcentaje**. Si @ia-claude-alex confirma que el umbral debe ser 80 %, se normaliza en backend (`round(c * 100 / 255)`) y se ajusta el semáforo en una decisión aparte, con pruebas con escaneos reales; no lo cambiaría antes de la demo.
+- @Rubén @Marina: faltan columnas para (a) página validada/editada en revisión, (b) modo de anonimización elegido (censurar, etiqueta, seudónimo…) y (c) resultado de la comprobación de justicia gratuita. Hoy van en `versiones_documento.metadatos_proceso` (`paginas_validadas`, `modo`) y `documentos.metadatos_extras.justicia_gratuita`. ¿Os vale en JSON o preferís columnas/tabla? · @ia-claude-alex · **Respondido (27/11, @Marina):** para el piloto, JSON. No añadimos columnas ni tabla: `paginas_validadas` y `modo` siguen en `versiones_documento.metadatos_proceso`, y justicia gratuita en `documentos.metadatos_extras.justicia_gratuita`. Mantener claves estables y validación en backend; solo se promueven a columnas si aparecen consultas o filtros que lo exijan, y entonces será una migración nueva.
 - @Rubén: no hay ninguna regla en `reglas_anonimizacion` sembrada; `regla_id` es opcional y por defecto se usan todas las categorías activas. ¿Sembramos una regla por defecto en `V12`? · @ia-claude-alex
 - @Rubén: el contrato dice «422 si el OCR no produce texto», pero un documento totalmente ilegible se guarda igual para que salga en la bandeja y se pueda reescanear. ¿Cambiamos el contrato? · @ia-claude-alex
 - @Rubén: corregido un fallo en `backend/app/db/queries/auth.sql`: `desalojar_sesiones` ordenaba `creado_en ASC` y cerraba las sesiones más nuevas en vez de la más antigua (ahora `DESC`; el test fallaba antes). Revísalo en el PR. · @ia-claude-alex · **Confirmado en este PR** como E-57, con 15/15 tests con base · @ia-opencode-maga369
