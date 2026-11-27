@@ -8,20 +8,22 @@ Si algo falla en cualquier paso, ve directo al apartado [Si algo falla](#si-algo
 
 ## Vía rápida con Docker (recomendada)
 
-Todo (base de datos, OCR, app y HTTPS) en contenedores, con un comando. Haz antes el paso 2 (DNS y puertos 80/443 en Azure) y luego, por SSH:
+Todo (base de datos, OCR, app y HTTPS) en contenedores. Solo necesitas SSH al servidor y **un puerto abierto** para la web (el que os dejen, p. ej. `8443`).
 
-```bash
-git clone https://github.com/Alex-Oses/POC_Abogados && cd POC_Abogados
-DOMINIO=icat-poc.westeurope.cloudapp.azure.com bash scripts/servidor_docker.sh
+Desde el portátil, en la carpeta del repo (PowerShell):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\subir_servidor.ps1 -Servidor usuario@IP_DEL_SERVIDOR -Puerto 8443
 ```
 
-- Instala Docker si falta, crea `.env` con claves aleatorias (no se sube a git) y arranca con `docker compose up -d --build`.
-- La primera vez baja el modelo de OCR (unos GB): `docker compose logs -f ollama-modelo` para ver cómo va.
-- Usuario `admin@icat.local`; la contraseña está en `.env` (`grep ADMIN_PASSWORD .env`).
-- Sin `DOMINIO` usa la IP pública con certificado propio: funciona, pero el navegador avisa.
-- Actualizar: vuelve a ejecutar el mismo script (hace `git pull` y reconstruye; los datos se quedan en los volúmenes).
-- Estado y logs: `docker compose ps`, `docker compose logs -f app`. Borrarlo **todo, datos incluidos**: `docker compose down -v`.
-- Si el servidor no puede bajar el modelo, copia `%USERPROFILE%\.ollama\models` de tu PC al volumen: `docker compose cp <carpeta> ollama:/root/.ollama/` y `docker compose restart ollama`.
+- Sube lo que hay en git (sin `.env`, venv ni documentos), instala Docker si falta, crea `.env` con claves aleatorias y arranca.
+- Si el SSH no va por el 22: añade `-SshPuerto 2222` (el que sea).
+- Al acabar muestra la dirección: `https://IP:8443`. El navegador avisará del certificado la primera vez: aceptar.
+- Solo con dominio **y** puertos 80/443 abiertos sale un certificado válido: `-Dominio midominio -Puerto 443`.
+- Usuario `admin@icat.local`; contraseña: en el servidor, `grep ADMIN_PASSWORD ~/icat/.env`.
+- Actualizar: volver a ejecutar el mismo comando. Los datos se quedan en los volúmenes de Docker.
+- La primera vez baja el modelo de OCR (unos GB). Para ver cómo va: `cd ~/icat && docker compose logs -f ollama-modelo`.
+- Logs de la app: `docker compose logs -f app`. Borrarlo **todo, datos incluidos**: `docker compose down -v`.
 
 El resto de la guía es la instalación sin Docker (`instalar_servidor.sh`). La lista de comprobación del final vale para las dos.
 

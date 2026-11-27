@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Monta toda la app con Docker en un Ubuntu (pensado para la VM de Azure) con un solo comando:
-#   DOMINIO=icat-poc.westeurope.cloudapp.azure.com bash scripts/servidor_docker.sh
-# Sin DOMINIO usa la IP pública con certificado propio (funciona, pero el navegador avisa).
+#   PUERTO=8443 bash scripts/servidor_docker.sh   (el puerto que esté abierto; por defecto 443)
+# Desde Windows, sin entrar al servidor: scripts/subir_servidor.ps1.
+# Con PUERTO distinto de 443 o sin DOMINIO: certificado propio (el navegador avisa una vez).
 # Volver a ejecutarlo actualiza: no toca .env ni los datos (volúmenes).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -17,15 +18,17 @@ if [ ! -f .env ]; then
   echo "== Creando .env con claves nuevas"
   # 32 bytes en base64 urlsafe = clave Fernet válida.
   KEY="$(head -c32 /dev/urandom | base64 | tr '+/' '-_')"
-  if [ -n "${DOMINIO:-}" ]; then
-    SITIO="$DOMINIO"; TLS=""
+  PUERTO="${PUERTO:-443}"
+  HOST="${DOMINIO:-$(curl -fs --max-time 5 https://api.ipify.org || hostname -I | awk '{print $1}')}"
+  if [ -n "${DOMINIO:-}" ] && [ "$PUERTO" = 443 ]; then
+    SITIO="$DOMINIO"; TLS=""   # Let's Encrypt: necesita 80 y 443 abiertos
   else
-    IP="$(curl -fs --max-time 5 https://api.ipify.org || hostname -I | awk '{print $1}')"
-    SITIO="https://$IP"; TLS="tls internal"
+    SITIO="https://$HOST:$PUERTO"; TLS="tls internal"   # certificado propio: el navegador avisa una vez
   fi
   umask 077
   cat > .env <<EOF
 COMPOSE_PROFILES=servidor
+PUERTO=$PUERTO
 SITIO=$SITIO
 TLS=$TLS
 POSTGRES_PASSWORD=$(head -c24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')

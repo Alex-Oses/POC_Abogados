@@ -75,8 +75,7 @@ services:
       SITIO: ${SITIO:-localhost}
       TLS: ${TLS:-}
     ports:
-      - "80:80"
-      - "443:443"
+      - "${PUERTO:-443}:${PUERTO:-443}"   # el que esté abierto en Azure
     volumes:
       - ./scripts/Caddyfile:/etc/caddy/Caddyfile:ro
       - icat_caddy:/data
