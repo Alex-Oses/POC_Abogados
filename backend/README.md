@@ -23,6 +23,22 @@ La base de datos la manda Flyway (`docs/architecture/migrations/`). Este backend
 
 `GET /health` responde `503` mientras no haya base de datos; el resto de rutas también, salvo las que rechazan antes por falta de token (`401`).
 
+## Todo en Docker (sin sudo)
+
+Si no quieres depender del Python de la máquina (versión, venv, modelo de spaCy):
+
+```bash
+bash scripts/arrancar_docker.sh                 # desde la raíz: crea backend/.env si falta, construye y arranca BD + app
+bash scripts/arrancar_docker.sh --sin-build     # siguiente vez, sin reconstruir
+docker compose --env-file backend/.env down     # parar (-v borra también la base de datos)
+```
+
+- La imagen `backend/Dockerfile` trae Python 3.12, Presidio, spaCy con `es_core_news_md`, RapidOCR y `pypdfium2`: el Python del host no se usa.
+- Dentro del contenedor se fuerzan `DATABASE_URL` (`db:5432`), `OLLAMA_URL` (`host.docker.internal:11434`) y `STORAGE_DIR` (`/app/storage`, donde monta el volumen).
+- Para otro Ollama: `OLLAMA_URL_DOCKER=http://mi-ollama:11434 bash scripts/arrancar_docker.sh`.
+- Si el 8000 está ocupado (por ejemplo, el servicio `icat-app` que deja `instalar_servidor.sh`): `APP_PUERTO=8001 bash scripts/arrancar_docker.sh`. El 5432, con `DB_PUERTO=5433`.
+- No pide sudo: solo que el motor de Docker esté arrancado y que tu usuario pueda usarlo.
+
 ## Servidor (acceso desde fuera de la red)
 
 Guía completa paso a paso: [docs/GUIA_SERVIDOR.md](../docs/GUIA_SERVIDOR.md).

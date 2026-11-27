@@ -1,5 +1,6 @@
-# PostgreSQL de desarrollo con V1..V15 y views.sql aplicadas al crear el volumen.
-# Arranque: docker compose up -d db   ·   Reset: docker compose down -v
+# App completa en Docker, sin sudo:  bash scripts/arrancar_docker.sh
+# Solo la BD:      docker compose up -d db
+# Todo a mano:     docker compose --env-file backend/.env up -d --build
 # Si el 5432 ya está ocupado en la máquina: DB_PUERTO=5433 docker compose up -d db
 # (y el DATABASE_URL del backend pasa a apuntar a ese puerto).
 services:
@@ -16,5 +17,50 @@ services:
       - ./docs/architecture:/migrations:ro
       - ./backend/db/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
       - icat_pg:/var/lib/postgresql/data
+
+  # Backend + frontend en el mismo proceso: `/` sirve templates/index.html y `/static` (app/main.py).
+  # Trae su propio Python 3.12, Presidio, spaCy y pypdfium2: no usa el del host.
+  app:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: icat-backend
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      # Estos tres no pueden venir de backend/.env: dentro del contenedor
+      # 127.0.0.1 es el propio contenedor, no la máquina.
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/icat
+      OLLAMA_URL: ${OLLAMA_URL_DOCKER:-http://host.docker.internal:11434}
+      STORAGE_DIR: /app/storage
+      # El resto sale de backend/.env (docker compose --env-file backend/.env).
+      ENTORNO: ${ENTORNO:-desarrollo}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@icat.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      SESSION_HORAS: ${SESSION_HORAS:-1}
+      SESSION_HORAS_MAX: ${SESSION_HORAS_MAX:-12}
+      SESIONES_MAX: ${SESIONES_MAX:-3}
+      STORAGE_KEY: ${STORAGE_KEY:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-20}
+      OCR_MOCK: ${OCR_MOCK:-0}
+      OCR_MODEL: ${OCR_MODEL:-hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF:latest}
+      CONTRASTE_MINIMO: ${CONTRASTE_MINIMO:-80}
+      SPACY_MODEL: ${SPACY_MODEL:-es_core_news_md}
+      SHAREPOINT_TENANT_ID: ${SHAREPOINT_TENANT_ID:-}
+      SHAREPOINT_CLIENT_ID: ${SHAREPOINT_CLIENT_ID:-}
+      SHAREPOINT_CLIENT_SECRET: ${SHAREPOINT_CLIENT_SECRET:-}
+      SHAREPOINT_DRIVE_ID: ${SHAREPOINT_DRIVE_ID:-}
+      SHAREPOINT_CARPETA: ${SHAREPOINT_CARPETA:-Entrada}
+      SHAREPOINT_SONDEO_SEG: ${SHAREPOINT_SONDEO_SEG:-60}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # para llegar al Ollama de la máquina
+    ports:
+      - "127.0.0.1:${APP_PUERTO:-8000}:8000"
+    volumes:
+      - icat_storage:/app/storage
+
 volumes:
   icat_pg:
+  icat_storage:

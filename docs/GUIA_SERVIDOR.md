@@ -55,6 +55,17 @@ Al final debe aparecer `App en https://...`. Esa es la dirección para entrar de
 
 Sin `DOMINIO` también funciona, con la IP pública, pero el certificado es propio y el navegador avisará la primera vez. Se puede aceptar el aviso, aunque para que lo use más gente conviene el dominio.
 
+## 3 bis. Alternativa: todo en Docker, sin sudo
+
+Si prefieres no depender del Python del servidor, el backend también corre en Docker (API y frontend en el mismo contenedor):
+
+```bash
+cd ~/POC_Abogados
+bash scripts/arrancar_docker.sh
+```
+
+Crea `backend/.env` si falta (con `STORAGE_KEY` y `ADMIN_PASSWORD` aleatorios), construye la imagen y levanta PostgreSQL y la app. No necesita sudo. Ojo: el servicio `icat-app` que deja `instalar_servidor.sh` usa el puerto 8000; para convivir con él, `APP_PUERTO=8001 bash scripts/arrancar_docker.sh`.
+
 ## 4. Primer acceso
 
 1. Lee la contraseña del admin y borra el fichero cuando la tengas apuntada:
