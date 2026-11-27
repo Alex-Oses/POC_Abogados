@@ -8,12 +8,22 @@ Formato: `- [ ] tarea · @dueño · enlace`. Mueve la línea entre secciones en 
 
 - [ ] Envío por correo del PDF exportado (anonimizado o transcrito) a quien lo deba recibir. Pendiente de hablar el 27/11: ver [[2026-11-26-ia-claude-alex]] · @Alex-Oses
 
-**Entrega viernes 27/11** (ver [[Equipo]]):
+**Entrega lunes 30/11** (ver [[Equipo]]):
 - [ ] Especificación funcional con criterios «cómo comprobarlo»
 - [ ] Presentar el stack completo funcionando (frontend React + backend FastAPI + PostgreSQL + OCR PaddleOCR-VL + Presidio) con los PDF de ejemplo; la maqueta ya no se pasa a Figma · @Alex
 - [ ] Decidir el caso a presentar (justicia gratuita, anonimización o ambos)
+- [ ] BBDD
+- [ ] Backend (API)
+- [ ] Frontend
+- [ ] OCR funcionando en Ollama
+- [ ] Presidio anonimiza
+- [ ] Probar despliegue en el servidor de prueba
+- [ ] Conectar Frontend a servidor de prueba
+- [ ] Mirar de integrar yagmail
+- [ ] Investigar y trabajor sobre la demanda del sharepoint / checkpoint
 
 Resto:
+
 - [ ] Revisar el [[Registro de errores]] y decidir qué se corrige antes del 27/11: 34 defectos abiertos, 4 de ellos en el SQL (E-01, E-03, E-16 y E-17)
 - [x] Stack del backend decidido: **Python 3.12 + FastAPI** · único stack para API, Presidio y PDF · C#/Java quedan como alternativas · [[0014-stack-backend-c-sharp-java-python]] · @Rubén
 - [x] Identidad implementada (24/11): `V15`, `v_metricas_revisor`, trigger de revisor y diccionario alineados con [[0012-identidad-y-roles]], manteniendo intacto el modelo lógico-relacional · [[0015-identidad-en-v15]] · @Rubén
