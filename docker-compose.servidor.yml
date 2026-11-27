@@ -1,0 +1,171 @@
+# Servidor completo (BD, OCR, app y HTTPS) sin scripts: solo Docker Compose.
+#   Arrancar viendo todo:  docker compose -f docker-compose.servidor.yml up --build
+#     -> los logs de todos los servicios salen en la terminal; si algo falla, ahí se ve.
+#     -> cuando la app está lista, el servicio "aviso" imprime la URL y el usuario.
+#     -> Ctrl+C lo para. Para dejarlo en segundo plano: el mismo comando con -d.
+#   Ver logs luego:  docker compose -f docker-compose.servidor.yml logs -f app
+#   Otro puerto: PUERTO=9443 en un fichero .env junto a este (por defecto 8443).
+#   Borrar TODO, datos incluidos:  docker compose -f docker-compose.servidor.yml down -v
+# Claves y certificado se generan solos la primera vez y se guardan en el volumen icat_secretos.
+name: icat
+
+x-modelo: &modelo ${OCR_MODEL:-hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF:latest}
+
+services:
+  # Una vez: crea contraseñas, clave de cifrado y certificado propio si aún no existen.
+  secretos:
+    image: alpine:3.20
+    restart: "no"
+    volumes:
+      - icat_secretos:/s
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        if [ ! -f /s/listo ]; then
+          apk add --no-cache openssl >/dev/null
+          head -c24 /dev/urandom | base64 | tr -dc A-Za-z0-9 > /s/db_password
+          head -c18 /dev/urandom | base64 | tr -dc A-Za-z0-9 > /s/admin_password
+          head -c32 /dev/urandom | base64 | tr '+/' '-_' > /s/storage_key
+          openssl req -x509 -newkey rsa:2048 -nodes -days 825 -subj /CN=icat \
+            -keyout /s/key.pem -out /s/cert.pem 2>/dev/null
+          chmod 644 /s/*
+          touch /s/listo
+        fi
+        echo "Secretos listos en el volumen icat_secretos"
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /s/db_password
+      POSTGRES_DB: icat
+    volumes:
+      - ./docs/architecture:/migrations:ro
+      - ./backend/db/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      - icat_pg:/var/lib/postgresql/data
+      - icat_secretos:/s:ro
+    depends_on:
+      secretos:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d icat"]
+      interval: 5s
+      retries: 30
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - icat_ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      retries: 30
+
+  # Una vez: baja el modelo de OCR (varios GB la primera vez; si ya está, acaba enseguida).
+  ollama-modelo:
+    image: ollama/ollama:latest
+    restart: "no"
+    environment:
+      OLLAMA_HOST: ollama:11434
+    entrypoint: ["ollama", "pull", *modelo]
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      ENTORNO: produccion
+      OLLAMA_URL: http://ollama:11434
+      OCR_MODEL: *modelo
+      STORAGE_DIR: /app/storage
+      ADMIN_EMAIL: admin@icat.local
+    # Las claves vienen del volumen de secretos; la IP real del usuario llega a la auditoría.
+    command:
+      - sh
+      - -c
+      - |
+        export DATABASE_URL="postgresql://postgres:$$(cat /s/db_password)@db:5432/icat"
+        export STORAGE_KEY="$$(cat /s/storage_key)" ADMIN_PASSWORD="$$(cat /s/admin_password)"
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'
+    volumes:
+      - icat_storage:/app/storage
+      - icat_secretos:/s:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+  # HTTPS con certificado propio en el puerto que esté abierto (el navegador avisa la primera vez).
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "${PUERTO:-8443}:8443"
+    volumes:
+      - icat_secretos:/s:ro
+      - icat_caddy:/data
+    command:
+      - sh
+      - -c
+      - |
+        cat > /etc/caddy/Caddyfile <<'EOF'
+        :8443 {
+        	tls /s/cert.pem /s/key.pem
+        	encode gzip
+        	header {
+        		Strict-Transport-Security "max-age=31536000"
+        		X-Content-Type-Options nosniff
+        		X-Frame-Options DENY
+        		Referrer-Policy no-referrer
+        		-Server
+        	}
+        	request_body {
+        		max_size 25MB
+        	}
+        	reverse_proxy app:8000
+        }
+        EOF
+        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+    depends_on:
+      - app
+
+  # Cuando la app responde, imprime dónde entrar y con qué usuario.
+  aviso:
+    image: curlimages/curl:8.10.1
+    restart: "no"
+    environment:
+      PUERTO: ${PUERTO:-8443}
+    volumes:
+      - icat_secretos:/s:ro
+    entrypoint:
+      - sh
+      - -c
+      - |
+        IP=$$(curl -fs --max-time 5 https://api.ipify.org || echo IP_DEL_SERVIDOR)
+        echo "=================================================================="
+        echo " LISTO. Abre en el navegador:  https://$$IP:$$PUERTO"
+        echo " (aviso de certificado propio: Avanzado -> Continuar)"
+        echo " Usuario: admin@icat.local   Contraseña: $$(cat /s/admin_password)"
+        echo " Si la IP no es la buena, usa la IP pública de la VM en Azure."
+        echo "=================================================================="
+    depends_on:
+      app:
+        condition: service_healthy
+      caddy:
+        condition: service_started
+
+volumes:
+  icat_pg:
+  icat_ollama:
+  icat_storage:
+  icat_secretos:
+  icat_caddy:

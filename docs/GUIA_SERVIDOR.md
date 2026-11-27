@@ -6,6 +6,25 @@ Todo lo que hace la app con los documentos (OCR, detección de datos personales,
 
 Si algo falla en cualquier paso, ve directo al apartado [Si algo falla](#si-algo-falla).
 
+## Vía rápida con Docker Compose (recomendada)
+
+Todo (base de datos, OCR, app y HTTPS) en contenedores, **sin ejecutar scripts**. Requisitos: Docker con Compose en el servidor, salida a Internet y **un puerto abierto** para la web (por defecto `8443`).
+
+1. Con VS Code (Remote Explorer) conectado al servidor, copia la carpeta del repo al servidor (arrastrarla al explorador remoto, o `git clone` si lo tenéis).
+2. Si el puerto abierto no es el 8443: crea junto a `docker-compose.servidor.yml` un fichero `.env` con una línea `PUERTO=9443` (el vuestro).
+3. En la terminal de VS Code, en la carpeta del repo: `docker compose -f docker-compose.servidor.yml up --build`. Así **los logs de todo salen en la terminal**: si algo falla, el error se ve ahí (cada línea lleva delante el servicio: `app`, `db`, `ollama`, `caddy`...).
+4. Cuando la app está lista sale un recuadro **LISTO** con la URL (`https://IP:8443`), el usuario `admin@icat.local` y su contraseña.
+5. Abre la URL. El navegador avisa del certificado (es propio): Avanzado → Continuar.
+6. Ctrl+C lo para. Cuando funcione, para dejarlo siempre encendido: el mismo comando con `-d`; los logs, luego, con `docker compose -f docker-compose.servidor.yml logs -f app`.
+
+Si la app no arranca, Compose acaba con `dependency failed to start: container ... is unhealthy` y justo encima está el error del servicio que falló.
+
+- La primera vez genera solas las contraseñas, la clave de cifrado y el certificado (volumen `icat_secretos`) y baja el modelo de OCR (varios GB): `logs -f ollama-modelo` para ver cómo va.
+- Actualizar: copia la carpeta nueva encima y repite el paso 3. Los datos se quedan en los volúmenes.
+- Logs de la app: `docker compose -f docker-compose.servidor.yml logs -f app`. Borrarlo **todo, datos incluidos**: `... down -v`.
+
+El resto de la guía es la instalación sin Docker (`instalar_servidor.sh`). La lista de comprobación del final vale para las dos.
+
 ## 1. Qué necesitas antes de empezar
 
 - Una máquina virtual con **Ubuntu 24.04**. Para el OCR real recomendamos 4 vCPU, 16 GB de RAM y 64 GB de disco. En el PC de Alex, con gráfica, el OCR tarda unos 5 segundos por página. En un servidor sin gráfica irá más lento: mídelo con los documentos de prueba (paso 7) antes de cargar trabajo de verdad.
