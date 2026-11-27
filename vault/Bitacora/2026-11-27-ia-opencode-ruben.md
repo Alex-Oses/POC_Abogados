@@ -84,3 +84,14 @@ Pruebas: `test_export.py` nuevo (solapes del marcado, sin BD) y casos de reinten
 - El motivo real del fallo ya no se pierde: la auditoría `OCR_FALLIDO` guarda `motivo` (`str(error)[:200]`), así que se puede leer desde la app sin entrar en los logs.
 - `docs/GUIA_SERVIDOR.md`: el diagnóstico de «✕ Error d'OCR» explica el orden de prueba y cómo distinguir `404` (falta el modelo) de `Connection refused` (Ollama escuchando solo en `127.0.0.1`).
 - Pruebas: `backend/tests/test_ocr_ollama.py` (4 casos sin modelo: caída a la base del host, memoria de la elegida, 404 sin cambiar de IP, barra final en la URL). `ruff` limpio; `pytest` 26 pasan / 12 saltan (las de BD, sin PostgreSQL aquí).
+
+
+## Arranque de los dos Docker, documentado (27/11, tarde)
+
+- `docs/ARRANQUE_DOCKER.md`: una pagina para los dos compose (desarrollo `poc_abogados` y servidor `icat`), porque confundirlos es lo que deja vivos los contenedores del otro y lo que rompe el OCR. Tabla de que levanta cada uno, que publica y donde viven los datos.
+- Lo que resuelve: los dos tienen nombre de proyecto distinto a proposito (un `down` solo apaga el proyecto de la carpeta); la trampa de `name: icat` (`PUERTO=9443 docker compose -f docker-compose.servidor.yml -p icat-ruben up -d --build` prueba el de servidor sin recrear los contenedores de Alex, con volumenes y contrasena propios); como saber de quien es cada contenedor (`com.docker.compose.project.working_dir`); tabla de puertos de `genai-openllm-vm` (5432/5433, 8000/8001, 8010, 8443/9443, 11434); tunel SSH en vez de abrir puertos; y el `--build` obligatorio tras un `git pull`.
+- Diagnostico del OCR en la misma pagina: `404` es modelo ausente y `Connection refused` es Ollama escuchando solo en `127.0.0.1`; el motivo queda en la auditoria `OCR_FALLIDO` y la base que responde se recuerda con `ocr_ollama_conectado`.
+- `README.md`: la puesta en marcha empieza por Docker y enlaza la pagina nueva; la tabla de estado deja de decir que el codigo no esta empezado; la estructura del repositorio nombra `backend/`, `templates/`, `static/`, `scripts/` y los dos compose.
+- `docs/GUIA_SERVIDOR.md`: la via rapida enlaza a la pagina nueva antes de las ordenes de arranque.
+
+Siguiente: probar en la VM que el OCR termina despues de poner `OLLAMA_URL_DOCKER` y anotar en la bitacora que base respondio.

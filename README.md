@@ -19,7 +19,7 @@ Prueba de concepto para el **Il·lustre Col·legi de l'Advocacia de Tarragona (I
 | Modelo de datos (PostgreSQL) | Cerrado (V1–V15) | [docs/architecture](docs/architecture/README.md) |
 | Anonimización local (Presidio) | Investigada y medida | [documentación y rendimiento](docs/presidio.md) |
 | Maqueta navegable del flujo completo | Hecha | [maqueta/index.html](maqueta/index.html) · [documentación](docs/maqueta.md) |
-| Código de la aplicación | Sin empezar; stack aceptado: Python 3.12 + FastAPI | [docs/pendientes.md](docs/pendientes.md) |
+| Código de la aplicación | Backend FastAPI y frontend servido por él; en Docker | [backend/README.md](backend/README.md) · [arranque](docs/ARRANQUE_DOCKER.md) |
 
 ## Rendimiento del OCR
 
@@ -63,6 +63,11 @@ Contrato v1 (40 rutas): `GET /auth/sso/login`, `/auth/sso/callback`, `POST /user
 ## Estructura del repositorio
 
 ```
+backend/             API FastAPI y sus servicios (OCR, anonimización, export) · Dockerfile propio
+templates/ static/   Frontend que sirve el backend: HTML, app.js, i18n y estilos
+scripts/             Arranque en Docker, instalación en servidor, pruebas y copias de seguridad
+docker-compose.yml   BD + app para desarrollo local
+docker-compose.servidor.yml  Servidor completo: secretos, BD, app, Caddy con HTTPS y aviso
 docs/architecture/   Modelo de datos: migraciones Flyway V1–V15, vistas, triggers y RGPD (ER vigente en vault/Proyecto/Modelo de datos.md)
 docs/api/            Contrato REST completo (rutas, payloads y códigos)
 docs/reglas/         Reglas de negocio: usuarios y flujo de aprobación
@@ -77,6 +82,16 @@ CONTRIBUTING.md      Cómo trabajar con ramas y PRs
 ```
 
 ## Puesta en marcha
+
+La vía corta, sin instalar Python, PostgreSQL ni el modelo en el equipo: **todo en Docker**.
+
+```bash
+bash scripts/arrancar_docker.sh      # PostgreSQL + API + frontend en 127.0.0.1:8000
+```
+
+Hay dos ficheros de Compose (el de desarrollo y el del servidor, con HTTPS), se pueden tener a la vez en la misma máquina y conviene saber cuál toca antes de escribir `down`: [docs/ARRANQUE_DOCKER.md](docs/ARRANQUE_DOCKER.md), con los puertos de la VM compartida y el diagnóstico del OCR.
+
+Si prefieres las piezas por separado:
 
 ### Base de datos
 
