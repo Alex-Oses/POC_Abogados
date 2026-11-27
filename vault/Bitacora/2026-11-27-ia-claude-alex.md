@@ -17,3 +17,4 @@
 - Votar 0017 y 0018 es de @Rubén y @Kevin.
 - Respondidas a @Rubén: protección (opción 2), I2 (ya resuelto en #41) y reglas aprobadas. Falta: envío del PDF por correo.
 - Sin espacio en la VM para la imagen de Ollama (CUDA): el compose usa el Ollama ya instalado en la VM (`network_mode: host`, BD en 127.0.0.1:5433, app en 127.0.0.1:8001).
+- La VM usa Docker rootless y es compartida (8001 y 5433 ocupados): sin `network_mode: host`; solo Caddy publica `PUERTO`, Ollama por `10.0.0.4:11434`.

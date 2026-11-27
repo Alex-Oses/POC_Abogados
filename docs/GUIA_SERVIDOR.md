@@ -20,7 +20,7 @@ Todo (base de datos, app y HTTPS) en contenedores, **sin ejecutar scripts**. El 
 Si la app no arranca, Compose acaba con `dependency failed to start: container ... is unhealthy` y justo encima está el error del servicio que falló.
 
 - La primera vez genera solas las contraseñas, la clave de cifrado y el certificado (volumen `icat_secretos`).
-- Puertos internos (solo en `localhost`): BD en `5433` y app en `8001`. Si estuvieran ocupados: `DB_PUERTO=` y `APP_PUERTO=` en el `.env`.
+- Solo se publica `PUERTO`; la BD y la app quedan dentro de la red de Docker. Con Docker rootless la app no ve el `localhost` de la VM: llega a Ollama por la IP privada (`OLLAMA_URL=http://10.0.0.4:11434` por defecto; compruébala con `curl http://$(hostname -I | awk '{print $1}'):11434/api/tags`).
 - Actualizar: copia la carpeta nueva encima y repite el paso 3. Los datos se quedan en los volúmenes.
 - Logs de la app: `docker compose -f docker-compose.servidor.yml logs -f app`. Borrarlo **todo, datos incluidos**: `... down -v`.
 

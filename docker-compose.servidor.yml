@@ -6,7 +6,7 @@
 #   Ver logs luego:  docker compose -f docker-compose.servidor.yml logs -f app
 #   Otro puerto: PUERTO=9443 en un fichero .env junto a este (por defecto 8443).
 #   Borrar TODO, datos incluidos:  docker compose -f docker-compose.servidor.yml down -v
-# OCR: usa el Ollama ya instalado en la VM (127.0.0.1:11434) con su modelo; OCR_MODEL en .env si se llama distinto.
+# OCR: usa el Ollama ya instalado en la VM (OLLAMA_URL, por defecto http://10.0.0.4:11434); OCR_MODEL en .env si se llama distinto.
 # Claves y certificado se generan solos la primera vez y se guardan en el volumen icat_secretos.
 name: icat
 
@@ -43,8 +43,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD_FILE: /s/db_password
       POSTGRES_DB: icat
-    ports:
-      - "127.0.0.1:${DB_PUERTO:-5433}:5432"   # solo local; 5433 por si la VM ya tiene un PostgreSQL
     volumes:
       - ./docs/architecture:/migrations:ro
       - ./backend/db/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
@@ -65,7 +63,7 @@ services:
     restart: unless-stopped
     environment:
       ENTORNO: produccion
-      OLLAMA_URL: http://127.0.0.1:11434   # el Ollama ya instalado en la VM
+      OLLAMA_URL: ${OLLAMA_URL:-http://10.0.0.4:11434}   # Ollama ya instalado en la VM (IP privada, no localhost: Docker rootless)
       OCR_MODEL: *modelo
       STORAGE_DIR: /app/storage
       ADMIN_EMAIL: admin@icat.local
@@ -74,12 +72,11 @@ services:
       - sh
       - -c
       - |
-        export DATABASE_URL="postgresql://postgres:$$(cat /s/db_password)@127.0.0.1:${DB_PUERTO:-5433}/icat"
+        export DATABASE_URL="postgresql://postgres:$$(cat /s/db_password)@db:5432/icat"
         export STORAGE_KEY="$$(cat /s/storage_key)" ADMIN_PASSWORD="$$(cat /s/admin_password)"
-        exec uvicorn app.main:app --host 127.0.0.1 --port ${APP_PUERTO:-8001} --proxy-headers --forwarded-allow-ips 127.0.0.1
-    network_mode: host   # para llegar al Ollama de la VM (solo escucha en localhost)
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys,urllib.request; sys.exit(urllib.request.urlopen('http://127.0.0.1:${APP_PUERTO:-8001}/health', timeout=4).status != 200)"]
+      test: ["CMD", "python", "-c", "import sys,urllib.request; sys.exit(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status != 200)"]
       interval: 10s
       start_period: 60s
       retries: 6
@@ -94,7 +91,8 @@ services:
   caddy:
     image: caddy:2
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - "${PUERTO:-8443}:8443"   # el único puerto publicado
     volumes:
       - icat_secretos:/s:ro
       - icat_caddy:/data
@@ -103,7 +101,7 @@ services:
       - -c
       - |
         cat > /etc/caddy/Caddyfile <<'EOF'
-        :${PUERTO:-8443} {
+        :8443 {
         	tls /s/cert.pem /s/key.pem
         	encode gzip
         	header {
@@ -116,7 +114,7 @@ services:
         	request_body {
         		max_size 25MB
         	}
-        	reverse_proxy 127.0.0.1:${APP_PUERTO:-8001}
+        	reverse_proxy app:8000
         }
         EOF
         exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
