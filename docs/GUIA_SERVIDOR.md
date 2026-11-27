@@ -64,7 +64,7 @@ cd ~/POC_Abogados
 bash scripts/arrancar_docker.sh
 ```
 
-Crea `backend/.env` si falta (con `STORAGE_KEY` y `ADMIN_PASSWORD` aleatorios), construye la imagen y levanta PostgreSQL y la app. No necesita sudo. Ojo: el servicio `icat-app` que deja `instalar_servidor.sh` usa el puerto 8000; para convivir con él, `APP_PUERTO=8001 bash scripts/arrancar_docker.sh`.
+Crea `backend/.env` si falta (con `STORAGE_KEY` y `ADMIN_PASSWORD` aleatorios), construye la imagen y levanta PostgreSQL y la app. No necesita sudo. Ojo: el servicio `icat-app` que deja `instalar_servidor.sh` usa el puerto 8000; para convivir con él, `APP_PUERTO=8010 bash scripts/arrancar_docker.sh`.
 
 Sin scripts, las mismas dos órdenes:
 
@@ -78,12 +78,46 @@ Los puertos publicados se cambian en el `.env` de la raíz (está en `.gitignore
 
 ```bash
 echo 'DB_PUERTO=5433' >> .env     # si el 5432 está ocupado por otro PostgreSQL
-echo 'APP_PUERTO=8001' >> .env    # si el servicio icat-app ocupa el 8000
+echo 'APP_PUERTO=8010' >> .env    # si el servicio icat-app ocupa el 8000
 ```
 
 Dentro de la red de Docker la app siempre habla con `db:5432`; esos dos solo cambian lo que se publica en la máquina.
 
-Para parar y liberar los puertos, `docker compose down` (sin sudo): borra los contenedores y con ellos desaparecen las publicaciones de 5433 y 8001. Si un puerto sigue ocupado después, casi siempre es un contenedor suelto de un `docker run` —`docker ps -a` lo enseña y `docker rm -f NOMBRE` lo quita— o el gestor de puertos de Docker rootless, que se reinicia sin sudo con `systemctl --user restart docker`.
+Para parar y liberar los puertos, `docker compose down` (sin sudo): borra los contenedores y con ellos desaparecen las publicaciones de 5433 y 8010. Si un puerto sigue ocupado después, casi siempre es un contenedor suelto de un `docker run` —`docker ps -a` lo enseña y `docker rm -f NOMBRE` lo quita— o el gestor de puertos de Docker rootless, que se reinicia sin sudo con `systemctl --user restart docker`.
+
+### Puertos en el servidor compartido: 5433 y 8010
+
+En la VM `genai-openllm-vm` los puertos de siempre están cogidos por otros servicios. No se tocan: se usan otros.
+
+| Puerto | Quién lo tiene | Dónde va la app |
+|---|---|---|
+| 5432 | otro PostgreSQL de la máquina | la BD se publica en **5433** |
+| 8000 | el servicio `icat-app` de systemd (la instalación antigua) | la app se publica en **8010** |
+| 8001 | otro servicio de la VM | no se usa |
+
+Dentro de la red de Docker no cambia nada: la app sigue hablando con `db:5432` y escuchando en el 8000 del contenedor. Esos números solo son lo que se publica en `127.0.0.1`.
+
+El `.env` de la raíz del repo (está en `.gitignore`, no se sube) es lo que lee `docker compose`:
+
+```bash
+cd ~/POC_Abogados
+cat > .env <<'EOF'
+DB_PUERTO=5433
+APP_PUERTO=8010
+EOF
+docker compose up -d
+curl -s http://127.0.0.1:8010/health     # {"estado":"ok",...}
+```
+
+Si algún día cambia quién ocupa qué, se mira sin sudo y se ajusta ese mismo fichero:
+
+```bash
+ss -ltn | grep -E ':(5432|5433|8000|8010)'              # qué está escuchando
+ss -ltn | grep ':8001'                                  # y quién tiene el 8001
+docker ps --format 'table {{.Names}}\t{{.Ports}}'        # qué publica Docker
+```
+
+Para apagarlo todo y liberar el 8010 y el 5433: `docker compose down` (los datos se quedan en los volúmenes `poc_abogados_icat_pg` y `poc_abogados_icat_storage`).
 
 ## 4. Primer acceso
 
