@@ -1,5 +1,7 @@
 # PostgreSQL de desarrollo con V1..V15 y views.sql aplicadas al crear el volumen.
 # Arranque: docker compose up -d db   ·   Reset: docker compose down -v
+# Si el 5432 ya está ocupado en la máquina: DB_PUERTO=5433 docker compose up -d db
+# (y el DATABASE_URL del backend pasa a apuntar a ese puerto).
 services:
   db:
     image: postgres:16
@@ -9,7 +11,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: icat
     ports:
-      - "127.0.0.1:5432:5432"   # solo local: Docker se salta ufw
+      - "127.0.0.1:${DB_PUERTO:-5432}:5432"   # solo local: Docker se salta ufw; DB_PUERTO si el 5432 está ocupado
     volumes:
       - ./docs/architecture:/migrations:ro
       - ./backend/db/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
